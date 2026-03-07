@@ -1,3 +1,5 @@
+import AnimatedPressable from '@/components/AnimatedPressable';
+import Card from '@/components/Card';
 import { C, R, SP } from '@/constants/design';
 import { Income, useStore } from '@/store';
 import { blended, fmt, subMo, toHrs } from '@/utils/calc';
@@ -182,11 +184,11 @@ export default function IncomeSheet({ visible, onClose }: Props) {
                     <Text style={s.title}>Income</Text>
 
                     {/* Headline rate */}
-                    <View style={s.rateCard}>
+                    <Card style={s.rateCard}>
                         <Text style={s.rateLabel}>BLENDED HOURLY RATE</Text>
                         <Text style={s.rateValue}>{fmt(rate)}<Text style={s.rateUnit}>/hr</Text></Text>
                         <Text style={s.rateSub}>Your subscriptions cost {toHrs(totalMo, rate)} of work/month</Text>
-                    </View>
+                    </Card>
 
                     <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
                         {(adding || editing) ? (
@@ -241,9 +243,6 @@ const s = StyleSheet.create({
         fontSize: 18, fontWeight: '700', color: C.t1, marginBottom: 16,
     },
     rateCard: {
-        backgroundColor: C.bgSub,
-        borderRadius: R.md,
-        padding: SP[3],
         marginBottom: SP[3],
     },
     rateLabel: {

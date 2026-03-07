@@ -7,18 +7,31 @@
 export const C = {
     bg: '#FFFFFF',
     bgSub: '#F5F5F5',
+    surface: '#FAFAFA',
+    surfaceElevated: '#FFFFFF',
     black: '#000000',
     t1: '#000000',
     t2: '#6B6B6B',
     t3: '#ABABAB',
     line: 'rgba(0,0,0,0.08)',
+    overlay: 'rgba(0,0,0,0.5)',
     green: '#00C805',
+    accent: '#00C805',
     greenBg: 'rgba(0,200,5,0.08)',
     greenLine: 'rgba(0,200,5,0.24)',
     red: '#FF3B30',
     redBg: 'rgba(255,59,48,0.08)',
     redLine: 'rgba(255,59,48,0.24)',
     gold: '#F5A623',
+    warningBg: 'rgba(245,166,35,0.08)',
+    catTint: {
+        entertainment: 'rgba(255,59,48,0.04)',
+        productivity: 'rgba(91,141,239,0.04)',
+        health: 'rgba(78,203,113,0.04)',
+        finance: 'rgba(245,197,66,0.04)',
+        education: 'rgba(176,127,224,0.04)',
+        other: 'rgba(142,142,147,0.04)',
+    },
 } as const;
 
 // ─── TYPOGRAPHY ────────────────────────────
@@ -30,9 +43,10 @@ export const FF = {
 
 // Type scale
 export const TS = {
-    hero1: { fontSize: 64, fontWeight: '700', lineHeight: 64 * 1.0, letterSpacing: -2 },
-    hero2: { fontSize: 40, fontWeight: '700', lineHeight: 40 * 1.05, letterSpacing: -1.5 },
+    hero1: { fontSize: 48, fontWeight: '800', lineHeight: 48 * 1.05, letterSpacing: -1.5 },
+    hero2: { fontSize: 32, fontWeight: '700', lineHeight: 32 * 1.1, letterSpacing: -1 },
     title: { fontSize: 22, fontWeight: '700', lineHeight: 22 * 1.2, letterSpacing: -0.5 },
+    subtitle: { fontSize: 16, fontWeight: '600', lineHeight: 16 * 1.4, letterSpacing: -0.2 },
     body1: { fontSize: 16, fontWeight: '500', lineHeight: 16 * 1.5, letterSpacing: 0 },
     body2: { fontSize: 14, fontWeight: '400', lineHeight: 14 * 1.5, letterSpacing: 0 },
     label: { fontSize: 13, fontWeight: '500', lineHeight: 13 * 1.4, letterSpacing: 0 },
@@ -54,14 +68,29 @@ export const SP = {
 // ─── BORDER RADIUS ─────────────────────────
 export const R = {
     none: 0,
-    sm: 6,
-    md: 12,
+    sm: 8,
+    md: 16,
+    lg: 24,
     pill: 999,
 } as const;
 
 // ─── SHADOWS ──────────────────────────────
 export const SHADOW = {
     none: {},
+    card: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        elevation: 3,
+    },
+    cardHover: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.10,
+        shadowRadius: 16,
+        elevation: 6,
+    },
     sheet: {
         shadowColor: '#000',
         shadowOffset: { width: 0, height: -1 },

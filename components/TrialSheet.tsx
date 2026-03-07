@@ -1,4 +1,6 @@
-import { C, R, SP } from '@/constants/design';
+import AnimatedPressable from '@/components/AnimatedPressable';
+import Card from '@/components/Card';
+import { C, R, SHADOW, SP } from '@/constants/design';
 import { Sub, useStore } from '@/store';
 import { blended, fmt, subMo, toHrs } from '@/utils/calc';
 import React from 'react';
@@ -66,9 +68,8 @@ export default function TrialSheet({ sub: t, onClose }: Props) {
                                 originY={20}
                             />
                             <SvgText
-                                x={20} y={21}
+                                x={20} y={24}
                                 textAnchor="middle"
-                                dominantBaseline="central"
                                 fill={daysLeft <= 3 ? C.red : C.t1}
                                 fontSize={11}
                                 fontWeight="700"
@@ -79,36 +80,34 @@ export default function TrialSheet({ sub: t, onClose }: Props) {
                     </View>
 
                     {/* Cost card */}
-                    <View style={s.costCard}>
+                    <Card style={s.costCard}>
                         <Text style={s.costCardLabel}>IF YOU KEEP THIS</Text>
                         <Text style={s.costHours}>{toHrs(mc, rate)} of work/month</Text>
                         <Text style={s.costMeta}>{fmt(mc)}/month · {fmt(mc * 12)}/year</Text>
-                    </View>
+                    </Card>
 
                     {/* Reflection */}
-                    <View style={s.reflectCard}>
+                    <Card style={s.reflectCard}>
                         <Text style={s.reflectText}>
                             Have you used <Text style={s.reflectBold}>{t.name}</Text> enough in the trial period to justify{' '}
                             <Text style={s.reflectBold}>{toHrs(mc, rate)}</Text> of work every month?
                         </Text>
-                    </View>
+                    </Card>
 
                     {/* Actions */}
                     <View style={{ flexDirection: 'row', gap: 8 }}>
-                        <TouchableOpacity
+                        <AnimatedPressable
                             style={[s.actionBtn, { flex: 1, backgroundColor: C.redBg, borderWidth: 1, borderColor: C.redLine }]}
                             onPress={() => handleDecide('cancelled')}
-                            activeOpacity={0.85}
                         >
                             <Text style={[s.actionLabel, { color: C.red }]}>Cancel — not worth it</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
+                        </AnimatedPressable>
+                        <AnimatedPressable
                             style={[s.actionBtn, { flex: 1, backgroundColor: C.black }]}
                             onPress={() => handleDecide('kept')}
-                            activeOpacity={0.85}
                         >
                             <Text style={[s.actionLabel, { color: '#fff' }]}>Keep — worth it</Text>
-                        </TouchableOpacity>
+                        </AnimatedPressable>
                     </View>
                 </View>
             </View>
@@ -149,9 +148,6 @@ const s = StyleSheet.create({
         fontSize: 12, color: C.red, fontWeight: '600', marginTop: 2,
     },
     costCard: {
-        backgroundColor: C.bgSub,
-        borderRadius: R.md,
-        padding: SP[3],
         marginBottom: 12,
     },
     costCardLabel: {
@@ -164,9 +160,6 @@ const s = StyleSheet.create({
         fontSize: 12, color: C.t3, marginTop: 4,
     },
     reflectCard: {
-        backgroundColor: C.bgSub,
-        borderRadius: R.md,
-        padding: SP[3],
         marginBottom: 24,
     },
     reflectText: {

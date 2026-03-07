@@ -1,6 +1,10 @@
+import AnimatedPressable from '@/components/AnimatedPressable';
+import Card from '@/components/Card';
+import CategoryPill from '@/components/CategoryPill';
+import SubRow from '@/components/SubRow';
 import Toast from '@/components/Toast';
 import TrialSheet from '@/components/TrialSheet';
-import { C, LAYOUT, R, SP } from '@/constants/design';
+import { C, LAYOUT, R, SHADOW, SP } from '@/constants/design';
 import { Sub, useStore } from '@/store';
 import {
   blended,
@@ -21,28 +25,35 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import Animated, {
+  FadeInDown,
+  interpolate,
+  Extrapolation,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
-const CATS: Record<string, { label: string; color: string; icon: string }> = {
-  entertainment: { label: 'Entertainment', color: '#FF3B30', icon: '🎭' },
-  productivity: { label: 'Productivity', color: '#5B8DEF', icon: '⚡' },
-  health: { label: 'Health', color: '#4ECB71', icon: '💚' },
-  finance: { label: 'Finance', color: '#F5C542', icon: '💰' },
-  education: { label: 'Education', color: '#B07FE0', icon: '📚' },
-  other: { label: 'Other', color: '#8E8E93', icon: '📦' },
-};
+import type { Category } from '@/store';
 
 const SORT_LABELS: Record<string, string> = {
   cost: 'Highest cost',
   costLow: 'Lowest cost',
   renewing: 'Renewing soon',
-  name: 'Name A–Z',
+  name: 'Name A-Z',
 };
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const { subs, incomes } = useStore();
+  const { subs, incomes, categories } = useStore();
+
+  const catMap = useMemo(() => {
+    const m: Record<string, Category> = {};
+    categories.forEach(c => { m[c.id] = c; });
+    return m;
+  }, [categories]);
   const [viewPeriod, setViewPeriod] = useState<'mo' | 'yr'>('mo');
   const [filterCat, setFilterCat] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState('cost');
@@ -57,19 +68,19 @@ export default function HomeScreen() {
   const inactive = subs.filter(s => !s.active && !s.isTrial);
   const totalMo = active.reduce((sum, s) => sum + subMo(s), 0);
   const displayTotal = viewPeriod === 'yr' ? totalMo * 12 : totalMo;
+  const totalIncomeMo = incomes.reduce((sum, i) => {
+    return sum + (i.isHourly ? i.amount * (i.hoursPerWeek || 10) * 4.33 : i.amount / 12);
+  }, 0);
+  const pctIncome = totalIncomeMo > 0 ? (totalMo / totalIncomeMo) * 100 : 0;
 
-  const flash = (m: string) => { setToast(m); setTimeout(() => setToast(null), 2200); };
-
-  // Category breakdown
   const catBreakdown = useMemo(() => {
     const bd: Record<string, number> = {};
-    active.forEach(s => { bd[s.category] = (bd[s.category] || 0) + subMo(s); });
+    active.forEach(s => { bd[s.categoryId] = (bd[s.categoryId] || 0) + subMo(s); });
     return Object.entries(bd).sort((a, b) => b[1] - a[1]);
   }, [active]);
 
-  // Filtered + sorted subs
   const displaySubs = useMemo(() => {
-    let list = filterCat ? active.filter(s => s.category === filterCat) : active;
+    let list = filterCat ? active.filter(s => s.categoryId === filterCat) : active;
     if (sortBy === 'cost') list = [...list].sort((a, b) => subMo(b) - subMo(a));
     if (sortBy === 'costLow') list = [...list].sort((a, b) => subMo(a) - subMo(b));
     if (sortBy === 'renewing') list = [...list].sort((a, b) => nextChargeIn(a) - nextChargeIn(b));
@@ -78,6 +89,31 @@ export default function HomeScreen() {
   }, [active, filterCat, sortBy]);
 
   const isYr = viewPeriod === 'yr';
+
+  // Scroll-driven hero animation
+  const scrollY = useSharedValue(0);
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (e) => { scrollY.value = e.contentOffset.y; },
+  });
+
+  const heroAnimStyle = useAnimatedStyle(() => {
+    const translateY = interpolate(scrollY.value, [0, 120], [0, -40], Extrapolation.CLAMP);
+    const scale = interpolate(scrollY.value, [0, 120], [1, 0.92], Extrapolation.CLAMP);
+    const opacity = interpolate(scrollY.value, [0, 100], [1, 0], Extrapolation.CLAMP);
+    return {
+      transform: [{ translateY }, { scale }],
+      opacity,
+    };
+  });
+
+  const pillsAnimStyle = useAnimatedStyle(() => {
+    const translateY = interpolate(scrollY.value, [0, 120], [0, -30], Extrapolation.CLAMP);
+    const opacity = interpolate(scrollY.value, [0, 80], [1, 0], Extrapolation.CLAMP);
+    return {
+      transform: [{ translateY }],
+      opacity,
+    };
+  });
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
@@ -89,125 +125,99 @@ export default function HomeScreen() {
           </Svg>
           <Text style={s.wordmark}>Drip</Text>
         </View>
-        <TouchableOpacity onPress={() => router.push('/add')} style={s.addBtn} activeOpacity={0.75}>
+        <AnimatedPressable onPress={() => router.push('/add')} style={s.addBtn}>
           <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
             <Path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth={2.2} strokeLinecap="round" />
           </Svg>
-        </TouchableOpacity>
+        </AnimatedPressable>
       </View>
 
-      <ScrollView
+      <Animated.ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingHorizontal: LAYOUT.screenHPad, paddingBottom: LAYOUT.tabBarHeight + 16 }}
         showsVerticalScrollIndicator={false}
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
       >
-        {/* ── HERO ── */}
-        <View style={s.hero}>
-          <Text style={s.heroLabel}>You work</Text>
-          <Text style={s.heroValue}>{toHrs(displayTotal, rate)}</Text>
-          <Text style={s.heroSub}>every {isYr ? 'year' : 'month'} for subscriptions</Text>
-
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: SP[5] }}>
-            <Text style={s.totalDollar}>{fmt(displayTotal)}</Text>
-            <View style={s.segPill}>
-              {(['mo', 'yr'] as const).map(k => (
-                <TouchableOpacity
-                  key={k}
-                  onPress={() => setViewPeriod(k)}
-                  style={[s.seg, viewPeriod === k && s.segActive]}
-                  activeOpacity={0.8}
-                >
-                  <Text style={[s.segTxt, viewPeriod === k && s.segTxtActive]}>
-                    {k === 'mo' ? 'Month' : 'Year'}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+        {/* Compact Hero Summary Card */}
+        <Animated.View entering={FadeInDown.duration(400)} style={heroAnimStyle}>
+          <Card style={s.heroCard}>
+            <View style={s.heroRow}>
+              <View style={s.heroStat}>
+                <Text style={s.heroStatLabel}>Total Cost</Text>
+                <Text style={s.heroStatValue}>{fmt(displayTotal)}</Text>
+              </View>
+              <View style={s.heroDivider} />
+              <View style={s.heroStat}>
+                <Text style={s.heroStatLabel}>Work Hours</Text>
+                <Text style={s.heroStatValue}>{toHrs(displayTotal, rate)}</Text>
+              </View>
+              <View style={s.heroDivider} />
+              <View style={s.heroStat}>
+                <Text style={s.heroStatLabel}>% Income</Text>
+                <Text style={s.heroStatValue}>{pctIncome.toFixed(1)}%</Text>
+              </View>
             </View>
-          </View>
-        </View>
 
-        {/* ── CATEGORY BAR ── */}
+            {/* Category breakdown bar */}
+            {catBreakdown.length > 0 && (
+              <View style={s.catBar}>
+                {catBreakdown.map(([cat, amt]) => (
+                  <View
+                    key={cat}
+                    style={{ width: `${(amt / totalMo) * 100}%`, backgroundColor: catMap[cat]?.color ?? '#8E8E93', height: '100%' }}
+                  />
+                ))}
+              </View>
+            )}
+
+            {/* Month/Year toggle */}
+            <View style={s.heroFooter}>
+              <Text style={s.heroSubCount}>{active.length} active</Text>
+              <View style={s.segPill}>
+                {(['mo', 'yr'] as const).map(k => (
+                  <TouchableOpacity
+                    key={k}
+                    onPress={() => setViewPeriod(k)}
+                    style={[s.seg, viewPeriod === k && s.segActive]}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[s.segTxt, viewPeriod === k && s.segTxtActive]}>
+                      {k === 'mo' ? 'Month' : 'Year'}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </Card>
+        </Animated.View>
+
+        {/* Category Pills */}
         {catBreakdown.length > 0 && (
-          <View style={{ marginBottom: 18 }}>
-            {/* Stacked bar */}
-            <View style={s.catBar}>
-              {catBreakdown.map(([cat, amt]) => (
-                <View
-                  key={cat}
-                  style={{ width: `${(amt / totalMo) * 100}%`, backgroundColor: CATS[cat]?.color ?? '#8E8E93', height: '100%' }}
-                />
-              ))}
-            </View>
-            {/* Pills */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 8 }}>
+          <Animated.View style={pillsAnimStyle}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 8, marginBottom: 4 }}>
               <View style={{ flexDirection: 'row', gap: 8, paddingBottom: 2 }}>
                 {catBreakdown.map(([cat, amt]) => {
-                  const sel = filterCat === cat;
-                  const cc = CATS[cat];
+                  const cc = catMap[cat];
                   return (
-                    <TouchableOpacity
+                    <CategoryPill
                       key={cat}
-                      onPress={() => setFilterCat(sel ? null : cat)}
-                      style={[s.catPill, {
-                        backgroundColor: sel ? `${cc?.color}22` : 'rgba(0,0,0,0.04)',
-                        borderColor: sel ? `${cc?.color}66` : 'rgba(0,0,0,0.04)',
-                      }]}
-                      activeOpacity={0.75}
-                    >
-                      <View style={[s.catDot, { backgroundColor: cc?.color }]} />
-                      <Text style={[s.catPillLabel, { color: sel ? cc?.color : C.t2 }]}>{cc?.label}</Text>
-                      <Text style={[s.catPillAmt, { color: sel ? `${cc?.color}AA` : C.t3 }]}>{fmt(amt)}</Text>
-                    </TouchableOpacity>
+                      label={cc?.name ?? cat}
+                      color={cc?.color ?? '#8E8E93'}
+                      amount={fmt(amt)}
+                      selected={filterCat === cat}
+                      onPress={() => setFilterCat(filterCat === cat ? null : cat)}
+                    />
                   );
                 })}
               </View>
             </ScrollView>
-          </View>
+          </Animated.View>
         )}
 
-        {/* ── TRIALS ── */}
-        {activeTrials.length > 0 && (
-          <View style={{ marginBottom: 20 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <Text style={s.sectionCap}>Active Trials</Text>
-              <View style={s.trialBadge}>
-                <Text style={s.trialBadgeTxt}>{activeTrials.length}</Text>
-              </View>
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View style={{ flexDirection: 'row', gap: 8, paddingBottom: 4 }}>
-                {activeTrials.map(t => {
-                  const daysLeft = t.trialEndDay - curDay;
-                  const urgency = daysLeft <= 5 ? C.red : C.t2;
-                  return (
-                    <TouchableOpacity
-                      key={t.id}
-                      onPress={() => setTrialSheet(t)}
-                      style={[s.trialCard, { borderColor: `${urgency}33` }]}
-                      activeOpacity={0.8}
-                    >
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                        <View style={[s.trialIcon, { backgroundColor: t.color }]}>
-                          <Text style={{ fontSize: 14 }}>{t.icon}</Text>
-                        </View>
-                        <Text style={s.trialName}>{t.name}</Text>
-                      </View>
-                      <Text style={[s.trialDays, { color: urgency }]}>
-                        {daysLeft <= 1 ? 'Last day!' : `${daysLeft} days left`}
-                      </Text>
-                      <Text style={s.trialCost}>Then {toHrs(subMo(t), rate)}/month</Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </ScrollView>
-          </View>
-        )}
-
-        {/* ── SUBSCRIPTION LIST ── */}
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <Text style={s.subCount}>{displaySubs.length + activeTrials.length} subscriptions</Text>
-          {/* Sort */}
+        {/* Subscription List Header */}
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, marginTop: 8 }}>
+          <Text style={s.subCount}>{displaySubs.length} subscriptions</Text>
           <View style={{ position: 'relative' }}>
             <TouchableOpacity
               onPress={() => setSortOpen(o => !o)}
@@ -241,38 +251,31 @@ export default function HomeScreen() {
         </View>
 
         {/* Active trial rows */}
-        {activeTrials.map((s_, i) => {
+        {activeTrials.map((s_) => {
           const mc = subMo(s_);
           const daysLeft = s_.trialEndDay - curDay;
           const displayCost = isYr ? mc * 12 : mc;
           const totalDays = 14;
           const pct = Math.min(1, Math.max(0, (totalDays - daysLeft) / totalDays));
           return (
-            <TouchableOpacity
-              key={s_.id}
-              onPress={() => setTrialSheet(s_)}
-              style={ss.trialRow}
-              activeOpacity={0.8}
-            >
-              <View style={[ss.iconCircle, { backgroundColor: s_.color }]}>
-                <Text style={{ fontSize: 18 }}>{s_.icon}</Text>
-              </View>
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <Text style={ss.rowName}>{s_.name}</Text>
-                  <Text style={{ fontSize: 12, fontWeight: '700', color: C.red }}>{daysLeft}d left</Text>
-                </View>
-                <View style={ss.progressTrack}>
-                  <View style={[ss.progressFill, { width: `${pct * 100}%`, backgroundColor: C.red }]} />
-                </View>
-                <Text style={ss.rowMeta}>Then {fmt(displayCost)}/{isYr ? 'year' : 'month'}</Text>
-              </View>
-            </TouchableOpacity>
+            <Animated.View key={s_.id} entering={FadeInDown.duration(300).delay(50)}>
+              <SubRow
+                name={s_.name}
+                icon={s_.icon}
+                color={s_.color}
+                costLabel={fmt(displayCost)}
+                variant="trial"
+                trialDaysLeft={daysLeft}
+                trialCostLabel={`Then ${fmt(displayCost)}/${isYr ? 'year' : 'month'}`}
+                progress={pct}
+                onPress={() => setTrialSheet(s_)}
+              />
+            </Animated.View>
           );
         })}
 
         {/* Active sub rows */}
-        {displaySubs.map(s_ => {
+        {displaySubs.map((s_, idx) => {
           const mc = subMo(s_);
           const displayCost = isYr ? mc * 12 : mc;
           const remain = nextChargeIn(s_);
@@ -281,32 +284,20 @@ export default function HomeScreen() {
           const urgent = remain <= 3;
           const tier = timeTier(displayCost, rate);
           return (
-            <TouchableOpacity
-              key={s_.id}
-              onPress={() => router.push({ pathname: '/edit', params: { id: s_.id } })}
-              style={ss.row}
-              activeOpacity={0.8}
-            >
-              <View style={[ss.iconCircle, { backgroundColor: s_.color }]}>
-                <Text style={{ fontSize: 18 }}>{s_.icon}</Text>
-              </View>
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <Text style={ss.rowName}>{s_.name}</Text>
-                  <View style={{ alignItems: 'flex-end' }}>
-                    <Text style={ss.rowCost}>{fmt(displayCost)}</Text>
-                    <Text style={ss.rowCostSub}>/{isYr ? 'year' : 'month'}</Text>
-                  </View>
-                </View>
-                <View style={ss.progressTrack}>
-                  <View style={[ss.progressFill, { width: `${pct * 100}%`, backgroundColor: urgent ? C.red : s_.color, opacity: 0.7 }]} />
-                </View>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
-                  <Text style={[ss.rowRenew, { color: urgent ? C.red : 'rgba(0,0,0,0.24)' }]}>{daysLabel(remain)}</Text>
-                  <Text style={[ss.rowHours, { color: tier.color }]}>{toHrs(displayCost, rate)}</Text>
-                </View>
-              </View>
-            </TouchableOpacity>
+            <Animated.View key={s_.id} entering={FadeInDown.duration(300).delay(idx * 30)}>
+              <SubRow
+                name={s_.name}
+                icon={s_.icon}
+                color={s_.color}
+                costLabel={fmt(displayCost)}
+                costSub={`/${isYr ? 'year' : 'month'}`}
+                renewLabel={daysLabel(remain)}
+                hoursLabel={toHrs(displayCost, rate)}
+                progress={pct}
+                urgent={urgent}
+                onPress={() => router.push({ pathname: '/edit', params: { id: s_.id } })}
+              />
+            </Animated.View>
           );
         })}
 
@@ -315,24 +306,19 @@ export default function HomeScreen() {
           <View style={{ marginTop: 24 }}>
             <Text style={[s.sectionCap, { marginBottom: 8 }]}>Cancelled</Text>
             {inactive.map(s_ => (
-              <TouchableOpacity
+              <SubRow
                 key={s_.id}
+                name={s_.name}
+                icon={s_.icon}
+                color={s_.color}
+                costLabel={fmt(s_.cost)}
+                variant="inactive"
                 onPress={() => router.push({ pathname: '/edit', params: { id: s_.id } })}
-                style={[ss.row, { opacity: 0.4 }]}
-                activeOpacity={0.7}
-              >
-                <View style={[ss.iconCircle, { backgroundColor: `${s_.color}33`, borderRadius: R.md }]}>
-                  <Text style={{ fontSize: 18 }}>{s_.icon}</Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 12, fontWeight: '600', color: C.t2, textDecorationLine: 'line-through' }}>{s_.name}</Text>
-                </View>
-                <Text style={{ fontSize: 12, color: C.t3 }}>was {fmt(s_.cost)}</Text>
-              </TouchableOpacity>
+              />
             ))}
           </View>
         )}
-      </ScrollView>
+      </Animated.ScrollView>
 
       <TrialSheet sub={trialSheet} onClose={() => setTrialSheet(null)} />
       <Toast message={toast} />
@@ -358,80 +344,59 @@ const s = StyleSheet.create({
     backgroundColor: C.black,
     alignItems: 'center', justifyContent: 'center',
   },
-  hero: {
-    paddingTop: SP[6], paddingBottom: SP[5], alignItems: 'center',
+  // Compact hero card
+  heroCard: {
+    marginTop: 4,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
   },
-  heroLabel: {
-    fontSize: 11, color: C.t3, fontWeight: '500', letterSpacing: 0.5, textTransform: 'uppercase',
+  heroRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  heroValue: {
-    fontSize: 64, fontWeight: '700', color: C.t1, letterSpacing: -2, lineHeight: 70, marginTop: 8,
+  heroStat: {
+    flex: 1,
+    alignItems: 'center',
   },
-  heroSub: {
-    fontSize: 14, color: C.t3, fontWeight: '400', marginTop: 8,
+  heroStatLabel: {
+    fontSize: 10, fontWeight: '600', color: C.t3, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 4,
   },
-  totalDollar: {
-    fontSize: 22, fontWeight: '700', color: C.t1,
+  heroStatValue: {
+    fontSize: 18, fontWeight: '800', color: C.t1, letterSpacing: -0.5,
+  },
+  heroDivider: {
+    width: 1, height: 28, backgroundColor: C.line,
+  },
+  heroFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  heroSubCount: {
+    fontSize: 12, fontWeight: '600', color: C.t3,
+  },
+  catBar: {
+    flexDirection: 'row', height: 4, borderRadius: R.sm, overflow: 'hidden', backgroundColor: C.bgSub, marginTop: 10,
   },
   segPill: {
     flexDirection: 'row', backgroundColor: C.bgSub, borderRadius: R.pill, padding: 2,
   },
   seg: {
-    paddingHorizontal: 16, paddingVertical: 8, borderRadius: R.pill,
+    paddingHorizontal: 14, paddingVertical: 6, borderRadius: R.pill,
   },
   segActive: {
     backgroundColor: C.black,
   },
   segTxt: {
-    fontSize: 13, fontWeight: '500', color: C.t3,
+    fontSize: 12, fontWeight: '500', color: C.t3,
   },
   segTxtActive: {
     color: '#fff',
   },
-  catBar: {
-    flexDirection: 'row', height: 5, borderRadius: R.sm, overflow: 'hidden', backgroundColor: C.bgSub,
-  },
-  catPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 12, paddingVertical: 8,
-    borderRadius: R.pill, borderWidth: 1.5, flexShrink: 0,
-  },
-  catDot: {
-    width: 8, height: 8, borderRadius: 4,
-  },
-  catPillLabel: {
-    fontSize: 12, fontWeight: '600',
-  },
-  catPillAmt: {
-    fontSize: 12,
-  },
   sectionCap: {
     fontSize: 11, fontWeight: '600', color: C.t3, letterSpacing: 0.5, textTransform: 'uppercase',
-  },
-  trialBadge: {
-    backgroundColor: 'rgba(255,59,48,0.1)',
-    paddingHorizontal: 8, paddingVertical: 2, borderRadius: R.sm,
-  },
-  trialBadgeTxt: {
-    fontSize: 12, color: C.red,
-  },
-  trialCard: {
-    minWidth: 160, backgroundColor: C.bgSub,
-    borderWidth: 1, borderRadius: R.md,
-    padding: 14, flexShrink: 0,
-  },
-  trialIcon: {
-    width: 32, height: 32, borderRadius: R.md,
-    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-  },
-  trialName: {
-    fontSize: 12, fontWeight: '600', color: C.t1,
-  },
-  trialDays: {
-    fontSize: 12, fontWeight: '600',
-  },
-  trialCost: {
-    fontSize: 12, color: C.t3, marginTop: 2,
   },
   subCount: {
     fontSize: 12, fontWeight: '600', color: C.t2,
@@ -448,6 +413,7 @@ const s = StyleSheet.create({
     position: 'absolute', top: 44, right: 0, zIndex: 20, minWidth: 170,
     backgroundColor: C.bg, borderWidth: 1, borderColor: C.line,
     borderRadius: R.md, padding: 4,
+    ...SHADOW.cardHover,
   },
   sortItem: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
@@ -456,48 +422,5 @@ const s = StyleSheet.create({
   },
   sortItemTxt: {
     fontSize: 12,
-  },
-});
-
-// Sub row styles
-const ss = StyleSheet.create({
-  row: {
-    flexDirection: 'row', alignItems: 'center', gap: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: C.line,
-  },
-  trialRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: C.redBg,
-    borderWidth: 1, borderColor: C.redLine,
-    borderRadius: R.sm, padding: 12, marginBottom: 4,
-  },
-  iconCircle: {
-    width: 40, height: 40, borderRadius: R.pill,
-    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-  },
-  rowName: {
-    fontSize: 14, fontWeight: '600', color: C.t1,
-  },
-  rowCost: {
-    fontSize: 14, fontWeight: '700', color: C.t1,
-  },
-  rowCostSub: {
-    fontSize: 10, fontWeight: '500', color: C.t3,
-  },
-  progressTrack: {
-    height: 4, backgroundColor: C.bgSub, overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-  },
-  rowRenew: {
-    fontSize: 12, fontWeight: '600',
-  },
-  rowMeta: {
-    fontSize: 12, color: C.t3, marginTop: 4,
-  },
-  rowHours: {
-    fontSize: 12, fontWeight: '600',
   },
 });

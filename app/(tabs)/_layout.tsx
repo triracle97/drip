@@ -43,9 +43,16 @@ const SettingsIcon = ({ color }: { color: string }) => (
   </Svg>
 );
 
+const InsightsIcon = ({ color }: { color: string }) => (
+  <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
+    <Path d="M18 20V10M12 20V4M6 20v-6" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+  </Svg>
+);
+
 const TABS = [
   { id: 'index', label: 'Drip', Icon: HomeIcon },
   { id: 'calendar', label: 'Timeline', Icon: CalendarIcon },
+  { id: 'insights', label: 'Insights', Icon: InsightsIcon },
   { id: 'settings', label: 'Settings', Icon: SettingsIcon },
 ];
 
@@ -116,7 +123,7 @@ const s = StyleSheet.create({
   tab: {
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 20,
+    paddingHorizontal: 12,
   },
   label: {
     fontSize: 10,
@@ -133,6 +140,7 @@ export default function TabLayout() {
     >
       <Tabs.Screen name="index" />
       <Tabs.Screen name="calendar" />
+      <Tabs.Screen name="insights" />
       <Tabs.Screen name="settings" />
     </Tabs>
   );

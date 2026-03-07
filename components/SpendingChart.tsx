@@ -1,0 +1,106 @@
+import Card from '@/components/Card';
+import { C, R } from '@/constants/design';
+import type { Category, SpendingSnapshot } from '@/store';
+import { fmt } from '@/utils/calc';
+import React from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+
+interface Props {
+    history: SpendingSnapshot[];
+    catMap: Record<string, Category>;
+}
+
+export default function SpendingChart({ history, catMap }: Props) {
+    // Show last 6 months, most recent on the right
+    const recent = history.slice(0, 6).reverse();
+
+    if (recent.length === 0) {
+        return (
+            <Card style={s.card}>
+                <Text style={s.title}>SPENDING TREND</Text>
+                <Text style={s.empty}>Your spending trends will appear after your first month.</Text>
+            </Card>
+        );
+    }
+
+    const maxCost = Math.max(...recent.map(r => r.totalMonthlyCost), 1);
+    const prevMonth = recent.length >= 2 ? recent[recent.length - 2].totalMonthlyCost : 0;
+    const curMonth = recent[recent.length - 1].totalMonthlyCost;
+    const diff = curMonth - prevMonth;
+
+    // Find dominant category color for each month
+    const barColor = (snap: SpendingSnapshot) => {
+        const entries = Object.entries(snap.categoryBreakdown);
+        if (entries.length === 0) return C.t3;
+        const [topCat] = entries.sort((a, b) => b[1] - a[1])[0];
+        return catMap[topCat]?.color ?? C.t3;
+    };
+
+    const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    return (
+        <Card style={s.card}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <Text style={s.title}>SPENDING TREND</Text>
+                {recent.length >= 2 && (
+                    <Text style={[s.trend, { color: diff > 0 ? C.red : diff < 0 ? C.green : C.t3 }]}>
+                        {diff > 0 ? '+' : ''}{fmt(diff)} vs last month
+                    </Text>
+                )}
+            </View>
+
+            <View style={s.barContainer}>
+                {recent.map((snap, i) => {
+                    const pct = snap.totalMonthlyCost / maxCost;
+                    const isLast = i === recent.length - 1;
+                    return (
+                        <View key={`${snap.year}-${snap.month}`} style={s.barCol}>
+                            <View style={s.barTrack}>
+                                <View style={[s.bar, {
+                                    height: `${Math.max(4, pct * 100)}%`,
+                                    backgroundColor: barColor(snap),
+                                    opacity: isLast ? 1 : 0.5,
+                                }]} />
+                            </View>
+                            <Text style={[s.barLabel, isLast && { fontWeight: '700', color: C.t1 }]}>
+                                {MONTHS[snap.month]}
+                            </Text>
+                            <Text style={s.barAmt}>{fmt(snap.totalMonthlyCost)}</Text>
+                        </View>
+                    );
+                })}
+            </View>
+        </Card>
+    );
+}
+
+const s = StyleSheet.create({
+    card: {},
+    title: {
+        fontSize: 10, fontWeight: '600', color: C.t3, letterSpacing: 0.5,
+    },
+    trend: {
+        fontSize: 11, fontWeight: '600',
+    },
+    empty: {
+        fontSize: 12, color: C.t3, textAlign: 'center', paddingVertical: 24,
+    },
+    barContainer: {
+        flexDirection: 'row', gap: 8, alignItems: 'flex-end',
+    },
+    barCol: {
+        flex: 1, alignItems: 'center',
+    },
+    barTrack: {
+        width: '100%', height: 100, justifyContent: 'flex-end', alignItems: 'center',
+    },
+    bar: {
+        width: '60%', borderRadius: 4, minHeight: 4,
+    },
+    barLabel: {
+        fontSize: 10, color: C.t3, marginTop: 6, fontWeight: '500',
+    },
+    barAmt: {
+        fontSize: 9, color: C.t3, marginTop: 2,
+    },
+});

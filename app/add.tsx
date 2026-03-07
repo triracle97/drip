@@ -1,9 +1,13 @@
+import AnimatedPressable from '@/components/AnimatedPressable';
 import AppearanceModal from '@/components/AppearanceModal';
+import Card from '@/components/Card';
+import CategoryPill from '@/components/CategoryPill';
 import { C, LAYOUT, R } from '@/constants/design';
 import { Sub, useStore } from '@/store';
+import { getPopularSubs, PopularSub } from '@/store/supabase';
 import { blended, curDay, fmt, moEq, toHrs } from '@/utils/calc';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     ScrollView,
     StyleSheet,
@@ -16,31 +20,9 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
-const CATS: Record<string, { label: string; color: string; icon: string }> = {
-    entertainment: { label: 'Entertainment', color: '#FF3B30', icon: '🎭' },
-    productivity: { label: 'Productivity', color: '#5B8DEF', icon: '⚡' },
-    health: { label: 'Health', color: '#4ECB71', icon: '💚' },
-    finance: { label: 'Finance', color: '#F5C542', icon: '💰' },
-    education: { label: 'Education', color: '#B07FE0', icon: '📚' },
-    other: { label: 'Other', color: '#8E8E93', icon: '📦' },
-};
-
-const QUICK_PICKS = [
-    { name: 'Netflix', icon: '▶️', cat: 'entertainment', cost: 15.99, bg: '#E50914' },
-    { name: 'Spotify', icon: '🎵', cat: 'entertainment', cost: 10.99, bg: '#1DB954' },
-    { name: 'YouTube', icon: '📺', cat: 'entertainment', cost: 13.99, bg: '#FF0000' },
-    { name: 'ChatGPT', icon: '🧠', cat: 'productivity', cost: 20, bg: '#10A37F' },
-    { name: 'iCloud+', icon: '☁️', cat: 'productivity', cost: 2.99, bg: '#3693F5' },
-    { name: 'GitHub', icon: '⌨️', cat: 'productivity', cost: 4, bg: '#24292e' },
-    { name: 'Figma', icon: '✏️', cat: 'productivity', cost: 12, bg: '#A259FF' },
-    { name: 'Gym', icon: '🏋️', cat: 'health', cost: 49.99, bg: '#333333' },
-    { name: 'Disney+', icon: '🎬', cat: 'entertainment', cost: 13.99, bg: '#0057B8' },
-    { name: 'Apple TV+', icon: '📱', cat: 'entertainment', cost: 9.99, bg: '#000000' },
-];
-
 const CYCLES: [string, string][] = [
     ['weekly', 'Every week'], ['biweekly', 'Every 2 weeks'], ['monthly', 'Every month'],
-    ['quarterly', 'Every 3 months'], ['biannual', 'Every 6 months'], ['yearly', 'Every year'], ['custom', 'Custom…'],
+    ['quarterly', 'Every 3 months'], ['biannual', 'Every 6 months'], ['yearly', 'Every year'], ['custom', 'Custom...'],
 ];
 
 interface Form {
@@ -49,7 +31,7 @@ interface Form {
     color: string;
     cost: string;
     cycle: string;
-    category: string;
+    categoryId: string;
     billDay: string;
     startDate: string;
     isTrial: boolean;
@@ -60,7 +42,7 @@ interface Form {
 
 const DEFAULT_FORM: Form = {
     name: '', icon: '📦', color: '#000000',
-    cost: '', cycle: 'monthly', category: 'other',
+    cost: '', cycle: 'monthly', categoryId: 'cat_other',
     billDay: '1', startDate: new Date().toISOString().split('T')[0],
     isTrial: false, trialDays: '14',
     customNum: '2', customUnit: 'months',
@@ -73,20 +55,25 @@ function cycleLabelFull(f: Form) {
 
 export default function AddScreen() {
     const insets = useSafeAreaInsets();
-    const { addSub, incomes } = useStore();
+    const { addSub, incomes, categories } = useStore();
     const rate = blended(incomes);
 
     const [phase, setPhase] = useState<'pick' | 'form'>('pick');
     const [f, setF] = useState<Form>({ ...DEFAULT_FORM });
     const [cycleOpen, setCycleOpen] = useState(false);
     const [showAppearance, setShowAppearance] = useState(false);
+    const [popularSubs, setPopularSubs] = useState<PopularSub[]>([]);
+
+    useEffect(() => {
+        getPopularSubs().then(setPopularSubs);
+    }, []);
 
     const u = (k: keyof Form, v: any) => setF(prev => ({ ...prev, [k]: v }));
     const mc = moEq(parseFloat(f.cost) || 0, f.cycle, parseFloat(f.customNum) || 1, f.customUnit);
     const canSave = f.name.trim() && parseFloat(f.cost) > 0;
 
-    const pickBrand = (q: typeof QUICK_PICKS[0]) => {
-        setF({ ...DEFAULT_FORM, name: q.name, icon: q.icon, category: q.cat, cost: String(q.cost), color: q.bg });
+    const pickBrand = (q: PopularSub) => {
+        setF({ ...DEFAULT_FORM, name: q.name, icon: q.icon, categoryId: q.category_id, cost: String(q.default_cost), color: q.color });
         setPhase('form');
     };
     const pickCustom = () => { setF({ ...DEFAULT_FORM }); setPhase('form'); };
@@ -97,7 +84,7 @@ export default function AddScreen() {
         const bd = f.startDate ? new Date(f.startDate).getDate() : parseInt(f.billDay) || 1;
         const newSub: Sub = {
             id: `s${Date.now()}`, name: f.name, icon: f.icon, cost: parseFloat(f.cost),
-            cycle: f.cycle, category: f.category, active: true, billDay: bd,
+            cycle: f.cycle, categoryId: f.categoryId, active: true, billDay: bd,
             startDate: f.startDate, color: f.color,
             isTrial: f.isTrial, trialEndDay: trialEnd,
             trialDecision: f.isTrial ? 'pending' : 'none',
@@ -108,7 +95,7 @@ export default function AddScreen() {
         router.back();
     };
 
-    /* ─── SCREEN 1: BRAND PICKER ─── */
+    /* SCREEN 1: BRAND PICKER */
     if (phase === 'pick') {
         return (
             <View style={{ flex: 1, backgroundColor: C.bg }}>
@@ -127,17 +114,17 @@ export default function AddScreen() {
                     <Text style={s.subtitle}>Choose a service or add your own</Text>
 
                     <View style={s.brandGrid}>
-                        {QUICK_PICKS.map(q => (
-                            <TouchableOpacity key={q.name} onPress={() => pickBrand(q)} style={s.brandCell} activeOpacity={0.8}>
-                                <View style={[s.brandIcon, { backgroundColor: q.bg }]}>
+                        {popularSubs.map(q => (
+                            <AnimatedPressable key={q.id} onPress={() => pickBrand(q)} style={s.brandCell}>
+                                <View style={[s.brandIcon, { backgroundColor: q.color }]}>
                                     <Text style={{ fontSize: 22 }}>{q.icon}</Text>
                                 </View>
                                 <Text style={s.brandName}>{q.name}</Text>
-                            </TouchableOpacity>
+                            </AnimatedPressable>
                         ))}
                     </View>
 
-                    <TouchableOpacity onPress={pickCustom} style={s.customRow} activeOpacity={0.8}>
+                    <AnimatedPressable onPress={pickCustom} style={s.customRow}>
                         <View style={s.customPlus}>
                             <Text style={{ fontSize: 20, color: C.t1, fontWeight: '500' }}>+</Text>
                         </View>
@@ -148,13 +135,13 @@ export default function AddScreen() {
                         <Svg width={12} height={12} viewBox="0 0 16 16" fill="none" style={{ marginLeft: 'auto' }}>
                             <Path d="M6 3l5 5-5 5" stroke={C.t3} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
                         </Svg>
-                    </TouchableOpacity>
+                    </AnimatedPressable>
                 </ScrollView>
             </View>
         );
     }
 
-    /* ─── SCREEN 2: DETAIL FORM ─── */
+    /* SCREEN 2: DETAIL FORM */
     return (
         <View style={{ flex: 1, backgroundColor: C.bg }}>
             <View style={[s.header, { paddingTop: insets.top + 8 }]}>
@@ -178,7 +165,7 @@ export default function AddScreen() {
                         style={s.inp}
                         value={f.name}
                         onChangeText={v => u('name', v)}
-                        placeholder="Subscription name…"
+                        placeholder="Subscription name..."
                         placeholderTextColor={C.t3}
                         autoFocus
                     />
@@ -244,20 +231,16 @@ export default function AddScreen() {
                 <Field label="CATEGORY">
                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                         <View style={{ flexDirection: 'row', gap: 8 }}>
-                            {Object.entries(CATS).map(([k, c]) => {
-                                const sel = f.category === k;
-                                return (
-                                    <TouchableOpacity
-                                        key={k}
-                                        onPress={() => u('category', k)}
-                                        style={[s.catChip, { backgroundColor: sel ? `${c.color}CC` : 'rgba(0,0,0,0.04)', borderColor: sel ? c.color : 'rgba(0,0,0,0.04)' }]}
-                                        activeOpacity={0.8}
-                                    >
-                                        <Text style={{ fontSize: 14 }}>{c.icon}</Text>
-                                        <Text style={{ fontSize: 12, fontWeight: '600', color: sel ? '#fff' : C.t3 }}>{c.label}</Text>
-                                    </TouchableOpacity>
-                                );
-                            })}
+                            {categories.map(c => (
+                                <CategoryPill
+                                    key={c.id}
+                                    label={c.name}
+                                    color={c.color}
+                                    icon={c.icon}
+                                    selected={f.categoryId === c.id}
+                                    onPress={() => u('categoryId', c.id)}
+                                />
+                            ))}
                         </View>
                     </ScrollView>
                 </Field>
@@ -272,7 +255,7 @@ export default function AddScreen() {
 
                 {/* Icon & Color */}
                 <Field label="ICON & COLOR">
-                    <TouchableOpacity onPress={() => setShowAppearance(true)} style={s.appearanceRow} activeOpacity={0.8}>
+                    <AnimatedPressable onPress={() => setShowAppearance(true)} style={s.appearanceRow}>
                         <View style={[s.iconPreview, { backgroundColor: f.color }]}>
                             <Text style={{ fontSize: 22 }}>{f.icon}</Text>
                         </View>
@@ -283,7 +266,7 @@ export default function AddScreen() {
                         <Svg width={14} height={14} viewBox="0 0 16 16" fill="none">
                             <Path d="M6 3l5 5-5 5" stroke={C.t3} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
                         </Svg>
-                    </TouchableOpacity>
+                    </AnimatedPressable>
                 </Field>
 
                 {/* Trial toggle */}
@@ -328,7 +311,7 @@ export default function AddScreen() {
 
                 {/* Work preview */}
                 {parseFloat(f.cost) > 0 && (
-                    <View style={s.workPreview}>
+                    <Card style={s.workPreview}>
                         <View style={{ flex: 1 }}>
                             <Text style={{ fontSize: 10, color: C.t3, fontWeight: '600', letterSpacing: 0.5 }}>
                                 {f.isTrial ? `AFTER ${f.trialDays} DAYS` : 'THIS COSTS YOU'}
@@ -339,20 +322,19 @@ export default function AddScreen() {
                             <Text style={{ fontSize: 14, color: C.t2, fontWeight: '700' }}>{fmt(mc)}<Text style={{ fontSize: 12, color: C.t3, fontWeight: '400' }}>/month</Text></Text>
                             <Text style={{ fontSize: 12, color: C.t3, marginTop: 2 }}>{fmt(mc * 12)}/year</Text>
                         </View>
-                    </View>
+                    </Card>
                 )}
 
                 {/* Save */}
-                <TouchableOpacity
+                <AnimatedPressable
                     onPress={save}
                     disabled={!canSave}
                     style={[s.saveBtn, { backgroundColor: canSave ? C.black : C.bgSub, opacity: canSave ? 1 : 0.5 }]}
-                    activeOpacity={0.85}
                 >
                     <Text style={[s.saveTxt, { color: canSave ? '#fff' : C.t3 }]}>
-                        {f.isTrial ? `Add trial — remind me in ${f.trialDays} days` : 'Add subscription'}
+                        {f.isTrial ? `Add trial` : 'Add subscription'}
                     </Text>
-                </TouchableOpacity>
+                </AnimatedPressable>
             </ScrollView>
 
             <AppearanceModal
@@ -401,7 +383,7 @@ const s = StyleSheet.create({
     brandCell: {
         width: '22%', alignItems: 'center', gap: 8,
         paddingVertical: 12, paddingHorizontal: 4,
-        backgroundColor: C.bgSub, borderRadius: R.pill,
+        backgroundColor: C.surface, borderRadius: R.md,
     },
     brandIcon: {
         width: 44, height: 44, borderRadius: R.md,
@@ -412,8 +394,8 @@ const s = StyleSheet.create({
     },
     customRow: {
         flexDirection: 'row', alignItems: 'center', gap: 12,
-        backgroundColor: C.bgSub, borderWidth: 1, borderStyle: 'dashed', borderColor: C.line,
-        borderRadius: R.pill, padding: 16, marginTop: 12,
+        backgroundColor: C.surface, borderWidth: 1, borderStyle: 'dashed', borderColor: C.line,
+        borderRadius: R.md, padding: 16, marginTop: 12,
     },
     customPlus: {
         width: 44, height: 44, borderRadius: R.md, backgroundColor: C.bg,
@@ -462,14 +444,9 @@ const s = StyleSheet.create({
     segActive: { backgroundColor: C.black },
     segTxt: { fontSize: 12, fontWeight: '600', color: C.t3 },
     segTxtActive: { color: '#fff' },
-    catChip: {
-        flexDirection: 'row', alignItems: 'center', gap: 6,
-        paddingHorizontal: 12, paddingVertical: 8,
-        borderRadius: R.pill, borderWidth: 1.5, flexShrink: 0,
-    },
     appearanceRow: {
         flexDirection: 'row', alignItems: 'center', gap: 12,
-        backgroundColor: C.bgSub, borderRadius: R.pill, padding: 12,
+        backgroundColor: C.surface, borderRadius: R.md, padding: 12,
     },
     iconPreview: {
         width: 48, height: 48, borderRadius: R.md,
@@ -493,8 +470,7 @@ const s = StyleSheet.create({
     },
     workPreview: {
         flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-        backgroundColor: C.bgSub, borderWidth: 1, borderColor: C.line,
-        borderRadius: R.md, padding: 16, marginBottom: 24,
+        marginBottom: 24,
     },
     saveBtn: {
         borderRadius: R.pill, paddingVertical: 15, alignItems: 'center',

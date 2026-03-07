@@ -116,6 +116,22 @@ export const timeTier = (cost: number, rate: number): { color: string; label: st
     return { color: '#ABABAB', label: 'Minimal', bg: '#F5F5F5' };
 };
 
+// ─── BUDGET HEALTH ───────────────────────
+export const monthlyIncome = (incs: Income[]): number => {
+    return incs.reduce((sum, i) => {
+        return sum + (i.isHourly ? i.amount * (i.hoursPerWeek || 10) * 4.33 : i.amount / 12);
+    }, 0);
+};
+
+export const budgetHealth = (monthlySubCost: number, moIncome: number): { level: string; label: string; color: string; pct: number } => {
+    if (moIncome <= 0) return { level: 'unknown', label: 'Set income', color: '#8E8E93', pct: 0 };
+    const pct = (monthlySubCost / moIncome) * 100;
+    if (pct < 5) return { level: 'healthy', label: 'Healthy', color: '#00C805', pct };
+    if (pct < 10) return { level: 'moderate', label: 'Moderate', color: '#F5A623', pct };
+    if (pct < 15) return { level: 'high', label: 'High', color: '#FF6B35', pct };
+    return { level: 'alert', label: 'Alert', color: '#FF3B30', pct };
+};
+
 // ─── DATE HELPERS ─────────────────────────
 export const today = new Date();
 export const curDay = today.getDate();

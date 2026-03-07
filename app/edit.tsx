@@ -1,4 +1,7 @@
+import AnimatedPressable from '@/components/AnimatedPressable';
 import AppearanceModal from '@/components/AppearanceModal';
+import Card from '@/components/Card';
+import CategoryPill from '@/components/CategoryPill';
 import { C, LAYOUT, R } from '@/constants/design';
 import { Sub, useStore } from '@/store';
 import { blended, cycleLabel, fmt, moEq, toHrs } from '@/utils/calc';
@@ -16,18 +19,9 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
-const CATS: Record<string, { label: string; color: string; icon: string }> = {
-    entertainment: { label: 'Entertainment', color: '#FF3B30', icon: '🎭' },
-    productivity: { label: 'Productivity', color: '#5B8DEF', icon: '⚡' },
-    health: { label: 'Health', color: '#4ECB71', icon: '💚' },
-    finance: { label: 'Finance', color: '#F5C542', icon: '💰' },
-    education: { label: 'Education', color: '#B07FE0', icon: '📚' },
-    other: { label: 'Other', color: '#8E8E93', icon: '📦' },
-};
-
 const CYCLES: [string, string][] = [
     ['weekly', 'Every week'], ['biweekly', 'Every 2 weeks'], ['monthly', 'Every month'],
-    ['quarterly', 'Every 3 months'], ['biannual', 'Every 6 months'], ['yearly', 'Every year'], ['custom', 'Custom…'],
+    ['quarterly', 'Every 3 months'], ['biannual', 'Every 6 months'], ['yearly', 'Every year'], ['custom', 'Custom...'],
 ];
 
 function cycleLabelFull(cycle: string, customNum?: string, customUnit?: string) {
@@ -38,13 +32,13 @@ function cycleLabelFull(cycle: string, customNum?: string, customUnit?: string) 
 export default function EditScreen() {
     const insets = useSafeAreaInsets();
     const { id } = useLocalSearchParams<{ id: string }>();
-    const { subs, updateSub, removeSub, incomes } = useStore();
+    const { subs, updateSub, removeSub, incomes, categories } = useStore();
     const rate = blended(incomes);
 
     const original = subs.find(s => s.id === id);
     const [f, setF] = useState<Sub>(original ? { ...original } : {
         id: '', name: '', icon: '📦', color: '#000', cost: 0, cycle: 'monthly',
-        category: 'other', active: true, billDay: 1, isTrial: false, trialEndDay: 0,
+        categoryId: 'cat_other', active: true, billDay: 1, isTrial: false, trialEndDay: 0,
         trialDecision: 'none',
     });
     const [costStr, setCostStr] = useState(String(f.cost));
@@ -94,11 +88,11 @@ export default function EditScreen() {
             >
                 {/* Icon + Name Header */}
                 <View style={s.iconHeader}>
-                    <TouchableOpacity onPress={() => setShowAppearance(true)} activeOpacity={0.8}>
+                    <AnimatedPressable onPress={() => setShowAppearance(true)}>
                         <View style={[s.bigIcon, { backgroundColor: f.color }]}>
                             <Text style={{ fontSize: 22 }}>{f.icon}</Text>
                         </View>
-                    </TouchableOpacity>
+                    </AnimatedPressable>
                     <View style={{ flex: 1 }}>
                         <TextInput
                             style={s.nameInput}
@@ -169,20 +163,16 @@ export default function EditScreen() {
                 <Field label="CATEGORY">
                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                         <View style={{ flexDirection: 'row', gap: 8 }}>
-                            {Object.entries(CATS).map(([k, c]) => {
-                                const sel = f.category === k;
-                                return (
-                                    <TouchableOpacity
-                                        key={k}
-                                        onPress={() => u('category', k)}
-                                        style={[s.catChip, { backgroundColor: sel ? `${c.color}CC` : 'rgba(0,0,0,0.04)', borderColor: sel ? c.color : 'rgba(0,0,0,0.04)' }]}
-                                        activeOpacity={0.8}
-                                    >
-                                        <Text style={{ fontSize: 14 }}>{c.icon}</Text>
-                                        <Text style={{ fontSize: 12, fontWeight: '600', color: sel ? '#fff' : C.t3 }}>{c.label}</Text>
-                                    </TouchableOpacity>
-                                );
-                            })}
+                            {categories.map(c => (
+                                <CategoryPill
+                                    key={c.id}
+                                    label={c.name}
+                                    color={c.color}
+                                    icon={c.icon}
+                                    selected={f.categoryId === c.id}
+                                    onPress={() => u('categoryId', c.id)}
+                                />
+                            ))}
                         </View>
                     </ScrollView>
                 </Field>
@@ -203,7 +193,7 @@ export default function EditScreen() {
 
                 {/* Work preview */}
                 {parseFloat(costStr) > 0 && (
-                    <View style={s.workPreview}>
+                    <Card style={s.workPreview}>
                         <View style={{ flex: 1 }}>
                             <Text style={{ fontSize: 10, color: C.t3, fontWeight: '600', letterSpacing: 0.5 }}>THIS COSTS YOU</Text>
                             <Text style={{ fontSize: 18, fontWeight: '700', color: C.t1, marginTop: 2 }}>{toHrs(mc, rate)} of work</Text>
@@ -212,17 +202,17 @@ export default function EditScreen() {
                             <Text style={{ fontSize: 14, color: C.t2, fontWeight: '700' }}>{fmt(mc)}<Text style={{ fontSize: 12, color: C.t3, fontWeight: '400' }}>/month</Text></Text>
                             <Text style={{ fontSize: 12, color: C.t3, marginTop: 2 }}>{fmt(mc * 12)}/year</Text>
                         </View>
-                    </View>
+                    </Card>
                 )}
 
                 {/* Actions */}
                 <View style={{ flexDirection: 'row', gap: 8 }}>
-                    <TouchableOpacity onPress={save} style={[s.saveBtn, { flex: 2 }]} activeOpacity={0.85}>
+                    <AnimatedPressable onPress={save} style={[s.saveBtn, { flex: 2 }]}>
                         <Text style={s.saveTxt}>Save changes</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={remove} style={[s.removeBtn, { flex: 1 }]} activeOpacity={0.85}>
+                    </AnimatedPressable>
+                    <AnimatedPressable onPress={remove} style={[s.removeBtn, { flex: 1 }]}>
                         <Text style={s.removeTxt}>Remove</Text>
-                    </TouchableOpacity>
+                    </AnimatedPressable>
                 </View>
             </ScrollView>
 
@@ -305,11 +295,6 @@ const s = StyleSheet.create({
     segActive: { backgroundColor: C.black },
     segTxt: { fontSize: 12, fontWeight: '600', color: C.t3 },
     segTxtActive: { color: '#fff' },
-    catChip: {
-        flexDirection: 'row', alignItems: 'center', gap: 6,
-        paddingHorizontal: 12, paddingVertical: 8,
-        borderRadius: R.pill, borderWidth: 1.5, flexShrink: 0,
-    },
     toggleBox: {
         flexDirection: 'row', alignItems: 'center',
         padding: 14, borderRadius: R.md, borderWidth: 1.5, marginBottom: 20,
@@ -319,8 +304,7 @@ const s = StyleSheet.create({
     },
     workPreview: {
         flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-        backgroundColor: C.bgSub, borderWidth: 1, borderColor: C.line,
-        borderRadius: R.md, padding: 16, marginBottom: 24,
+        marginBottom: 24,
     },
     saveBtn: {
         backgroundColor: C.black, borderRadius: R.pill, paddingVertical: 15, alignItems: 'center',
