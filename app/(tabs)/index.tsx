@@ -1,10 +1,10 @@
+import AddSubSheet from '@/components/AddSubSheet';
 import AnimatedPressable from '@/components/AnimatedPressable';
 import Card from '@/components/Card';
-import CategoryPill from '@/components/CategoryPill';
 import SubRow from '@/components/SubRow';
 import Toast from '@/components/Toast';
 import TrialSheet from '@/components/TrialSheet';
-import { C, LAYOUT, R, SHADOW, SP } from '@/constants/design';
+import { C, LAYOUT, R, SHADOW } from '@/constants/design';
 import { Sub, useStore } from '@/store';
 import {
   blended,
@@ -19,16 +19,15 @@ import {
 import { router } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import {
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View
 } from 'react-native';
 import Animated, {
+  Extrapolation,
   FadeInDown,
   interpolate,
-  Extrapolation,
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
@@ -60,6 +59,7 @@ export default function HomeScreen() {
   const [sortOpen, setSortOpen] = useState(false);
   const [trialSheet, setTrialSheet] = useState<Sub | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [addSheetOpen, setAddSheetOpen] = useState(false);
 
   const rate = blended(incomes);
   const activeTrials = subs.filter(s => s.isTrial && s.trialDecision === 'pending' && s.trialEndDay > curDay);
@@ -125,7 +125,7 @@ export default function HomeScreen() {
           </Svg>
           <Text style={s.wordmark}>Drip</Text>
         </View>
-        <AnimatedPressable onPress={() => router.push('/add')} style={s.addBtn}>
+        <AnimatedPressable onPress={() => setAddSheetOpen(true)} style={s.addBtn}>
           <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
             <Path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth={2.2} strokeLinecap="round" />
           </Svg>
@@ -146,77 +146,26 @@ export default function HomeScreen() {
               <View style={s.heroStat}>
                 <Text style={s.heroStatLabel}>Total Cost</Text>
                 <Text style={s.heroStatValue}>{fmt(displayTotal)}</Text>
+                <Text style={s.heroStatHint}>{active.length} active</Text>
               </View>
               <View style={s.heroDivider} />
               <View style={s.heroStat}>
                 <Text style={s.heroStatLabel}>Work Hours</Text>
                 <Text style={s.heroStatValue}>{toHrs(displayTotal, rate)}</Text>
+                <Text style={s.heroStatHint}>to earn this</Text>
               </View>
               <View style={s.heroDivider} />
               <View style={s.heroStat}>
                 <Text style={s.heroStatLabel}>% Income</Text>
                 <Text style={s.heroStatValue}>{pctIncome.toFixed(1)}%</Text>
-              </View>
-            </View>
-
-            {/* Category breakdown bar */}
-            {catBreakdown.length > 0 && (
-              <View style={s.catBar}>
-                {catBreakdown.map(([cat, amt]) => (
-                  <View
-                    key={cat}
-                    style={{ width: `${(amt / totalMo) * 100}%`, backgroundColor: catMap[cat]?.color ?? '#8E8E93', height: '100%' }}
-                  />
-                ))}
-              </View>
-            )}
-
-            {/* Month/Year toggle */}
-            <View style={s.heroFooter}>
-              <Text style={s.heroSubCount}>{active.length} active</Text>
-              <View style={s.segPill}>
-                {(['mo', 'yr'] as const).map(k => (
-                  <TouchableOpacity
-                    key={k}
-                    onPress={() => setViewPeriod(k)}
-                    style={[s.seg, viewPeriod === k && s.segActive]}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={[s.segTxt, viewPeriod === k && s.segTxtActive]}>
-                      {k === 'mo' ? 'Month' : 'Year'}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                <Text style={s.heroStatHint}>of monthly</Text>
               </View>
             </View>
           </Card>
         </Animated.View>
 
-        {/* Category Pills */}
-        {catBreakdown.length > 0 && (
-          <Animated.View style={pillsAnimStyle}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 8, marginBottom: 4 }}>
-              <View style={{ flexDirection: 'row', gap: 8, paddingBottom: 2 }}>
-                {catBreakdown.map(([cat, amt]) => {
-                  const cc = catMap[cat];
-                  return (
-                    <CategoryPill
-                      key={cat}
-                      label={cc?.name ?? cat}
-                      color={cc?.color ?? '#8E8E93'}
-                      amount={fmt(amt)}
-                      selected={filterCat === cat}
-                      onPress={() => setFilterCat(filterCat === cat ? null : cat)}
-                    />
-                  );
-                })}
-              </View>
-            </ScrollView>
-          </Animated.View>
-        )}
-
         {/* Subscription List Header */}
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, marginTop: 8 }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, marginTop: 12 }}>
           <Text style={s.subCount}>{displaySubs.length} subscriptions</Text>
           <View style={{ position: 'relative' }}>
             <TouchableOpacity
@@ -267,7 +216,6 @@ export default function HomeScreen() {
                 variant="trial"
                 trialDaysLeft={daysLeft}
                 trialCostLabel={`Then ${fmt(displayCost)}/${isYr ? 'year' : 'month'}`}
-                progress={pct}
                 onPress={() => setTrialSheet(s_)}
               />
             </Animated.View>
@@ -293,7 +241,6 @@ export default function HomeScreen() {
                 costSub={`/${isYr ? 'year' : 'month'}`}
                 renewLabel={daysLabel(remain)}
                 hoursLabel={toHrs(displayCost, rate)}
-                progress={pct}
                 urgent={urgent}
                 onPress={() => router.push({ pathname: '/edit', params: { id: s_.id } })}
               />
@@ -321,6 +268,7 @@ export default function HomeScreen() {
       </Animated.ScrollView>
 
       <TrialSheet sub={trialSheet} onClose={() => setTrialSheet(null)} />
+      <AddSubSheet visible={addSheetOpen} onClose={() => setAddSheetOpen(false)} />
       <Toast message={toast} />
     </View>
   );
@@ -360,46 +308,22 @@ const s = StyleSheet.create({
     alignItems: 'center',
   },
   heroStatLabel: {
-    fontSize: 10, fontWeight: '600', color: C.t3, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 4,
+    fontSize: 10, fontWeight: '700', color: C.t2, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 4,
   },
   heroStatValue: {
     fontSize: 18, fontWeight: '800', color: C.t1, letterSpacing: -0.5,
   },
+  heroStatHint: {
+    fontSize: 9, fontWeight: '500', color: C.t3, marginTop: 2,
+  },
   heroDivider: {
     width: 1, height: 28, backgroundColor: C.line,
-  },
-  heroFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  heroSubCount: {
-    fontSize: 12, fontWeight: '600', color: C.t3,
-  },
-  catBar: {
-    flexDirection: 'row', height: 4, borderRadius: R.sm, overflow: 'hidden', backgroundColor: C.bgSub, marginTop: 10,
-  },
-  segPill: {
-    flexDirection: 'row', backgroundColor: C.bgSub, borderRadius: R.pill, padding: 2,
-  },
-  seg: {
-    paddingHorizontal: 14, paddingVertical: 6, borderRadius: R.pill,
-  },
-  segActive: {
-    backgroundColor: C.black,
-  },
-  segTxt: {
-    fontSize: 12, fontWeight: '500', color: C.t3,
-  },
-  segTxtActive: {
-    color: '#fff',
   },
   sectionCap: {
     fontSize: 11, fontWeight: '600', color: C.t3, letterSpacing: 0.5, textTransform: 'uppercase',
   },
   subCount: {
-    fontSize: 12, fontWeight: '600', color: C.t2,
+    fontSize: 15, fontWeight: '700', color: C.t1,
   },
   sortBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,

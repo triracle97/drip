@@ -1,13 +1,14 @@
 import AnimatedPressable from '@/components/AnimatedPressable';
 import AppearanceModal from '@/components/AppearanceModal';
+import BrandLogo from '@/components/BrandLogo';
 import Card from '@/components/Card';
 import CategoryPill from '@/components/CategoryPill';
-import { C, LAYOUT, R } from '@/constants/design';
+import { C, R } from '@/constants/design';
 import { Sub, useStore } from '@/store';
 import { getPopularSubs, PopularSub } from '@/store/supabase';
 import { blended, curDay, fmt, moEq, toHrs } from '@/utils/calc';
-import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { BottomSheetBackdrop, BottomSheetModal, BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     ScrollView,
     StyleSheet,
@@ -17,9 +18,11 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+import Animated, { FadeInLeft, FadeInRight, FadeOutLeft, FadeOutRight } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+// ─── Constants ───
 const CYCLES: [string, string][] = [
     ['weekly', 'Every week'], ['biweekly', 'Every 2 weeks'], ['monthly', 'Every month'],
     ['quarterly', 'Every 3 months'], ['biannual', 'Every 6 months'], ['yearly', 'Every year'], ['custom', 'Custom...'],
@@ -53,30 +56,86 @@ function cycleLabelFull(f: Form) {
     return CYCLES.find(([v]) => v === f.cycle)?.[1] ?? 'Every month';
 }
 
-export default function AddScreen() {
+function ServiceIcon({ icon, size = 22, useOriginalColor }: { icon: string; size?: number; useOriginalColor?: boolean }) {
+    if (icon.startsWith('svg:')) {
+        return <BrandLogo name={icon.slice(4)} size={size} color={useOriginalColor ? undefined : '#FFFFFF'} useOriginalColor={useOriginalColor} />;
+    }
+    return <Text style={{ fontSize: size }}>{icon}</Text>;
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+    return (
+        <View style={{ marginBottom: 20 }}>
+            <Text style={{ fontSize: 10, color: C.t3, fontWeight: '600', letterSpacing: 0.5, marginBottom: 8 }}>{label}</Text>
+            {children}
+        </View>
+    );
+}
+
+// ─── Props ───
+interface Props {
+    visible: boolean;
+    onClose: () => void;
+}
+
+export default function AddSubSheet({ visible, onClose }: Props) {
     const insets = useSafeAreaInsets();
     const { addSub, incomes, categories } = useStore();
     const rate = blended(incomes);
 
+    const [popularSubs, setPopularSubs] = useState<PopularSub[]>([]);
+    const [query, setQuery] = useState('');
     const [phase, setPhase] = useState<'pick' | 'form'>('pick');
     const [f, setF] = useState<Form>({ ...DEFAULT_FORM });
     const [cycleOpen, setCycleOpen] = useState(false);
     const [showAppearance, setShowAppearance] = useState(false);
-    const [popularSubs, setPopularSubs] = useState<PopularSub[]>([]);
 
-    useEffect(() => {
-        getPopularSubs().then(setPopularSubs);
-    }, []);
+    const bottomSheetRef = useRef<BottomSheetModal>(null);
+    const snapPoints = useMemo(() => ['94%'], []);
 
     const u = (k: keyof Form, v: any) => setF(prev => ({ ...prev, [k]: v }));
     const mc = moEq(parseFloat(f.cost) || 0, f.cycle, parseFloat(f.customNum) || 1, f.customUnit);
     const canSave = f.name.trim() && parseFloat(f.cost) > 0;
 
+    useEffect(() => {
+        if (visible) {
+            getPopularSubs().then(setPopularSubs);
+            setQuery('');
+            setPhase('pick');
+            setF({ ...DEFAULT_FORM });
+            setCycleOpen(false);
+            bottomSheetRef.current?.present();
+        } else {
+            bottomSheetRef.current?.dismiss();
+        }
+    }, [visible]);
+
+    const catMap = useMemo(() => {
+        const m: Record<string, string> = {};
+        categories.forEach(c => { m[c.id] = c.name; });
+        return m;
+    }, [categories]);
+
+    const filtered = useMemo(() => {
+        if (!query.trim()) return popularSubs;
+        const q = query.toLowerCase();
+        return popularSubs.filter(s => s.name.toLowerCase().includes(q));
+    }, [popularSubs, query]);
+
     const pickBrand = (q: PopularSub) => {
         setF({ ...DEFAULT_FORM, name: q.name, icon: q.icon, categoryId: q.category_id, cost: String(q.default_cost), color: q.color });
         setPhase('form');
     };
-    const pickCustom = () => { setF({ ...DEFAULT_FORM }); setPhase('form'); };
+
+    const pickCustom = () => {
+        setF({ ...DEFAULT_FORM });
+        setPhase('form');
+    };
+
+    const goBack = () => {
+        setCycleOpen(false);
+        setPhase('pick');
+    };
 
     const save = () => {
         if (!canSave) return;
@@ -92,70 +151,130 @@ export default function AddScreen() {
             customUnit: f.cycle === 'custom' ? f.customUnit : undefined,
         };
         addSub(newSub);
-        router.back();
+        onClose();
     };
 
-    /* SCREEN 1: BRAND PICKER */
-    if (phase === 'pick') {
-        return (
-            <View style={{ flex: 1, backgroundColor: C.bg }}>
-                <View style={[s.header, { paddingTop: insets.top + 8 }]}>
-                    <TouchableOpacity onPress={() => router.back()} style={s.backBtn} activeOpacity={0.7}>
-                        <Svg width={14} height={14} viewBox="0 0 16 16" fill="none">
-                            <Path d="M10 3L5 8l5 5" stroke={C.t2} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
-                        </Svg>
-                        <Text style={s.back}>Back</Text>
-                    </TouchableOpacity>
-                    <View style={{ width: 60 }} />
-                </View>
+    const renderBackdrop = useCallback(
+        (props: any) => (
+            <BottomSheetBackdrop
+                {...props}
+                disappearsOnIndex={-1}
+                appearsOnIndex={0}
+                opacity={0.55}
+                pressBehavior="close"
+            />
+        ),
+        [],
+    );
 
-                <ScrollView contentContainerStyle={{ paddingHorizontal: LAYOUT.screenHPad, paddingBottom: 60 }}>
-                    <Text style={s.title}>Add subscription</Text>
-                    <Text style={s.subtitle}>Choose a service or add your own</Text>
-
-                    <View style={s.brandGrid}>
-                        {popularSubs.map(q => (
-                            <AnimatedPressable key={q.id} onPress={() => pickBrand(q)} style={s.brandCell}>
-                                <View style={[s.brandIcon, { backgroundColor: q.color }]}>
-                                    <Text style={{ fontSize: 22 }}>{q.icon}</Text>
-                                </View>
-                                <Text style={s.brandName}>{q.name}</Text>
-                            </AnimatedPressable>
-                        ))}
-                    </View>
-
-                    <AnimatedPressable onPress={pickCustom} style={s.customRow}>
-                        <View style={s.customPlus}>
-                            <Text style={{ fontSize: 20, color: C.t1, fontWeight: '500' }}>+</Text>
-                        </View>
-                        <View>
-                            <Text style={s.customLabel}>Custom subscription</Text>
-                            <Text style={s.customSub}>Add any service not listed</Text>
-                        </View>
-                        <Svg width={12} height={12} viewBox="0 0 16 16" fill="none" style={{ marginLeft: 'auto' }}>
-                            <Path d="M6 3l5 5-5 5" stroke={C.t3} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
-                        </Svg>
-                    </AnimatedPressable>
-                </ScrollView>
+    // ─── Picker Phase ───
+    const renderPicker = () => (
+        <Animated.View
+            key="picker"
+            entering={FadeInLeft.duration(250)}
+            exiting={FadeOutLeft.duration(200)}
+            style={{ flex: 1 }}
+        >
+            {/* Header */}
+            <View style={s.headerRow}>
+                <Text style={s.title}>Add Subscription</Text>
+                <TouchableOpacity onPress={onClose} style={s.closeBtn} activeOpacity={0.7}>
+                    <Svg width={16} height={16} viewBox="0 0 16 16" fill="none">
+                        <Path d="M4 4l8 8M12 4l-8 8" stroke={C.t3} strokeWidth={1.8} strokeLinecap="round" />
+                    </Svg>
+                </TouchableOpacity>
             </View>
-        );
-    }
 
-    /* SCREEN 2: DETAIL FORM */
-    return (
-        <View style={{ flex: 1, backgroundColor: C.bg }}>
-            <View style={[s.header, { paddingTop: insets.top + 8 }]}>
-                <TouchableOpacity onPress={() => setPhase('pick')} style={s.backBtn} activeOpacity={0.7}>
+            {/* Search */}
+            <View style={s.searchWrap}>
+                <View style={s.searchBar}>
+                    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+                        <Path d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" stroke={C.t3} strokeWidth={2} strokeLinecap="round" />
+                    </Svg>
+                    <TextInput
+                        style={s.searchInput}
+                        value={query}
+                        onChangeText={setQuery}
+                        placeholder="Search subscriptions..."
+                        placeholderTextColor={C.t3}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                    />
+                </View>
+            </View>
+
+            {/* Service List */}
+            <BottomSheetScrollView
+                contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 80 }}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+            >
+                <Text style={s.sectionLabel}>Popular Services</Text>
+
+                {filtered.map(q => {
+                    const isWhiteBg = q.color.toUpperCase() === '#FFFFFF' || q.color.toUpperCase() === '#FFF';
+                    return (
+                    <AnimatedPressable key={q.id} onPress={() => pickBrand(q)} style={s.serviceRow}>
+                        <View style={[s.serviceIcon, { backgroundColor: q.color }, isWhiteBg && s.serviceIconShadow]}>
+                            <ServiceIcon icon={q.icon} size={22} useOriginalColor={isWhiteBg} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={s.serviceName}>{q.name}</Text>
+                            <Text style={s.serviceCat}>{catMap[q.category_id] || 'Other'}</Text>
+                        </View>
+                        <View style={s.addCircle}>
+                            <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+                                <Path d="M12 5v14M5 12h14" stroke={C.black} strokeWidth={2.5} strokeLinecap="round" />
+                            </Svg>
+                        </View>
+                    </AnimatedPressable>
+                    );
+                })}
+
+                {filtered.length === 0 && query.trim() !== '' && (
+                    <View style={{ alignItems: 'center', paddingVertical: 32 }}>
+                        <Text style={{ fontSize: 14, color: C.t3 }}>No results for "{query}"</Text>
+                    </View>
+                )}
+            </BottomSheetScrollView>
+
+            {/* Sticky custom button */}
+            <View style={[s.stickyBottom, { paddingBottom: Math.max(insets.bottom, 20) + 16 }]}>
+                <AnimatedPressable onPress={pickCustom} style={s.customBtn}>
+                    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+                        <Path d="M12 5v14M5 12h14" stroke={C.t2} strokeWidth={2} strokeLinecap="round" />
+                    </Svg>
+                    <Text style={s.customBtnText}>Add custom subscription</Text>
+                </AnimatedPressable>
+            </View>
+        </Animated.View>
+    );
+
+    // ─── Form Phase ───
+    const renderForm = () => (
+        <Animated.View
+            key="form"
+            entering={FadeInRight.duration(250)}
+            exiting={FadeOutRight.duration(200)}
+            style={{ flex: 1 }}
+        >
+            {/* Header */}
+            <View style={s.headerRow}>
+                <TouchableOpacity onPress={goBack} style={s.backBtn} activeOpacity={0.7}>
                     <Svg width={14} height={14} viewBox="0 0 16 16" fill="none">
                         <Path d="M10 3L5 8l5 5" stroke={C.t2} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
                     </Svg>
-                    <Text style={s.back}>Change service</Text>
+                    <Text style={{ fontSize: 14, color: C.t2, fontWeight: '500' }}>Back</Text>
                 </TouchableOpacity>
-                <View style={{ width: 80 }} />
+                <TouchableOpacity onPress={onClose} style={s.closeBtn} activeOpacity={0.7}>
+                    <Svg width={16} height={16} viewBox="0 0 16 16" fill="none">
+                        <Path d="M4 4l8 8M12 4l-8 8" stroke={C.t3} strokeWidth={1.8} strokeLinecap="round" />
+                    </Svg>
+                </TouchableOpacity>
             </View>
 
-            <ScrollView
-                contentContainerStyle={{ paddingHorizontal: LAYOUT.screenHPad, paddingBottom: 100 }}
+            <BottomSheetScrollView
+                contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
                 keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator={false}
             >
@@ -167,7 +286,6 @@ export default function AddScreen() {
                         onChangeText={v => u('name', v)}
                         placeholder="Subscription name..."
                         placeholderTextColor={C.t3}
-                        autoFocus
                     />
                 </Field>
 
@@ -256,8 +374,10 @@ export default function AddScreen() {
                 {/* Icon & Color */}
                 <Field label="ICON & COLOR">
                     <AnimatedPressable onPress={() => setShowAppearance(true)} style={s.appearanceRow}>
-                        <View style={[s.iconPreview, { backgroundColor: f.color }]}>
-                            <Text style={{ fontSize: 22 }}>{f.icon}</Text>
+                        <View style={[s.iconPreview, { backgroundColor: f.color }, (f.color.toUpperCase() === '#FFFFFF' || f.color.toUpperCase() === '#FFF') && s.serviceIconShadow]}>
+                            {f.icon.startsWith('svg:')
+                                ? <BrandLogo name={f.icon.slice(4)} size={22} color={(f.color.toUpperCase() === '#FFFFFF' || f.color.toUpperCase() === '#FFF') ? undefined : '#FFFFFF'} useOriginalColor={f.color.toUpperCase() === '#FFFFFF' || f.color.toUpperCase() === '#FFF'} />
+                                : <Text style={{ fontSize: 22 }}>{f.icon}</Text>}
                         </View>
                         <View style={{ flex: 1 }}>
                             <Text style={{ fontSize: 14, fontWeight: '600', color: C.t1 }}>{f.name || 'Subscription'}</Text>
@@ -324,18 +444,20 @@ export default function AddScreen() {
                         </View>
                     </Card>
                 )}
+            </BottomSheetScrollView>
 
-                {/* Save */}
+            {/* Sticky save button */}
+            <View style={[s.stickyBottom, { paddingBottom: Math.max(insets.bottom, 20) + 16 }]}>
                 <AnimatedPressable
                     onPress={save}
                     disabled={!canSave}
                     style={[s.saveBtn, { backgroundColor: canSave ? C.black : C.bgSub, opacity: canSave ? 1 : 0.5 }]}
                 >
                     <Text style={[s.saveTxt, { color: canSave ? '#fff' : C.t3 }]}>
-                        {f.isTrial ? `Add trial` : 'Add subscription'}
+                        {f.isTrial ? 'Add trial' : 'Add subscription'}
                     </Text>
                 </AnimatedPressable>
-            </ScrollView>
+            </View>
 
             <AppearanceModal
                 visible={showAppearance}
@@ -345,69 +467,164 @@ export default function AddScreen() {
                 onChange={(icon, color) => { u('icon', icon); u('color', color); }}
                 onClose={() => setShowAppearance(false)}
             />
-        </View>
+        </Animated.View>
     );
-}
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
     return (
-        <View style={{ marginBottom: 20 }}>
-            <Text style={{ fontSize: 10, color: C.t3, fontWeight: '600', letterSpacing: 0.5, marginBottom: 8 }}>{label}</Text>
-            {children}
-        </View>
+        <BottomSheetModal
+            ref={bottomSheetRef}
+            index={0}
+            snapPoints={snapPoints}
+            onDismiss={onClose}
+            enablePanDownToClose
+            enableContentPanningGesture={false}
+            enableHandlePanningGesture={false}
+            backdropComponent={renderBackdrop}
+            handleIndicatorStyle={s.handleIndicator}
+            backgroundStyle={s.sheetBg}
+            overDragResistanceFactor={10}
+        >
+            <View style={{ flex: 1 }}>
+                {phase === 'pick' ? renderPicker() : renderForm()}
+            </View>
+        </BottomSheetModal>
     );
 }
 
 const s = StyleSheet.create({
-    header: {
-        flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-        paddingHorizontal: LAYOUT.screenHPad, paddingBottom: 12,
+    sheetBg: {
         backgroundColor: C.bg,
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
     },
-    backBtn: {
-        flexDirection: 'row', alignItems: 'center', gap: 4,
-        paddingVertical: 8,
+    handleIndicator: {
+        width: 40,
+        height: 5,
+        backgroundColor: 'rgba(0,0,0,0.12)',
     },
-    back: {
-        fontSize: 14, color: C.t2, fontWeight: '500',
+    headerRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingTop: 4,
+        paddingBottom: 4,
     },
     title: {
-        fontSize: 18, fontWeight: '700', color: C.t1, marginBottom: 4,
+        fontSize: 22,
+        fontWeight: '800',
+        color: C.t1,
+        letterSpacing: -0.5,
     },
-    subtitle: {
-        fontSize: 12, color: C.t3, marginBottom: 24,
+    closeBtn: {
+        width: 36,
+        height: 36,
+        borderRadius: R.pill,
+        backgroundColor: C.bgSub,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
-    brandGrid: {
-        flexDirection: 'row', flexWrap: 'wrap', gap: 8,
+    backBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingVertical: 8,
     },
-    brandCell: {
-        width: '22%', alignItems: 'center', gap: 8,
-        paddingVertical: 12, paddingHorizontal: 4,
-        backgroundColor: C.surface, borderRadius: R.md,
+    searchWrap: {
+        paddingHorizontal: 20,
+        paddingVertical: 12,
     },
-    brandIcon: {
-        width: 44, height: 44, borderRadius: R.md,
-        alignItems: 'center', justifyContent: 'center',
+    searchBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        backgroundColor: C.bgSub,
+        borderRadius: R.md,
+        paddingHorizontal: 14,
+        height: 44,
     },
-    brandName: {
-        fontSize: 11, fontWeight: '600', color: C.t1, textAlign: 'center',
+    searchInput: {
+        flex: 1,
+        fontSize: 15,
+        fontWeight: '500',
+        color: C.t1,
     },
-    customRow: {
-        flexDirection: 'row', alignItems: 'center', gap: 12,
-        backgroundColor: C.surface, borderWidth: 1, borderStyle: 'dashed', borderColor: C.line,
-        borderRadius: R.md, padding: 16, marginTop: 12,
+    sectionLabel: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: C.t3,
+        letterSpacing: 0.8,
+        textTransform: 'uppercase',
+        marginBottom: 12,
+        marginTop: 4,
     },
-    customPlus: {
-        width: 44, height: 44, borderRadius: R.md, backgroundColor: C.bg,
-        borderWidth: 1, borderColor: C.line,
-        alignItems: 'center', justifyContent: 'center',
+    serviceRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 14,
+        backgroundColor: C.surfaceElevated,
+        borderRadius: R.md,
+        borderWidth: 1,
+        borderColor: 'rgba(0,0,0,0.04)',
+        padding: 12,
+        marginBottom: 8,
     },
-    customLabel: {
-        fontSize: 14, fontWeight: '600', color: C.t1,
+    serviceIcon: {
+        width: 44,
+        height: 44,
+        borderRadius: R.sm,
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
     },
-    customSub: {
-        fontSize: 12, color: C.t3, marginTop: 2,
+    serviceIconShadow: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.12,
+        shadowRadius: 4,
+        elevation: 2,
     },
+    serviceName: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: C.t1,
+    },
+    serviceCat: {
+        fontSize: 12,
+        color: C.t3,
+        marginTop: 2,
+    },
+    addCircle: {
+        width: 36,
+        height: 36,
+        borderRadius: R.sm,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    stickyBottom: {
+        paddingHorizontal: 20,
+        paddingTop: 12,
+        backgroundColor: C.bg,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(0,0,0,0.06)',
+    },
+    customBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        paddingVertical: 14,
+        borderWidth: 2,
+        borderStyle: 'dashed',
+        borderColor: C.line,
+        borderRadius: R.md,
+    },
+    customBtnText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: C.t2,
+    },
+    // ─── Form styles ───
     inp: {
         backgroundColor: C.bgSub, borderRadius: R.md,
         padding: 14, fontSize: 16, fontWeight: '500', color: C.t1,

@@ -8,10 +8,13 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "logo": "node tools/logo-converter/convert.mjs",
+    "logo:batch": "node tools/logo-converter/convert.mjs --batch assets/logos-raw/"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
+    "@gorhom/bottom-sheet": "^5.2.8",
     "@react-navigation/bottom-tabs": "^7.4.0",
     "@react-navigation/elements": "^2.6.3",
     "@react-navigation/native": "^7.1.8",

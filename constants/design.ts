@@ -117,7 +117,7 @@ export const DUR = {
 
 // ─── LAYOUT ───────────────────────────────
 export const LAYOUT = {
-    screenHPad: 24,
+    screenHPad: 16,
     tabBarHeight: 80,
     statusHeight: 56,
     bottomSafe: 40,

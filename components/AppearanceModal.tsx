@@ -7,6 +7,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import BrandLogo from './BrandLogo';
 
 const ICON_TABS = [
     { id: 'entertainment', label: 'Entertain', icons: ['🎬', '🎵', '▶️', '📺', '🎮', '🎧', '🎤', '🎶'] },
@@ -14,6 +15,14 @@ const ICON_TABS = [
     { id: 'lifestyle', label: 'Lifestyle', icons: ['🏋️', '🏠', '🚗', '✈️', '☕', '🍕', '🧘', '❤️'] },
     { id: 'finance', label: 'Finance', icons: ['💳', '🏦', '📈', '🧾', '🛒', '💵', '💎', '💰'] },
     { id: 'utilities', label: 'Utilities', icons: ['🔒', '🌐', '📱', '☁️', '💡', '🔔', '⭐', '🛡️'] },
+];
+
+const SVG_ICON_TABS = [
+    { id: 'svg_utilities', label: 'Utilities', icons: ['phone', 'wifi', 'electricity', 'water', 'rent', 'gas', 'parking', 'insurance', 'car-insurance', 'vpn', 'cloud-storage', 'laundry'] },
+    { id: 'svg_entertainment', label: 'Entertain', icons: ['music-note', 'film', 'gamepad', 'book', 'headphones', 'camera', 'microphone', 'palette'] },
+    { id: 'svg_life', label: 'Life', icons: ['baby', 'pet-paw', 'heart', 'food-utensils', 'coffee', 'shopping-bag', 'gift', 'graduation-cap', 'gym'] },
+    { id: 'svg_work', label: 'Work', icons: ['briefcase', 'chart', 'credit-card', 'calculator', 'mail', 'calendar', 'printer', 'wrench'] },
+    { id: 'svg_health', label: 'Health', icons: ['medical-cross', 'pill', 'tooth', 'eye', 'apple-nutrition', 'running', 'yoga', 'bicycle'] },
 ];
 
 const COLORS = [
@@ -31,11 +40,18 @@ interface Props {
 }
 
 export default function AppearanceModal({ visible, icon, color, name, onChange, onClose }: Props) {
-    const [activeTab, setActiveTab] = useState('entertainment');
+    const [mode, setMode] = useState<'emoji' | 'icons'>(icon.startsWith('svg:') ? 'icons' : 'emoji');
+    const [activeTab, setActiveTab] = useState(mode === 'icons' ? 'svg_utilities' : 'entertainment');
     const [selIcon, setSelIcon] = useState(icon);
     const [selColor, setSelColor] = useState(color);
 
-    const activeIcons = ICON_TABS.find(t => t.id === activeTab)?.icons ?? [];
+    const tabs = mode === 'emoji' ? ICON_TABS : SVG_ICON_TABS;
+    const activeIcons = tabs.find(t => t.id === activeTab)?.icons ?? [];
+
+    const switchMode = (m: 'emoji' | 'icons') => {
+        setMode(m);
+        setActiveTab(m === 'emoji' ? ICON_TABS[0].id : SVG_ICON_TABS[0].id);
+    };
 
     const handleDone = () => {
         onChange(selIcon, selColor);
@@ -58,7 +74,9 @@ export default function AppearanceModal({ visible, icon, color, name, onChange, 
                     {/* Preview */}
                     <View style={s.preview}>
                         <View style={[s.iconPreview, { backgroundColor: selColor }]}>
-                            <Text style={{ fontSize: 20 }}>{selIcon}</Text>
+                            {selIcon.startsWith('svg:')
+                              ? <BrandLogo name={selIcon.slice(4)} size={20} color="#FFFFFF" />
+                              : <Text style={{ fontSize: 20 }}>{selIcon}</Text>}
                         </View>
                         <View>
                             <Text style={s.previewName}>{name || 'Subscription'}</Text>
@@ -67,11 +85,28 @@ export default function AppearanceModal({ visible, icon, color, name, onChange, 
                     </View>
 
                     <ScrollView showsVerticalScrollIndicator={false}>
-                        {/* Icon tabs */}
-                        <Text style={s.sectionLabel}>Icon</Text>
+                        {/* Mode toggle */}
+                        <View style={s.modeRow}>
+                            <TouchableOpacity
+                                style={[s.modeBtn, mode === 'emoji' && { backgroundColor: selColor }]}
+                                onPress={() => switchMode('emoji')}
+                                activeOpacity={0.7}
+                            >
+                                <Text style={[s.modeTxt, mode === 'emoji' && { color: '#fff' }]}>Emoji</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[s.modeBtn, mode === 'icons' && { backgroundColor: selColor }]}
+                                onPress={() => switchMode('icons')}
+                                activeOpacity={0.7}
+                            >
+                                <Text style={[s.modeTxt, mode === 'icons' && { color: '#fff' }]}>Icons</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Tabs */}
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
                             <View style={{ flexDirection: 'row' }}>
-                                {ICON_TABS.map(t => (
+                                {tabs.map(t => (
                                     <TouchableOpacity
                                         key={t.id}
                                         onPress={() => setActiveTab(t.id)}
@@ -86,19 +121,35 @@ export default function AppearanceModal({ visible, icon, color, name, onChange, 
 
                         {/* Icons grid */}
                         <View style={s.grid}>
-                            {activeIcons.map(ic => {
-                                const sel = selIcon === ic;
-                                return (
-                                    <TouchableOpacity
-                                        key={ic}
-                                        style={[s.iconCell, { backgroundColor: sel ? selColor : C.bgSub }]}
-                                        onPress={() => setSelIcon(ic)}
-                                        activeOpacity={0.75}
-                                    >
-                                        <Text style={{ fontSize: 22 }}>{ic}</Text>
-                                    </TouchableOpacity>
-                                );
-                            })}
+                            {mode === 'emoji'
+                                ? activeIcons.map(ic => {
+                                    const sel = selIcon === ic;
+                                    return (
+                                        <TouchableOpacity
+                                            key={ic}
+                                            style={[s.iconCell, { backgroundColor: sel ? selColor : C.bgSub }]}
+                                            onPress={() => setSelIcon(ic)}
+                                            activeOpacity={0.75}
+                                        >
+                                            <Text style={{ fontSize: 22 }}>{ic}</Text>
+                                        </TouchableOpacity>
+                                    );
+                                })
+                                : activeIcons.map(ic => {
+                                    const svgKey = `svg:${ic}-fill`;
+                                    const sel = selIcon === svgKey;
+                                    return (
+                                        <TouchableOpacity
+                                            key={ic}
+                                            style={[s.iconCell, { backgroundColor: sel ? selColor : C.bgSub }]}
+                                            onPress={() => setSelIcon(svgKey)}
+                                            activeOpacity={0.75}
+                                        >
+                                            <BrandLogo name={`${ic}-fill`} size={22} color={sel ? '#FFFFFF' : C.t2} />
+                                        </TouchableOpacity>
+                                    );
+                                })
+                            }
                         </View>
 
                         {/* Color swatches */}
@@ -166,6 +217,16 @@ const s = StyleSheet.create({
     },
     previewSub: {
         fontSize: 12, color: C.t3, marginTop: 2,
+    },
+    modeRow: {
+        flexDirection: 'row', gap: 8, marginBottom: 12,
+    },
+    modeBtn: {
+        paddingHorizontal: 16, paddingVertical: 6, borderRadius: R.pill,
+        backgroundColor: C.bgSub,
+    },
+    modeTxt: {
+        fontSize: 12, fontWeight: '600', color: C.t2,
     },
     sectionLabel: {
         fontSize: 11, fontWeight: '600', color: C.t3, letterSpacing: 0.5, marginBottom: 8,
