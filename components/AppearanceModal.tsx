@@ -1,11 +1,12 @@
 import { C, R, SP } from '@/constants/design';
 import React, { useState } from 'react';
 import {
+    Dimensions,
     Modal, ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
 import BrandLogo from './BrandLogo';
 
@@ -75,8 +76,8 @@ export default function AppearanceModal({ visible, icon, color, name, onChange, 
                     <View style={s.preview}>
                         <View style={[s.iconPreview, { backgroundColor: selColor }]}>
                             {selIcon.startsWith('svg:')
-                              ? <BrandLogo name={selIcon.slice(4)} size={20} color="#FFFFFF" />
-                              : <Text style={{ fontSize: 20 }}>{selIcon}</Text>}
+                                ? <BrandLogo name={selIcon.slice(4)} size={20} color="#FFFFFF" />
+                                : <Text style={{ fontSize: 20 }}>{selIcon}</Text>}
                         </View>
                         <View>
                             <Text style={s.previewName}>{name || 'Subscription'}</Text>
@@ -104,8 +105,8 @@ export default function AppearanceModal({ visible, icon, color, name, onChange, 
                         </View>
 
                         {/* Tabs */}
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
-                            <View style={{ flexDirection: 'row' }}>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
+                            <View style={{ flexDirection: 'row', gap: 8 }}>
                                 {tabs.map(t => (
                                     <TouchableOpacity
                                         key={t.id}
@@ -131,7 +132,7 @@ export default function AppearanceModal({ visible, icon, color, name, onChange, 
                                             onPress={() => setSelIcon(ic)}
                                             activeOpacity={0.75}
                                         >
-                                            <Text style={{ fontSize: 22 }}>{ic}</Text>
+                                            <Text style={{ fontSize: 24, textAlign: 'center', lineHeight: 30 }}>{ic}</Text>
                                         </TouchableOpacity>
                                     );
                                 })
@@ -153,7 +154,7 @@ export default function AppearanceModal({ visible, icon, color, name, onChange, 
                         </View>
 
                         {/* Color swatches */}
-                        <Text style={[s.sectionLabel, { marginTop: SP[3] }]}>Color</Text>
+                        <Text style={[s.sectionLabel, { marginTop: SP[1] }]}>Color</Text>
                         <View style={s.colorGrid}>
                             {COLORS.map(c => {
                                 const sel = selColor === c;
@@ -240,9 +241,12 @@ const s = StyleSheet.create({
     },
     grid: {
         flexDirection: 'row', flexWrap: 'wrap', gap: 10,
+        minHeight: 220, alignContent: 'flex-start',
     },
     iconCell: {
-        width: '18%', aspectRatio: 1, borderRadius: R.md,
+        width: Math.floor((Dimensions.get('window').width - 32 - 40) / 5),
+        height: Math.floor((Dimensions.get('window').width - 32 - 40) / 5),
+        borderRadius: R.md,
         alignItems: 'center', justifyContent: 'center',
     },
     colorGrid: {
@@ -253,7 +257,7 @@ const s = StyleSheet.create({
     },
     doneBtn: {
         backgroundColor: C.black, borderRadius: R.pill,
-        paddingVertical: 15, alignItems: 'center', marginTop: 12,
+        paddingVertical: 16, alignItems: 'center', marginTop: 12, marginBottom: 8
     },
     doneTxt: {
         fontSize: 16, fontWeight: '700', color: '#fff',

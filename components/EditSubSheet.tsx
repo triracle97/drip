@@ -3,11 +3,10 @@ import AppearanceModal from '@/components/AppearanceModal';
 import BrandLogo from '@/components/BrandLogo';
 import Card from '@/components/Card';
 import { C, R } from '@/constants/design';
-import { Sub, useStore } from '@/store';
-import { getPopularSubs, PopularSub } from '@/store/supabase';
+import { useStore } from '@/store';
 import { blended, curDay, fmt, moEq, toHrs } from '@/utils/calc';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
-import React, { forwardRef, useCallback, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
     Modal,
     ScrollView,
@@ -16,13 +15,11 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
-    View
+    View,
 } from 'react-native';
-import Animated, { FadeInLeft, FadeInRight, FadeOutLeft, FadeOutRight } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
-// ─── Constants ───
 const CYCLES: [string, string][] = [
     ['weekly', 'Every week'], ['biweekly', 'Every 2 weeks'], ['monthly', 'Every month'],
     ['quarterly', 'Every 3 months'], ['biannual', 'Every 6 months'], ['yearly', 'Every year'], ['custom', 'Custom...'],
@@ -41,26 +38,12 @@ interface Form {
     trialDays: string;
     customNum: string;
     customUnit: string;
+    active: boolean;
 }
-
-const DEFAULT_FORM: Form = {
-    name: '', icon: '📦', color: '#000000',
-    cost: '', cycle: 'monthly', categoryId: 'cat_other',
-    billDay: '1', startDate: new Date().toISOString().split('T')[0],
-    isTrial: false, trialDays: '14',
-    customNum: '2', customUnit: 'months',
-};
 
 function cycleLabelFull(f: Form) {
-    if (f.cycle === 'custom') return `Every ${f.customNum || 2} ${f.customUnit || 'months'} `;
+    if (f.cycle === 'custom') return `Every ${f.customNum || 2} ${f.customUnit || 'months'}`;
     return CYCLES.find(([v]) => v === f.cycle)?.[1] ?? 'Every month';
-}
-
-function ServiceIcon({ icon, size = 22, useOriginalColor }: { icon: string; size?: number; useOriginalColor?: boolean }) {
-    if (icon.startsWith('svg:')) {
-        return <BrandLogo name={icon.slice(4)} size={size} color={useOriginalColor ? undefined : '#FFFFFF'} useOriginalColor={useOriginalColor} />;
-    }
-    return <Text style={{ fontSize: size }}>{icon}</Text>;
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -72,193 +55,113 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     );
 }
 
-const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
+export default function EditSubSheet({ id, onClose }: { id: string | null; onClose: () => void }) {
     const insets = useSafeAreaInsets();
-    const { addSub, incomes, categories } = useStore();
+    const { subs, updateSub, removeSub, categories, incomes } = useStore();
     const rate = blended(incomes);
 
-    const [popularSubs, setPopularSubs] = useState<PopularSub[]>([]);
-    const [query, setQuery] = useState('');
-    const [phase, setPhase] = useState<'pick' | 'form'>('pick');
-    const [f, setF] = useState<Form>({ ...DEFAULT_FORM });
+    const sheetRef = useRef<TrueSheet>(null);
+
+    // Current form values
+    const [f, setF] = useState<Form>({
+        name: '', icon: '📦', color: '#000000', cost: '', cycle: 'monthly',
+        categoryId: 'cat_other', billDay: '1', startDate: new Date().toISOString().split('T')[0],
+        isTrial: false, trialDays: '14', customNum: '2', customUnit: 'months', active: true
+    });
+
     const [cycleOpen, setCycleOpen] = useState(false);
     const [categoryOpen, setCategoryOpen] = useState(false);
     const [showAppearance, setShowAppearance] = useState(false);
 
-    // Keep a local ref so we can call dismiss() internally
-    const sheetRef = useRef<TrueSheet>(null);
-    const setRefs = useCallback((node: TrueSheet | null) => {
-        sheetRef.current = node;
-        if (typeof ref === 'function') ref(node);
-        else if (ref) (ref as React.MutableRefObject<TrueSheet | null>).current = node;
-    }, [ref]);
+    useEffect(() => {
+        if (!id) {
+            sheetRef.current?.dismiss();
+            return;
+        }
+        const activeSub = subs.find(s => s.id === id);
+        if (activeSub) {
+            setF({
+                name: activeSub.name || '',
+                icon: activeSub.icon || '📦',
+                color: activeSub.color || '#000000',
+                cost: String(activeSub.cost || ''),
+                cycle: activeSub.cycle || 'monthly',
+                categoryId: activeSub.categoryId || 'cat_other',
+                billDay: String(activeSub.billDay || '1'),
+                startDate: activeSub.startDate || new Date().toISOString().split('T')[0],
+                isTrial: activeSub.isTrial || false,
+                trialDays: String(activeSub.trialEndDay ? Math.max(0, activeSub.trialEndDay - curDay) : 14),
+                customNum: String(activeSub.customNum || 2),
+                customUnit: activeSub.customUnit || 'months',
+                active: activeSub.active ?? true,
+            });
+            const timer = setTimeout(() => {
+                sheetRef.current?.present();
+            }, 50);
+            return () => clearTimeout(timer);
+        }
+    }, [id]);
 
     const u = (k: keyof Form, v: any) => setF(prev => ({ ...prev, [k]: v }));
     const mc = moEq(parseFloat(f.cost) || 0, f.cycle, parseFloat(f.customNum) || 1, f.customUnit);
     const canSave = f.name.trim() && parseFloat(f.cost) > 0;
 
-    // Reset state when sheet presents
-    const handlePresent = useCallback(() => {
-        getPopularSubs().then(setPopularSubs);
-        setQuery('');
-        setPhase('pick');
-        setF({ ...DEFAULT_FORM });
-        setCycleOpen(false);
-    }, []);
-
-    const dismiss = useCallback(() => {
+    const dismissAndRouteBack = () => {
         sheetRef.current?.dismiss();
-    }, []);
-
-    const catMap = useMemo(() => {
-        const m: Record<string, string> = {};
-        categories.forEach(c => { m[c.id] = c.name; });
-        return m;
-    }, [categories]);
-
-    const filtered = useMemo(() => {
-        if (!query.trim()) return popularSubs;
-        const q = query.toLowerCase();
-        return popularSubs.filter(s => s.name.toLowerCase().includes(q));
-    }, [popularSubs, query]);
-
-    const pickBrand = (q: PopularSub) => {
-        setF({ ...DEFAULT_FORM, name: q.name, icon: q.icon, categoryId: q.category_id, cost: String(q.default_cost), color: q.color });
-        setPhase('form');
     };
 
-    const pickCustom = () => {
-        setF({ ...DEFAULT_FORM });
-        setPhase('form');
-    };
-
-    const goBack = () => {
-        setCycleOpen(false);
-        setPhase('pick');
+    const handleDismissed = () => {
+        onClose();
     };
 
     const save = () => {
-        if (!canSave) return;
+        if (!canSave || !id) return;
+        const original = subs.find(s => s.id === id);
+        if (!original) return;
+
         const trialEnd = f.isTrial ? curDay + parseInt(f.trialDays) : 0;
         const bd = f.startDate ? new Date(f.startDate).getDate() : parseInt(f.billDay) || 1;
-        const newSub: Sub = {
-            id: `s${Date.now()} `, name: f.name, icon: f.icon, cost: parseFloat(f.cost),
-            cycle: f.cycle, categoryId: f.categoryId, active: true, billDay: bd,
+        updateSub({
+            ...original,
+            name: f.name, icon: f.icon, cost: parseFloat(f.cost),
+            cycle: f.cycle, categoryId: f.categoryId, active: f.active, billDay: bd,
             startDate: f.startDate, color: f.color,
             isTrial: f.isTrial, trialEndDay: trialEnd,
-            trialDecision: f.isTrial ? 'pending' : 'none',
             customNum: f.cycle === 'custom' ? parseFloat(f.customNum) || 1 : undefined,
             customUnit: f.cycle === 'custom' ? f.customUnit : undefined,
-        };
-        addSub(newSub);
-        dismiss();
+            trialDecision: f.isTrial && original.trialDecision === 'none' ? 'pending' : (f.isTrial ? original.trialDecision : 'none')
+        });
+        dismissAndRouteBack();
     };
 
+    const remove = () => {
+        if (!id) return;
+        removeSub(id);
+        dismissAndRouteBack();
+    };
 
-
-    // ─── Picker Phase ───
-    const renderPicker = () => (
-        <Animated.View
-            key="picker"
-            entering={FadeInLeft.duration(250)}
-            exiting={FadeOutLeft.duration(200)}
-            style={{ flex: 1 }}
+    return (
+        <TrueSheet
+            ref={sheetRef}
+            detents={[1]}
+            grabber={false}
+            cornerRadius={24}
+            dismissible={true}
+            dimmed={true}
+            dimmedDetentIndex={0}
+            scrollable
+            backgroundColor={C.bg}
+            onDidDismiss={handleDismissed}
         >
+            {/* Custom grabber */}
+            <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+                <View style={{ backgroundColor: 'rgba(0,0,0,0.2)', width: 40, height: 4, borderRadius: 99, marginTop: 8, marginBottom: 4 }} />
+            </View>
+
             {/* Header */}
             <View style={s.headerRow}>
-                <Text style={s.title}>Add Subscription</Text>
-                <TouchableOpacity onPress={dismiss} style={s.closeBtn} activeOpacity={0.7}>
-                    <Svg width={16} height={16} viewBox="0 0 16 16" fill="none">
-                        <Path d="M4 4l8 8M12 4l-8 8" stroke={C.t3} strokeWidth={1.8} strokeLinecap="round" />
-                    </Svg>
-                </TouchableOpacity>
-            </View>
-
-            {/* Search */}
-            <View style={s.searchWrap}>
-                <View style={s.searchBar}>
-                    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
-                        <Path d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" stroke={C.t3} strokeWidth={2} strokeLinecap="round" />
-                    </Svg>
-                    <TextInput
-                        style={s.searchInput}
-                        value={query}
-                        onChangeText={setQuery}
-                        placeholder="Search subscriptions..."
-                        placeholderTextColor={C.t3}
-                        autoCapitalize="none"
-                        autoCorrect={false}
-                    />
-                </View>
-            </View>
-
-            {/* Service List */}
-            <ScrollView
-                nestedScrollEnabled
-                contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 80 }}
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
-            >
-                <Text style={s.sectionLabel}>Popular Services</Text>
-
-                {filtered.map(q => {
-                    const isWhiteBg = q.color.toUpperCase() === '#FFFFFF' || q.color.toUpperCase() === '#FFF';
-                    return (
-                        <AnimatedPressable key={q.id} onPress={() => pickBrand(q)} style={s.serviceRow}>
-                            <View style={isWhiteBg && s.serviceIconShadow}>
-                                <View style={[s.serviceIcon, { backgroundColor: q.color }]}>
-                                    <ServiceIcon icon={q.icon} size={22} useOriginalColor={isWhiteBg} />
-                                </View>
-                            </View>
-                            <View style={{ flex: 1 }}>
-                                <Text style={s.serviceName}>{q.name}</Text>
-                                <Text style={s.serviceCat}>{catMap[q.category_id] || 'Other'}</Text>
-                            </View>
-                            <View style={s.addCircle}>
-                                <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
-                                    <Path d="M12 5v14M5 12h14" stroke={C.black} strokeWidth={2.5} strokeLinecap="round" />
-                                </Svg>
-                            </View>
-                        </AnimatedPressable>
-                    );
-                })}
-
-                {filtered.length === 0 && query.trim() !== '' && (
-                    <View style={{ alignItems: 'center', paddingVertical: 32 }}>
-                        <Text style={{ fontSize: 14, color: C.t3 }}>No results for "{query}"</Text>
-                    </View>
-                )}
-            </ScrollView>
-
-            {/* Sticky custom button */}
-            <View style={[s.stickyBottom, { paddingBottom: Math.max(insets.bottom, 16) + 60 }]}>
-                <AnimatedPressable onPress={pickCustom} style={s.customBtn}>
-                    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
-                        <Path d="M12 5v14M5 12h14" stroke={C.t2} strokeWidth={2} strokeLinecap="round" />
-                    </Svg>
-                    <Text style={s.customBtnText}>Add custom subscription</Text>
-                </AnimatedPressable>
-            </View>
-        </Animated.View>
-    );
-
-    // ─── Form Phase ───
-    const renderForm = () => (
-        <Animated.View
-            key="form"
-            entering={FadeInRight.duration(250)}
-            exiting={FadeOutRight.duration(200)}
-            style={{ flex: 1 }}
-        >
-            {/* Header */}
-            <View style={s.headerRow}>
-                <TouchableOpacity onPress={goBack} style={s.backBtn} activeOpacity={0.7}>
-                    <Svg width={14} height={14} viewBox="0 0 16 16" fill="none">
-                        <Path d="M10 3L5 8l5 5" stroke={C.t2} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
-                    </Svg>
-                    <Text style={{ fontSize: 14, color: C.t2, fontWeight: '500' }}>Back</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={dismiss} style={s.closeBtn} activeOpacity={0.7}>
+                <Text style={s.title}>Edit Subscription</Text>
+                <TouchableOpacity onPress={dismissAndRouteBack} style={s.closeBtn} activeOpacity={0.7}>
                     <Svg width={16} height={16} viewBox="0 0 16 16" fill="none">
                         <Path d="M4 4l8 8M12 4l-8 8" stroke={C.t3} strokeWidth={1.8} strokeLinecap="round" />
                     </Svg>
@@ -405,6 +308,20 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
                     </AnimatedPressable>
                 </Field>
 
+                {/* Active toggle */}
+                <View style={[s.trialBox, { backgroundColor: f.active ? C.bgSub : C.redBg, borderColor: f.active ? 'rgba(0,0,0,0.04)' : C.redLine, marginBottom: 20 }]}>
+                    <View style={{ flex: 1 }}>
+                        <Text style={[s.trialLabel, { color: f.active ? C.t1 : C.red }]}>Active</Text>
+                        <Text style={{ fontSize: 12, color: C.t3 }}>Toggle off to cancel</Text>
+                    </View>
+                    <Switch
+                        value={f.active}
+                        onValueChange={v => u('active', v)}
+                        trackColor={{ false: 'rgba(0,0,0,0.16)', true: C.black }}
+                        thumbColor="#fff"
+                    />
+                </View>
+
                 {/* Trial toggle */}
                 <View style={[s.trialBox, { backgroundColor: f.isTrial ? C.redBg : C.bgSub, borderColor: f.isTrial ? C.redLine : 'transparent' }]}>
                     <View style={{ flex: 1 }}>
@@ -462,17 +379,26 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
                 )}
             </ScrollView>
 
-            {/* Sticky save button */}
+            {/* Sticky buttons */}
             <View style={[s.stickyBottom, { paddingBottom: Math.max(insets.bottom, 16) + 60 }]}>
-                <AnimatedPressable
-                    onPress={save}
-                    disabled={!canSave}
-                    style={[s.saveBtn, { backgroundColor: canSave ? C.black : C.bgSub, opacity: canSave ? 1 : 0.5 }]}
-                >
-                    <Text style={[s.saveTxt, { color: canSave ? '#fff' : C.t3 }]}>
-                        {f.isTrial ? 'Add trial' : 'Add subscription'}
-                    </Text>
-                </AnimatedPressable>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <AnimatedPressable
+                        onPress={save}
+                        disabled={!canSave}
+                        style={[s.saveBtn, { flex: 2, backgroundColor: canSave ? C.black : C.bgSub, opacity: canSave ? 1 : 0.5 }]}
+                    >
+                        <Text style={[s.saveTxt, { color: canSave ? '#fff' : C.t3 }]}>
+                            Save changes
+                        </Text>
+                    </AnimatedPressable>
+
+                    <AnimatedPressable
+                        onPress={remove}
+                        style={[s.removeBtn, { flex: 1 }]}
+                    >
+                        <Text style={s.removeTxt}>Remove</Text>
+                    </AnimatedPressable>
+                </View>
             </View>
 
             <AppearanceModal
@@ -483,35 +409,9 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
                 onChange={(icon, color) => { u('icon', icon); u('color', color); }}
                 onClose={() => setShowAppearance(false)}
             />
-        </Animated.View>
-    );
-
-    return (
-        <TrueSheet
-            ref={setRefs}
-            detents={[1]}
-            grabber={false}
-            cornerRadius={24}
-            dismissible={false}
-            dimmed={true}
-            dimmedDetentIndex={0}
-            scrollable
-            backgroundColor={C.bg}
-            onWillPresent={handlePresent}
-        >
-            {/* Custom grabber */}
-            <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-                <View style={{ backgroundColor: 'rgba(0,0,0,0.2)', width: 40, height: 4, borderRadius: 99, marginTop: 8, marginBottom: 4 }} />
-            </View>
-
-            <View style={{ flex: 1 }}>
-                {phase === 'pick' ? renderPicker() : renderForm()}
-            </View>
         </TrueSheet>
     );
-});
-
-export default AddSubSheet;
+}
 
 const s = StyleSheet.create({
     headerRow: {
@@ -536,108 +436,7 @@ const s = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
-    backBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-        paddingVertical: 8,
-    },
-    searchWrap: {
-        paddingHorizontal: 20,
-        paddingVertical: 12,
-    },
-    searchBar: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-        backgroundColor: C.bgSub,
-        borderRadius: R.md,
-        paddingHorizontal: 14,
-        height: 44,
-    },
-    searchInput: {
-        flex: 1,
-        fontSize: 15,
-        fontWeight: '500',
-        color: C.t1,
-    },
-    sectionLabel: {
-        fontSize: 11,
-        fontWeight: '700',
-        color: C.t3,
-        letterSpacing: 0.8,
-        textTransform: 'uppercase',
-        marginBottom: 12,
-        marginTop: 4,
-    },
-    serviceRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 14,
-        backgroundColor: C.surfaceElevated,
-        borderRadius: R.md,
-        borderWidth: 1,
-        borderColor: 'rgba(0,0,0,0.04)',
-        padding: 12,
-        marginBottom: 8,
-    },
-    serviceIcon: {
-        width: 44,
-        height: 44,
-        borderRadius: R.sm,
-        alignItems: 'center',
-        justifyContent: 'center',
-        overflow: 'hidden',
-    },
-    serviceIconShadow: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.15,
-        shadowRadius: 6,
-        elevation: 3,
-        borderRadius: R.sm,
-    },
-    serviceName: {
-        fontSize: 15,
-        fontWeight: '600',
-        color: C.t1,
-    },
-    serviceCat: {
-        fontSize: 12,
-        color: C.t3,
-        marginTop: 2,
-    },
-    addCircle: {
-        width: 36,
-        height: 36,
-        borderRadius: R.sm,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    stickyBottom: {
-        paddingHorizontal: 20,
-        paddingTop: 12,
-        backgroundColor: C.bg,
-        borderTopWidth: 1,
-        borderTopColor: 'rgba(0,0,0,0.06)',
-    },
-    customBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        paddingVertical: 14,
-        borderWidth: 2,
-        borderStyle: 'dashed',
-        borderColor: C.line,
-        borderRadius: R.md,
-    },
-    customBtnText: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: C.t2,
-    },
-    // ─── Form styles ───
+    // Form styles
     inp: {
         backgroundColor: C.bgSub, borderRadius: R.md,
         padding: 14, fontSize: 16, fontWeight: '500', color: C.t1,
@@ -694,6 +493,14 @@ const s = StyleSheet.create({
         flexDirection: 'row', alignItems: 'center', gap: 12,
         backgroundColor: C.surface, borderRadius: R.md, padding: 12,
     },
+    serviceIconShadow: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 6,
+        elevation: 3,
+        borderRadius: R.sm,
+    },
     iconPreview: {
         width: 48, height: 48, borderRadius: R.md,
         alignItems: 'center', justifyContent: 'center', flexShrink: 0,
@@ -718,10 +525,24 @@ const s = StyleSheet.create({
         flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
         marginBottom: 24,
     },
+    stickyBottom: {
+        paddingHorizontal: 20,
+        paddingTop: 12,
+        backgroundColor: C.bg,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(0,0,0,0.06)',
+    },
     saveBtn: {
-        borderRadius: R.pill, paddingVertical: 15, alignItems: 'center',
+        borderRadius: R.pill, paddingVertical: 15, alignItems: 'center', justifyContent: 'center',
     },
     saveTxt: {
-        fontSize: 16, fontWeight: '700',
+        fontSize: 14, fontWeight: '700',
+    },
+    removeBtn: {
+        backgroundColor: C.redBg, borderWidth: 1.5, borderColor: C.redLine,
+        borderRadius: R.pill, paddingVertical: 15, alignItems: 'center', justifyContent: 'center',
+    },
+    removeTxt: {
+        fontSize: 14, fontWeight: '600', color: C.red,
     },
 });

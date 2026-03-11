@@ -1,10 +1,8 @@
 import { C } from '@/constants/design';
 import { StoreProvider, useStore } from '@/store';
-import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, View } from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
 export const unstable_settings = {
@@ -26,7 +24,6 @@ function AppContent() {
     <>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="edit" options={{ headerShown: false, presentation: 'card', animation: 'slide_from_right' }} />
       </Stack>
       <StatusBar style="dark" />
     </>
@@ -35,12 +32,8 @@ function AppContent() {
 
 export default function RootLayout() {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <StoreProvider>
-        <BottomSheetModalProvider>
-          <AppContent />
-        </BottomSheetModalProvider>
-      </StoreProvider>
-    </GestureHandlerRootView>
+    <StoreProvider>
+      <AppContent />
+    </StoreProvider>
   );
 }

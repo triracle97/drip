@@ -49,7 +49,7 @@ const FALLBACK_POPULAR: PopularSub[] = [
     // ── Entertainment ──
     { id: 'pop_netflix', name: 'Netflix', icon: 'svg:netflix-fill', default_cost: 15.99, default_cycle: 'monthly', category_id: 'cat_entertainment', color: '#E60000' },
     { id: 'pop_spotify', name: 'Spotify', icon: 'svg:spotify-fill', default_cost: 10.99, default_cycle: 'monthly', category_id: 'cat_entertainment', color: '#1DB954' },
-    { id: 'pop_youtube', name: 'YouTube Premium', icon: 'svg:youtube-fill', default_cost: 13.99, default_cycle: 'monthly', category_id: 'cat_entertainment', color: '#FFFFFF' },
+    { id: 'pop_youtube', name: 'YouTube Premium', icon: 'svg:youtube-fill', default_cost: 13.99, default_cycle: 'monthly', category_id: 'cat_entertainment', color: '#FFF' },
     { id: 'pop_hbomax', name: 'HBO Max', icon: 'svg:hbo-max-fill', default_cost: 15.99, default_cycle: 'monthly', category_id: 'cat_entertainment', color: '#B432D1' },
     { id: 'pop_prime', name: 'Amazon Prime', icon: 'svg:amazon-prime-fill', default_cost: 14.99, default_cycle: 'monthly', category_id: 'cat_entertainment', color: '#00A8E1' },
     { id: 'pop_applemusic', name: 'Apple Music', icon: 'svg:apple-music-fill', default_cost: 10.99, default_cycle: 'monthly', category_id: 'cat_entertainment', color: '#FA233B' },
@@ -60,7 +60,7 @@ const FALLBACK_POPULAR: PopularSub[] = [
     { id: 'pop_claude', name: 'Claude', icon: 'svg:anthropic-fill', default_cost: 20, default_cycle: 'monthly', category_id: 'cat_productivity', color: '#D97757' },
     { id: 'pop_gemini', name: 'Gemini', icon: 'svg:google-gemini-fill', default_cost: 19.99, default_cycle: 'monthly', category_id: 'cat_productivity', color: '#4285F4' },
     { id: 'pop_grammarly', name: 'Grammarly', icon: 'svg:grammarly-fill', default_cost: 12, default_cycle: 'monthly', category_id: 'cat_productivity', color: '#15C39A' },
-    { id: 'pop_googleone', name: 'Google One', icon: 'svg:google-fill', default_cost: 2.99, default_cycle: 'monthly', category_id: 'cat_productivity', color: '#FFFFFF' },
+    { id: 'pop_googleone', name: 'Google One', icon: 'svg:google-one-fill', default_cost: 2.99, default_cycle: 'monthly', category_id: 'cat_productivity', color: '#FFFFFF' },
     { id: 'pop_icloud', name: 'iCloud+', icon: 'svg:icloud-fill', default_cost: 2.99, default_cycle: 'monthly', category_id: 'cat_productivity', color: '#3693F5' },
     { id: 'pop_dropbox', name: 'Dropbox', icon: 'svg:dropbox-fill', default_cost: 11.99, default_cycle: 'monthly', category_id: 'cat_productivity', color: '#0061FF' },
     { id: 'pop_m365', name: 'Microsoft 365', icon: 'svg:microsoft-fill', default_cost: 6.99, default_cycle: 'monthly', category_id: 'cat_productivity', color: '#F25022' },

@@ -36,6 +36,17 @@ export default function BrandLogo({ name, size = 24, color, variant, useOriginal
     );
   }
 
+  // Multi-path logos: render each path with its own fill color
+  if (logo.paths && logo.paths.length > 0) {
+    return (
+      <Svg width={size} height={size} viewBox={logo.viewBox}>
+        {logo.paths.map((p, i) => (
+          <Path key={i} d={p.d} fill={p.fill} fillRule={logo.fillRule ?? 'nonzero'} />
+        ))}
+      </Svg>
+    );
+  }
+
   return (
     <Svg width={size} height={size} viewBox={logo.viewBox}>
       <Path d={logo.d} fill={renderColor} fillRule={logo.fillRule ?? 'nonzero'} />

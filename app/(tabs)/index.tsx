@@ -1,11 +1,13 @@
 import AddSubSheet from '@/components/AddSubSheet';
 import AnimatedPressable from '@/components/AnimatedPressable';
 import Card from '@/components/Card';
+import EditSubSheet from '@/components/EditSubSheet';
 import SubRow from '@/components/SubRow';
 import Toast from '@/components/Toast';
 import TrialSheet from '@/components/TrialSheet';
 import { C, LAYOUT, R, SHADOW } from '@/constants/design';
 import { Sub, useStore } from '@/store';
+import { getPopularSubs, PopularSub } from '@/store/supabase';
 import {
   blended,
   curDay,
@@ -16,8 +18,8 @@ import {
   timeTier,
   toHrs,
 } from '@/utils/calc';
-import { router } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import { TrueSheet } from '@lodev09/react-native-true-sheet';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -58,8 +60,23 @@ export default function HomeScreen() {
   const [sortBy, setSortBy] = useState('cost');
   const [sortOpen, setSortOpen] = useState(false);
   const [trialSheet, setTrialSheet] = useState<Sub | null>(null);
+  const [editSubId, setEditSubId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [addSheetOpen, setAddSheetOpen] = useState(false);
+  const addSheetRef = useRef<TrueSheet>(null);
+
+  // ─── Sheet state ───
+  const [popularSubs, setPopularSubs] = useState<PopularSub[]>([]);
+  const [sheetPhase, setSheetPhase] = useState<'pick' | 'form'>('pick');
+  const [sheetQuery, setSheetQuery] = useState('');
+  const [sheetForm, setSheetForm] = useState({ name: '', icon: '📦', color: '#000000', cost: '', categoryId: 'cat_other' });
+
+  useEffect(() => { getPopularSubs().then(setPopularSubs); }, []);
+
+  const sheetFiltered = useMemo(() => {
+    if (!sheetQuery.trim()) return popularSubs;
+    const q = sheetQuery.toLowerCase();
+    return popularSubs.filter(s => s.name.toLowerCase().includes(q));
+  }, [popularSubs, sheetQuery]);
 
   const rate = blended(incomes);
   const activeTrials = subs.filter(s => s.isTrial && s.trialDecision === 'pending' && s.trialEndDay > curDay);
@@ -125,7 +142,7 @@ export default function HomeScreen() {
           </Svg>
           <Text style={s.wordmark}>Drip</Text>
         </View>
-        <AnimatedPressable onPress={() => setAddSheetOpen(true)} style={s.addBtn}>
+        <AnimatedPressable onPress={() => addSheetRef.current?.present()} style={s.addBtn}>
           <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
             <Path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth={2.2} strokeLinecap="round" />
           </Svg>
@@ -218,59 +235,67 @@ export default function HomeScreen() {
                 trialCostLabel={`Then ${fmt(displayCost)}/${isYr ? 'year' : 'month'}`}
                 onPress={() => setTrialSheet(s_)}
               />
-            </Animated.View>
+            </Animated.View >
           );
         })}
 
         {/* Active sub rows */}
-        {displaySubs.map((s_, idx) => {
-          const mc = subMo(s_);
-          const displayCost = isYr ? mc * 12 : mc;
-          const remain = nextChargeIn(s_);
-          const total = cycleDays(s_);
-          const pct = Math.min(1, Math.max(0, (total - remain) / total));
-          const urgent = remain <= 3;
-          const tier = timeTier(displayCost, rate);
-          return (
-            <Animated.View key={s_.id} entering={FadeInDown.duration(300).delay(idx * 30)}>
-              <SubRow
-                name={s_.name}
-                icon={s_.icon}
-                color={s_.color}
-                costLabel={fmt(displayCost)}
-                costSub={`/${isYr ? 'year' : 'month'}`}
-                renewLabel={daysLabel(remain)}
-                hoursLabel={toHrs(displayCost, rate)}
-                urgent={urgent}
-                onPress={() => router.push({ pathname: '/edit', params: { id: s_.id } })}
-              />
-            </Animated.View>
-          );
-        })}
+        {
+          displaySubs.map((s_, idx) => {
+            const mc = subMo(s_);
+            const displayCost = isYr ? mc * 12 : mc;
+            const remain = nextChargeIn(s_);
+            const total = cycleDays(s_);
+            const pct = Math.min(1, Math.max(0, (total - remain) / total));
+            const urgent = remain <= 3;
+            const tier = timeTier(displayCost, rate);
+            return (
+              <Animated.View key={s_.id} entering={FadeInDown.duration(300).delay(idx * 30)}>
+                <SubRow
+                  name={s_.name}
+                  icon={s_.icon}
+                  color={s_.color}
+                  costLabel={fmt(displayCost)}
+                  costSub={`/${isYr ? 'year' : 'month'}`}
+                  renewLabel={daysLabel(remain)}
+                  hoursLabel={toHrs(displayCost, rate)}
+                  urgent={urgent}
+                  onPress={() => setEditSubId(s_.id)}
+                />
+              </Animated.View>
+            );
+          })
+        }
 
         {/* Inactive */}
-        {inactive.length > 0 && (
-          <View style={{ marginTop: 24 }}>
-            <Text style={[s.sectionCap, { marginBottom: 8 }]}>Cancelled</Text>
-            {inactive.map(s_ => (
-              <SubRow
-                key={s_.id}
-                name={s_.name}
-                icon={s_.icon}
-                color={s_.color}
-                costLabel={fmt(s_.cost)}
-                variant="inactive"
-                onPress={() => router.push({ pathname: '/edit', params: { id: s_.id } })}
-              />
-            ))}
-          </View>
-        )}
-      </Animated.ScrollView>
+        {
+          inactive.length > 0 && (
+            <View style={{ marginTop: 24 }}>
+              <Text style={[s.sectionCap, { marginBottom: 8 }]}>Cancelled</Text>
+              {inactive.map(s_ => (
+                <SubRow
+                  key={s_.id}
+                  name={s_.name}
+                  icon={s_.icon}
+                  color={s_.color}
+                  costLabel={fmt(s_.cost)}
+                  variant="inactive"
+                  onPress={() => setEditSubId(s_.id)}
+                />
+              ))}
+            </View>
+          )
+        }
+      </Animated.ScrollView >
 
       <TrialSheet sub={trialSheet} onClose={() => setTrialSheet(null)} />
-      <AddSubSheet visible={addSheetOpen} onClose={() => setAddSheetOpen(false)} />
+
+      <EditSubSheet id={editSubId} onClose={() => setEditSubId(null)} />
+
+      <AddSubSheet ref={addSheetRef} />
+
       <Toast message={toast} />
-    </View>
+    </View >
   );
 }
 

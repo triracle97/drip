@@ -66,7 +66,7 @@ async function migrate(db: SQLite.SQLiteDatabase) {
     const catCount = await db.getFirstAsync<{ cnt: number }>('SELECT COUNT(*) as cnt FROM categories');
     if (!catCount || catCount.cnt === 0) {
         await db.execAsync(`
-            INSERT INTO categories (id, name, icon, color, sort_order, is_default) VALUES
+            INSERT OR IGNORE INTO categories (id, name, icon, color, sort_order, is_default) VALUES
                 ('cat_entertainment', 'Entertainment', '🎭', '#FF3B30', 0, 1),
                 ('cat_productivity', 'Productivity', '⚡', '#5B8DEF', 1, 1),
                 ('cat_health', 'Health', '💚', '#4ECB71', 2, 1),
