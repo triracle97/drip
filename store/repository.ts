@@ -12,22 +12,22 @@ export async function getAllSubs(): Promise<Sub[]> {
 export async function insertSub(s: Sub): Promise<void> {
     const db = await getDb();
     await db.runAsync(
-        `INSERT INTO subscriptions (id, name, icon, cost, cycle, category_id, active, bill_day, start_date, is_trial, trial_end_day, trial_decision, color, custom_num, custom_unit)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO subscriptions (id, name, icon, cost, cycle, category_id, active, bill_day, start_date, is_trial, trial_end_day, trial_decision, color, custom_num, custom_unit, reminder_days)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         s.id, s.name, s.icon, s.cost, s.cycle, s.categoryId, s.active ? 1 : 0, s.billDay,
         s.startDate ?? null, s.isTrial ? 1 : 0, s.trialEndDay, s.trialDecision, s.color,
-        s.customNum ?? null, s.customUnit ?? null,
+        s.customNum ?? null, s.customUnit ?? null, s.reminderDays ?? null,
     );
 }
 
 export async function updateSub(s: Sub): Promise<void> {
     const db = await getDb();
     await db.runAsync(
-        `UPDATE subscriptions SET name=?, icon=?, cost=?, cycle=?, category_id=?, active=?, bill_day=?, start_date=?, is_trial=?, trial_end_day=?, trial_decision=?, color=?, custom_num=?, custom_unit=?, updated_at=datetime('now')
+        `UPDATE subscriptions SET name=?, icon=?, cost=?, cycle=?, category_id=?, active=?, bill_day=?, start_date=?, is_trial=?, trial_end_day=?, trial_decision=?, color=?, custom_num=?, custom_unit=?, reminder_days=?, updated_at=datetime('now')
          WHERE id=?`,
         s.name, s.icon, s.cost, s.cycle, s.categoryId, s.active ? 1 : 0, s.billDay,
         s.startDate ?? null, s.isTrial ? 1 : 0, s.trialEndDay, s.trialDecision, s.color,
-        s.customNum ?? null, s.customUnit ?? null, s.id,
+        s.customNum ?? null, s.customUnit ?? null, s.reminderDays ?? null, s.id,
     );
 }
 
@@ -53,6 +53,7 @@ function rowToSub(r: any): Sub {
         color: r.color,
         customNum: r.custom_num ?? undefined,
         customUnit: r.custom_unit ?? undefined,
+        reminderDays: r.reminder_days ?? null,
     };
 }
 
@@ -125,6 +126,24 @@ export async function reorderCategories(ids: string[]): Promise<void> {
     for (let i = 0; i < ids.length; i++) {
         await db.runAsync('UPDATE categories SET sort_order=? WHERE id=?', i, ids[i]);
     }
+}
+
+// ─── SETTINGS ──────────────────────────────
+
+export async function getAllSettings(): Promise<Record<string, string>> {
+    const db = await getDb();
+    const rows = await db.getAllAsync<{ key: string; value: string }>('SELECT * FROM settings');
+    const map: Record<string, string> = {};
+    rows.forEach(r => { map[r.key] = r.value; });
+    return map;
+}
+
+export async function setSetting(key: string, value: string): Promise<void> {
+    const db = await getDb();
+    await db.runAsync(
+        'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value',
+        key, value,
+    );
 }
 
 // ─── SPENDING HISTORY ───────────────────────

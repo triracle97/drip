@@ -20,6 +20,10 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+const REMINDER_OPTIONS: [string, string][] = [
+    ['', 'Never'], ['1', '1 day before'], ['2', '2 days before'], ['3', '3 days before'], ['7', '7 days before'],
+];
+
 const CYCLES: [string, string][] = [
     ['weekly', 'Every week'], ['biweekly', 'Every 2 weeks'], ['monthly', 'Every month'],
     ['quarterly', 'Every 3 months'], ['biannual', 'Every 6 months'], ['yearly', 'Every year'], ['custom', 'Custom...'],
@@ -39,6 +43,7 @@ interface Form {
     customNum: string;
     customUnit: string;
     active: boolean;
+    reminderDays: string;
 }
 
 function cycleLabelFull(f: Form) {
@@ -66,11 +71,13 @@ export default function EditSubSheet({ id, onClose }: { id: string | null; onClo
     const [f, setF] = useState<Form>({
         name: '', icon: '📦', color: '#000000', cost: '', cycle: 'monthly',
         categoryId: 'cat_other', billDay: '1', startDate: new Date().toISOString().split('T')[0],
-        isTrial: false, trialDays: '14', customNum: '2', customUnit: 'months', active: true
+        isTrial: false, trialDays: '14', customNum: '2', customUnit: 'months', active: true,
+        reminderDays: '',
     });
 
     const [cycleOpen, setCycleOpen] = useState(false);
     const [categoryOpen, setCategoryOpen] = useState(false);
+    const [reminderOpen, setReminderOpen] = useState(false);
     const [showAppearance, setShowAppearance] = useState(false);
 
     useEffect(() => {
@@ -94,6 +101,7 @@ export default function EditSubSheet({ id, onClose }: { id: string | null; onClo
                 customNum: String(activeSub.customNum || 2),
                 customUnit: activeSub.customUnit || 'months',
                 active: activeSub.active ?? true,
+                reminderDays: activeSub.reminderDays != null ? String(activeSub.reminderDays) : '',
             });
             const timer = setTimeout(() => {
                 sheetRef.current?.present();
@@ -129,7 +137,8 @@ export default function EditSubSheet({ id, onClose }: { id: string | null; onClo
             isTrial: f.isTrial, trialEndDay: trialEnd,
             customNum: f.cycle === 'custom' ? parseFloat(f.customNum) || 1 : undefined,
             customUnit: f.cycle === 'custom' ? f.customUnit : undefined,
-            trialDecision: f.isTrial && original.trialDecision === 'none' ? 'pending' : (f.isTrial ? original.trialDecision : 'none')
+            trialDecision: f.isTrial && original.trialDecision === 'none' ? 'pending' : (f.isTrial ? original.trialDecision : 'none'),
+            reminderDays: f.reminderDays ? parseInt(f.reminderDays) : null,
         });
         dismissAndRouteBack();
     };
@@ -361,6 +370,39 @@ export default function EditSubSheet({ id, onClose }: { id: string | null; onClo
                         </View>
                     </View>
                 )}
+
+                {/* Reminder */}
+                <View style={{ marginTop: 20 }} />
+                <Field label="REMINDER">
+                    <TouchableOpacity onPress={() => setReminderOpen(true)} style={s.selectBtn} activeOpacity={0.8}>
+                        <Text style={{ fontSize: 14, fontWeight: '600', color: C.t1 }}>
+                            {REMINDER_OPTIONS.find(([v]) => v === f.reminderDays)?.[1] ?? 'Never'}
+                        </Text>
+                        <Svg width={14} height={14} viewBox="0 0 16 16" fill="none">
+                            <Path d="M6 3l5 5-5 5" stroke={C.t3} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+                        </Svg>
+                    </TouchableOpacity>
+                </Field>
+
+                {/* Reminder popup */}
+                <Modal visible={reminderOpen} transparent animationType="fade" onRequestClose={() => setReminderOpen(false)}>
+                    <TouchableOpacity style={s.popupOverlay} activeOpacity={1} onPress={() => setReminderOpen(false)}>
+                        <View style={s.popupCard}>
+                            <Text style={s.popupTitle}>Reminder</Text>
+                            {REMINDER_OPTIONS.map(([v, l]) => (
+                                <TouchableOpacity
+                                    key={v}
+                                    onPress={() => { u('reminderDays', v); setReminderOpen(false); }}
+                                    style={[s.popupItem, f.reminderDays === v && { backgroundColor: C.bgSub }]}
+                                    activeOpacity={0.75}
+                                >
+                                    <Text style={{ fontSize: 15, color: f.reminderDays === v ? C.t1 : C.t2, fontWeight: f.reminderDays === v ? '600' : '500' }}>{l}</Text>
+                                    {f.reminderDays === v && <Text style={{ color: C.t1, fontSize: 14 }}>✓</Text>}
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    </TouchableOpacity>
+                </Modal>
 
                 {/* Work preview */}
                 {parseFloat(f.cost) > 0 && (

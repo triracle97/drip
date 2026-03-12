@@ -1,5 +1,7 @@
 import AnimatedPressable from '@/components/AnimatedPressable';
 import Card from '@/components/Card';
+import IncomeCTA from '@/components/IncomeCTA';
+import IncomeSheet from '@/components/IncomeSheet';
 import TrialSheet from '@/components/TrialSheet';
 import { C, LAYOUT, R, SHADOW } from '@/constants/design';
 import { Sub, useStore } from '@/store';
@@ -34,6 +36,7 @@ export default function CalendarScreen() {
     const [calYear, setCalYear] = useState(curYear);
     const [calDay, setCalDay] = useState<number | null>(null);
     const [trialSheet, setTrialSheet] = useState<Sub | null>(null);
+    const [showIncome, setShowIncome] = useState(false);
     const stripRef = useRef<ScrollView>(null);
 
     const calDays = daysInMonth(calMonth, calYear);
@@ -151,6 +154,12 @@ export default function CalendarScreen() {
                 })}
             </ScrollView>
 
+            {incomes.length === 0 && (
+                <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
+                    <IncomeCTA onPress={() => setShowIncome(true)} />
+                </View>
+            )}
+
             {/* Day detail */}
             {calDay && (
                 <Animated.View entering={FadeInDown.duration(250)}>
@@ -205,6 +214,7 @@ export default function CalendarScreen() {
 
             <View style={{ flex: 1 }} />
             <TrialSheet sub={trialSheet} onClose={() => setTrialSheet(null)} />
+            <IncomeSheet visible={showIncome} onClose={() => setShowIncome(false)} />
         </View>
     );
 }

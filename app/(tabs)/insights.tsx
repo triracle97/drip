@@ -1,10 +1,12 @@
 import BudgetHealthCard from '@/components/BudgetHealthCard';
 import CategoryBreakdownList from '@/components/CategoryBreakdownList';
+import IncomeCTA from '@/components/IncomeCTA';
+import IncomeSheet from '@/components/IncomeSheet';
 import SpendingChart from '@/components/SpendingChart';
 import { C, LAYOUT } from '@/constants/design';
 import { Category, useStore } from '@/store';
 import { budgetHealth, fmt, monthlyIncome, monthName, subMo } from '@/utils/calc';
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -23,6 +25,7 @@ export default function InsightsScreen() {
     const totalMo = activeSubs.reduce((sum, s) => sum + subMo(s), 0);
     const moIncome = monthlyIncome(incomes);
     const health = budgetHealth(totalMo, moIncome);
+    const [showIncome, setShowIncome] = useState(false);
 
     // Record snapshot on mount
     useEffect(() => {
@@ -55,6 +58,8 @@ export default function InsightsScreen() {
                 contentContainerStyle={{ paddingHorizontal: LAYOUT.screenHPad, paddingBottom: LAYOUT.tabBarHeight + 32 }}
                 showsVerticalScrollIndicator={false}
             >
+                {incomes.length === 0 && <IncomeCTA onPress={() => setShowIncome(true)} />}
+
                 {/* Spending Trend */}
                 <Animated.View entering={FadeInDown.duration(300)}>
                     <SpendingChart history={spendingHistory} catMap={catMap} />
@@ -110,6 +115,7 @@ export default function InsightsScreen() {
                     </Animated.View>
                 )}
             </ScrollView>
+            <IncomeSheet visible={showIncome} onClose={() => setShowIncome(false)} />
         </View>
     );
 }

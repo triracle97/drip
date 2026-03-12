@@ -60,7 +60,18 @@ async function migrate(db: SQLite.SQLiteDatabase) {
             subscription_count INTEGER NOT NULL DEFAULT 0,
             UNIQUE(month, year)
         );
+        CREATE TABLE IF NOT EXISTS settings (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL
+        );
     `);
+
+    // Migrate: add reminder_days column to existing subscriptions tables
+    try {
+        await db.execAsync('ALTER TABLE subscriptions ADD COLUMN reminder_days INTEGER;');
+    } catch {
+        // Column already exists — safe to ignore
+    }
 
     // Seed default categories if empty
     const catCount = await db.getFirstAsync<{ cnt: number }>('SELECT COUNT(*) as cnt FROM categories');

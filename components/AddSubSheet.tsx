@@ -28,6 +28,10 @@ const CYCLES: [string, string][] = [
     ['quarterly', 'Every 3 months'], ['biannual', 'Every 6 months'], ['yearly', 'Every year'], ['custom', 'Custom...'],
 ];
 
+const REMINDER_OPTIONS: [string, string][] = [
+    ['', 'Never'], ['1', '1 day before'], ['2', '2 days before'], ['3', '3 days before'], ['7', '7 days before'],
+];
+
 interface Form {
     name: string;
     icon: string;
@@ -41,6 +45,7 @@ interface Form {
     trialDays: string;
     customNum: string;
     customUnit: string;
+    reminderDays: string;
 }
 
 const DEFAULT_FORM: Form = {
@@ -49,6 +54,7 @@ const DEFAULT_FORM: Form = {
     billDay: '1', startDate: new Date().toISOString().split('T')[0],
     isTrial: false, trialDays: '14',
     customNum: '2', customUnit: 'months',
+    reminderDays: '',
 };
 
 function cycleLabelFull(f: Form) {
@@ -83,6 +89,7 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
     const [f, setF] = useState<Form>({ ...DEFAULT_FORM });
     const [cycleOpen, setCycleOpen] = useState(false);
     const [categoryOpen, setCategoryOpen] = useState(false);
+    const [reminderOpen, setReminderOpen] = useState(false);
     const [showAppearance, setShowAppearance] = useState(false);
 
     // Keep a local ref so we can call dismiss() internally
@@ -149,6 +156,7 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
             trialDecision: f.isTrial ? 'pending' : 'none',
             customNum: f.cycle === 'custom' ? parseFloat(f.customNum) || 1 : undefined,
             customUnit: f.cycle === 'custom' ? f.customUnit : undefined,
+            reminderDays: f.reminderDays ? parseInt(f.reminderDays) : null,
         };
         addSub(newSub);
         dismiss();
@@ -444,6 +452,39 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
                         </View>
                     </View>
                 )}
+
+                {/* Reminder */}
+                <View style={{ marginTop: 20 }} />
+                <Field label="REMINDER">
+                    <TouchableOpacity onPress={() => setReminderOpen(true)} style={s.selectBtn} activeOpacity={0.8}>
+                        <Text style={{ fontSize: 14, fontWeight: '600', color: C.t1 }}>
+                            {REMINDER_OPTIONS.find(([v]) => v === f.reminderDays)?.[1] ?? 'Never'}
+                        </Text>
+                        <Svg width={14} height={14} viewBox="0 0 16 16" fill="none">
+                            <Path d="M6 3l5 5-5 5" stroke={C.t3} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+                        </Svg>
+                    </TouchableOpacity>
+                </Field>
+
+                {/* Reminder popup */}
+                <Modal visible={reminderOpen} transparent animationType="fade" onRequestClose={() => setReminderOpen(false)}>
+                    <TouchableOpacity style={s.popupOverlay} activeOpacity={1} onPress={() => setReminderOpen(false)}>
+                        <View style={s.popupCard}>
+                            <Text style={s.popupTitle}>Reminder</Text>
+                            {REMINDER_OPTIONS.map(([v, l]) => (
+                                <TouchableOpacity
+                                    key={v}
+                                    onPress={() => { u('reminderDays', v); setReminderOpen(false); }}
+                                    style={[s.popupItem, f.reminderDays === v && { backgroundColor: C.bgSub }]}
+                                    activeOpacity={0.75}
+                                >
+                                    <Text style={{ fontSize: 15, color: f.reminderDays === v ? C.t1 : C.t2, fontWeight: f.reminderDays === v ? '600' : '500' }}>{l}</Text>
+                                    {f.reminderDays === v && <Text style={{ color: C.t1, fontSize: 14 }}>✓</Text>}
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    </TouchableOpacity>
+                </Modal>
 
                 {/* Work preview */}
                 {parseFloat(f.cost) > 0 && (

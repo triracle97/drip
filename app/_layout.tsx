@@ -1,16 +1,43 @@
 import { C } from '@/constants/design';
 import { StoreProvider, useStore } from '@/store';
+import { rescheduleAllNotifications } from '@/utils/notifications';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { ActivityIndicator, View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { ActivityIndicator, AppState, Text, TextInput, View } from 'react-native';
 import 'react-native-reanimated';
+
+// Prevent system font scaling from affecting the app
+if ((Text as any).defaultProps == null) (Text as any).defaultProps = {};
+(Text as any).defaultProps.allowFontScaling = false;
+(Text as any).defaultProps.maxFontSizeMultiplier = 1;
+
+if ((TextInput as any).defaultProps == null) (TextInput as any).defaultProps = {};
+(TextInput as any).defaultProps.allowFontScaling = false;
+(TextInput as any).defaultProps.maxFontSizeMultiplier = 1;
 
 export const unstable_settings = {
   anchor: '(tabs)',
 };
 
 function AppContent() {
-  const { isLoaded } = useStore();
+  const { isLoaded, subs, notificationsEnabled, notificationTime } = useStore();
+  const appState = useRef(AppState.currentState);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    // Reschedule on initial load
+    rescheduleAllNotifications(subs, notificationsEnabled, notificationTime);
+
+    // Reschedule when app comes to foreground
+    const sub = AppState.addEventListener('change', nextState => {
+      if (appState.current.match(/inactive|background/) && nextState === 'active') {
+        rescheduleAllNotifications(subs, notificationsEnabled, notificationTime);
+      }
+      appState.current = nextState;
+    });
+    return () => sub.remove();
+  }, [isLoaded, subs, notificationsEnabled, notificationTime]);
 
   if (!isLoaded) {
     return (

@@ -2,10 +2,11 @@ import AddSubSheet from '@/components/AddSubSheet';
 import AnimatedPressable from '@/components/AnimatedPressable';
 import Card from '@/components/Card';
 import EditSubSheet from '@/components/EditSubSheet';
+import IncomeSheet from '@/components/IncomeSheet';
 import SubRow from '@/components/SubRow';
 import Toast from '@/components/Toast';
 import TrialSheet from '@/components/TrialSheet';
-import { C, LAYOUT, R, SHADOW } from '@/constants/design';
+import { C, LAYOUT, R, SHADOW, SP, TS } from '@/constants/design';
 import { Sub, useStore } from '@/store';
 import { getPopularSubs, PopularSub } from '@/store/supabase';
 import {
@@ -62,6 +63,7 @@ export default function HomeScreen() {
   const [trialSheet, setTrialSheet] = useState<Sub | null>(null);
   const [editSubId, setEditSubId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [showIncome, setShowIncome] = useState(false);
   const addSheetRef = useRef<TrueSheet>(null);
 
   // ─── Sheet state ───
@@ -166,11 +168,23 @@ export default function HomeScreen() {
                 <Text style={s.heroStatHint}>{active.length} active</Text>
               </View>
               <View style={s.heroDivider} />
-              <View style={s.heroStat}>
-                <Text style={s.heroStatLabel}>Work Hours</Text>
-                <Text style={s.heroStatValue}>{toHrs(displayTotal, rate)}</Text>
-                <Text style={s.heroStatHint}>to earn this</Text>
-              </View>
+              {incomes.length === 0 ? (
+                <TouchableOpacity onPress={() => setShowIncome(true)} style={s.heroStat} activeOpacity={0.7}>
+                  <Text style={s.heroStatLabel}>Work Hours</Text>
+                  <View style={s.heroAddBtn}>
+                    <Svg width={14} height={14} viewBox="0 0 24 24" fill="none">
+                      <Path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth={2.5} strokeLinecap="round" />
+                    </Svg>
+                  </View>
+                  <Text style={[s.heroStatHint, { color: C.green }]}>set income</Text>
+                </TouchableOpacity>
+              ) : (
+                <View style={s.heroStat}>
+                  <Text style={s.heroStatLabel}>Work Hours</Text>
+                  <Text style={s.heroStatValue}>{toHrs(displayTotal, rate)}</Text>
+                  <Text style={s.heroStatHint}>to earn this</Text>
+                </View>
+              )}
               <View style={s.heroDivider} />
               <View style={s.heroStat}>
                 <Text style={s.heroStatLabel}>% Income</Text>
@@ -295,6 +309,7 @@ export default function HomeScreen() {
       <AddSubSheet ref={addSheetRef} />
 
       <Toast message={toast} />
+      <IncomeSheet visible={showIncome} onClose={() => setShowIncome(false)} />
     </View >
   );
 }
@@ -317,11 +332,10 @@ const s = StyleSheet.create({
     backgroundColor: C.black,
     alignItems: 'center', justifyContent: 'center',
   },
-  // Compact hero card
   heroCard: {
-    marginTop: 4,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    marginTop: SP[1],
+    paddingVertical: SP[3],
+    paddingHorizontal: SP[3],
   },
   heroRow: {
     flexDirection: 'row',
@@ -333,16 +347,25 @@ const s = StyleSheet.create({
     alignItems: 'center',
   },
   heroStatLabel: {
-    fontSize: 10, fontWeight: '700', color: C.t2, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 4,
+    fontSize: TS.micro.fontSize, fontWeight: '600', color: C.t2,
+    letterSpacing: TS.micro.letterSpacing, textTransform: 'uppercase',
+    marginBottom: SP[1],
   },
   heroStatValue: {
-    fontSize: 18, fontWeight: '800', color: C.t1, letterSpacing: -0.5,
+    fontSize: TS.subtitle.fontSize, fontWeight: '700', color: C.t1,
+    letterSpacing: TS.subtitle.letterSpacing,
   },
   heroStatHint: {
-    fontSize: 9, fontWeight: '500', color: C.t3, marginTop: 2,
+    fontSize: TS.micro.fontSize, fontWeight: '400', color: C.t3, marginTop: 2,
+  },
+  heroAddBtn: {
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: C.accent,
+    alignItems: 'center', justifyContent: 'center',
+    marginVertical: 2,
   },
   heroDivider: {
-    width: 1, height: 28, backgroundColor: C.line,
+    width: 1, height: SP[5], backgroundColor: C.line,
   },
   sectionCap: {
     fontSize: 11, fontWeight: '600', color: C.t3, letterSpacing: 0.5, textTransform: 'uppercase',
