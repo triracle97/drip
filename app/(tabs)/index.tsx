@@ -8,6 +8,7 @@ import Toast from '@/components/Toast';
 import TrialSheet from '@/components/TrialSheet';
 import { C, LAYOUT, R, SHADOW, SP, TS } from '@/constants/design';
 import { Sub, useStore } from '@/store';
+import { useSettings } from '@/store/settings';
 import { getPopularSubs, PopularSub } from '@/store/supabase';
 import {
   blended,
@@ -36,7 +37,7 @@ import Animated, {
   useSharedValue,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Circle, Path } from 'react-native-svg';
 
 import type { Category } from '@/store';
 
@@ -50,6 +51,7 @@ const SORT_LABELS: Record<string, string> = {
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { subs, incomes, categories } = useStore();
+  const currency = useSettings(s => s.currency);
 
   const catMap = useMemo(() => {
     const m: Record<string, Category> = {};
@@ -139,8 +141,9 @@ export default function HomeScreen() {
       {/* Sticky Header */}
       <View style={[s.header, { paddingTop: insets.top + 8 }]}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
-            <Path d="M12 2.5C12 2.5 5 10.5 5 15a7 7 0 1014 0c0-4.5-7-12.5-7-12.5z" fill={C.black} stroke={C.black} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+          <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+            <Path d="M12 2.5C12 2.5 5 10.5 5 15a7 7 0 1014 0c0-4.5-7-12.5-7-12.5z" fill="#177b9c" />
+            <Circle cx="9" cy="15" r="2.5" fill="#3a9cbc" />
           </Svg>
           <Text style={s.wordmark}>Drip</Text>
         </View>

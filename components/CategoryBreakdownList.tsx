@@ -1,6 +1,7 @@
 import Card from '@/components/Card';
 import { C, R } from '@/constants/design';
 import type { Category } from '@/store';
+import { useSettings } from '@/store/settings';
 import { fmt } from '@/utils/calc';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -18,6 +19,7 @@ interface Props {
 }
 
 export default function CategoryBreakdownList({ breakdown, catMap, totalMo, monthLabel }: Props) {
+    const currency = useSettings(s => s.currency);
     if (breakdown.length === 0) return null;
 
     return (

@@ -4,6 +4,7 @@ import BrandLogo from '@/components/BrandLogo';
 import Card from '@/components/Card';
 import { C, R } from '@/constants/design';
 import { Sub, useStore } from '@/store';
+import { useSettings } from '@/store/settings';
 import { getPopularSubs, PopularSub } from '@/store/supabase';
 import { blended, curDay, fmt, moEq, toHrs } from '@/utils/calc';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
@@ -81,6 +82,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
     const insets = useSafeAreaInsets();
     const { addSub, incomes, categories } = useStore();
+    const currency = useSettings(s => s.currency);
     const rate = blended(incomes);
 
     const [popularSubs, setPopularSubs] = useState<PopularSub[]>([]);

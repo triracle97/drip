@@ -1,6 +1,7 @@
 import AnimatedPressable from '@/components/AnimatedPressable';
 import { C, R, SP } from '@/constants/design';
 import { useStore } from '@/store';
+import { useSettings } from '@/store/settings';
 import { fmt } from '@/utils/calc';
 import React, { useState } from 'react';
 import {
@@ -20,6 +21,7 @@ interface Props {
 
 export default function IncomeSheet({ visible, onClose }: Props) {
     const { incomes, addIncome, updateIncome } = useStore();
+    const currency = useSettings(s => s.currency);
     const existing = incomes[0] ?? null;
 
     const [amount, setAmount] = useState('');

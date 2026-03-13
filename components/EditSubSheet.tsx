@@ -4,6 +4,7 @@ import BrandLogo from '@/components/BrandLogo';
 import Card from '@/components/Card';
 import { C, R } from '@/constants/design';
 import { useStore } from '@/store';
+import { useSettings } from '@/store/settings';
 import { blended, curDay, fmt, moEq, toHrs } from '@/utils/calc';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import React, { useEffect, useRef, useState } from 'react';
@@ -63,6 +64,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 export default function EditSubSheet({ id, onClose }: { id: string | null; onClose: () => void }) {
     const insets = useSafeAreaInsets();
     const { subs, updateSub, removeSub, categories, incomes } = useStore();
+    const currency = useSettings(s => s.currency);
     const rate = blended(incomes);
 
     const sheetRef = useRef<TrueSheet>(null);

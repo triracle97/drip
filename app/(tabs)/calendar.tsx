@@ -1,12 +1,13 @@
 import AnimatedPressable from '@/components/AnimatedPressable';
 import Card from '@/components/Card';
+import EditSubSheet from '@/components/EditSubSheet';
 import IncomeCTA from '@/components/IncomeCTA';
 import IncomeSheet from '@/components/IncomeSheet';
 import TrialSheet from '@/components/TrialSheet';
-import { C, LAYOUT, R, SHADOW } from '@/constants/design';
+import { C, LAYOUT, R } from '@/constants/design';
 import { Sub, useStore } from '@/store';
+import { useSettings } from '@/store/settings';
 import { blended, curDay, curMonth, curYear, dayName, daysInMonth, fmt, monthName, subMo, toHrs } from '@/utils/calc';
-import { router } from 'expo-router';
 import React, { useMemo, useRef, useState } from 'react';
 import {
     ScrollView,
@@ -24,6 +25,7 @@ import type { Category } from '@/store';
 export default function CalendarScreen() {
     const insets = useSafeAreaInsets();
     const { subs, incomes, categories } = useStore();
+    const currency = useSettings(s => s.currency);
     const rate = blended(incomes);
 
     const catMap = useMemo(() => {
@@ -36,6 +38,7 @@ export default function CalendarScreen() {
     const [calYear, setCalYear] = useState(curYear);
     const [calDay, setCalDay] = useState<number | null>(null);
     const [trialSheet, setTrialSheet] = useState<Sub | null>(null);
+    const [editSubId, setEditSubId] = useState<string | null>(null);
     const [showIncome, setShowIncome] = useState(false);
     const stripRef = useRef<ScrollView>(null);
 
@@ -181,7 +184,7 @@ export default function CalendarScreen() {
                                 {daySubs.map(sub => (
                                     <AnimatedPressable
                                         key={sub.id}
-                                        onPress={() => sub.isTrial ? setTrialSheet(sub) : router.push({ pathname: '/edit', params: { id: sub.id } })}
+                                        onPress={() => sub.isTrial ? setTrialSheet(sub) : setEditSubId(sub.id)}
                                         style={[s.daySubRow, {
                                             backgroundColor: sub.isTrial ? C.redBg : C.surface,
                                             borderColor: sub.isTrial ? C.redLine : C.line,
@@ -214,6 +217,7 @@ export default function CalendarScreen() {
 
             <View style={{ flex: 1 }} />
             <TrialSheet sub={trialSheet} onClose={() => setTrialSheet(null)} />
+            <EditSubSheet id={editSubId} onClose={() => setEditSubId(null)} />
             <IncomeSheet visible={showIncome} onClose={() => setShowIncome(false)} />
         </View>
     );

@@ -1,5 +1,6 @@
 import { C } from '@/constants/design';
 import { StoreProvider, useStore } from '@/store';
+import { useSettings } from '@/store/settings';
 import { rescheduleAllNotifications } from '@/utils/notifications';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -21,7 +22,8 @@ export const unstable_settings = {
 };
 
 function AppContent() {
-  const { isLoaded, subs, notificationsEnabled, notificationTime } = useStore();
+  const { isLoaded, subs } = useStore();
+  const { notificationsEnabled, notificationTime, _hydrated } = useSettings();
   const appState = useRef(AppState.currentState);
 
   useEffect(() => {
@@ -39,7 +41,7 @@ function AppContent() {
     return () => sub.remove();
   }, [isLoaded, subs, notificationsEnabled, notificationTime]);
 
-  if (!isLoaded) {
+  if (!isLoaded || !_hydrated) {
     return (
       <View style={{ flex: 1, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' }}>
         <ActivityIndicator size="small" color={C.t3} />

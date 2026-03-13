@@ -1,8 +1,20 @@
+import { getCurrency } from '@/constants/currencies';
+import { useSettings } from '@/store/settings';
 import { Income, Sub } from '@/store';
 
 // ─── FORMATTERS ───────────────────────────
-export const fmt = (n: number) =>
-    '$' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+export const fmt = (n: number) => {
+    const c = getCurrency(useSettings.getState().currency);
+    const abs = Math.abs(n);
+    const fixed = abs.toFixed(2);
+    const [intPart, decPart] = fixed.split('.');
+    const grouped = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, c.thousandSeparator);
+    const formatted = grouped + c.decimalSeparator + decPart;
+    const sign = n < 0 ? '-' : '';
+    return c.symbolPosition === 'before'
+        ? sign + c.symbol + formatted
+        : sign + formatted + c.symbol;
+};
 
 // ─── CYCLE TO MONTHLY EQUIVALENT ──────────
 export const moEq = (cost: number, cyc: string, cNum?: number, cUnit?: string): number => {

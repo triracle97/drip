@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useReducer } from 'react';
 import * as repo from './repository';
+import { migrateSettingsFromSQLite } from './settings';
 
 // ─── DATA TYPES ───────────────────────────
 export interface Sub {
@@ -53,13 +54,11 @@ type State = {
     incomes: Income[];
     categories: Category[];
     spendingHistory: SpendingSnapshot[];
-    notificationsEnabled: boolean;
-    notificationTime: string;
     isLoaded: boolean;
 };
 
 type Action =
-    | { type: 'LOAD_DATA'; subs: Sub[]; incomes: Income[]; categories: Category[]; spendingHistory: SpendingSnapshot[]; notificationsEnabled: boolean; notificationTime: string }
+    | { type: 'LOAD_DATA'; subs: Sub[]; incomes: Income[]; categories: Category[]; spendingHistory: SpendingSnapshot[] }
     | { type: 'ADD_SUB'; sub: Sub }
     | { type: 'UPDATE_SUB'; sub: Sub }
     | { type: 'REMOVE_SUB'; id: string }
@@ -71,17 +70,13 @@ type Action =
     | { type: 'UPDATE_CATEGORY'; category: Category }
     | { type: 'REMOVE_CATEGORY'; id: string; reassignTo: string }
     | { type: 'REORDER_CATEGORIES'; ids: string[] }
-    | { type: 'SET_SPENDING_HISTORY'; history: SpendingSnapshot[] }
-    | { type: 'SET_NOTIFICATIONS_ENABLED'; enabled: boolean }
-    | { type: 'SET_NOTIFICATION_TIME'; time: string };
+    | { type: 'SET_SPENDING_HISTORY'; history: SpendingSnapshot[] };
 
 const INIT_STATE: State = {
     subs: [],
     incomes: [],
     categories: [],
     spendingHistory: [],
-    notificationsEnabled: false,
-    notificationTime: '08:00',
     isLoaded: false,
 };
 
@@ -93,8 +88,6 @@ function reducer(state: State, action: Action): State {
                 incomes: action.incomes,
                 categories: action.categories,
                 spendingHistory: action.spendingHistory,
-                notificationsEnabled: action.notificationsEnabled,
-                notificationTime: action.notificationTime,
                 isLoaded: true,
             };
         case 'ADD_SUB':
@@ -138,10 +131,6 @@ function reducer(state: State, action: Action): State {
             };
         case 'SET_SPENDING_HISTORY':
             return { ...state, spendingHistory: action.history };
-        case 'SET_NOTIFICATIONS_ENABLED':
-            return { ...state, notificationsEnabled: action.enabled };
-        case 'SET_NOTIFICATION_TIME':
-            return { ...state, notificationTime: action.time };
         default:
             return state;
     }
@@ -153,8 +142,6 @@ type Ctx = {
     incomes: Income[];
     categories: Category[];
     spendingHistory: SpendingSnapshot[];
-    notificationsEnabled: boolean;
-    notificationTime: string;
     isLoaded: boolean;
     addSub: (s: Sub) => void;
     updateSub: (s: Sub) => void;
@@ -168,8 +155,6 @@ type Ctx = {
     removeCategory: (id: string, reassignTo: string) => void;
     reorderCategories: (ids: string[]) => void;
     recordSnapshot: () => void;
-    setNotificationsEnabled: (enabled: boolean) => void;
-    setNotificationTime: (time: string) => void;
 };
 
 const StoreCtx = createContext<Ctx | null>(null);
@@ -180,18 +165,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     // Load from SQLite on mount
     useEffect(() => {
         (async () => {
-            const [subs, incomes, categories, spendingHistory, settings] = await Promise.all([
+            const [subs, incomes, categories, spendingHistory] = await Promise.all([
                 repo.getAllSubs(),
                 repo.getAllIncomes(),
                 repo.getAllCategories(),
                 repo.getSpendingHistory(),
-                repo.getAllSettings(),
             ]);
-            dispatch({
-                type: 'LOAD_DATA', subs, incomes, categories, spendingHistory,
-                notificationsEnabled: settings.notificationsEnabled === 'true',
-                notificationTime: settings.notificationTime || '08:00',
-            });
+            dispatch({ type: 'LOAD_DATA', subs, incomes, categories, spendingHistory });
+            migrateSettingsFromSQLite();
         })();
     }, []);
 
@@ -288,31 +269,18 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         });
     }, [state.subs]);
 
-    const setNotificationsEnabled = useCallback((enabled: boolean) => {
-        dispatch({ type: 'SET_NOTIFICATIONS_ENABLED', enabled });
-        repo.setSetting('notificationsEnabled', String(enabled));
-    }, []);
-
-    const setNotificationTime = useCallback((time: string) => {
-        dispatch({ type: 'SET_NOTIFICATION_TIME', time });
-        repo.setSetting('notificationTime', time);
-    }, []);
-
     return (
         <StoreCtx.Provider value={{
             subs: state.subs,
             incomes: state.incomes,
             categories: state.categories,
             spendingHistory: state.spendingHistory,
-            notificationsEnabled: state.notificationsEnabled,
-            notificationTime: state.notificationTime,
             isLoaded: state.isLoaded,
             addSub, updateSub, removeSub,
             addIncome, updateIncome, removeIncome,
             decideTrial,
             addCategory, updateCategory, removeCategory, reorderCategories,
             recordSnapshot,
-            setNotificationsEnabled, setNotificationTime,
         }}>
             {children}
         </StoreCtx.Provider>

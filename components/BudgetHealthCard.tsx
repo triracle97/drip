@@ -2,6 +2,7 @@ import Card from '@/components/Card';
 import DonutChart from '@/components/DonutChart';
 import { C } from '@/constants/design';
 import type { Category } from '@/store';
+import { useSettings } from '@/store/settings';
 import { fmt } from '@/utils/calc';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -22,6 +23,7 @@ interface Props {
 }
 
 export default function BudgetHealthCard({ slices, catMap, totalMo, moIncome, healthLabel, healthColor, healthPct }: Props) {
+    const currency = useSettings(s => s.currency);
     const donutSlices = slices.map(s => ({
         value: s.amount,
         color: catMap[s.categoryId]?.color ?? '#8E8E93',

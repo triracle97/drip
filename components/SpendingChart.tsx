@@ -1,6 +1,7 @@
 import Card from '@/components/Card';
 import { C, R } from '@/constants/design';
 import type { Category, SpendingSnapshot } from '@/store';
+import { useSettings } from '@/store/settings';
 import { fmt } from '@/utils/calc';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export default function SpendingChart({ history, catMap }: Props) {
+    const currency = useSettings(s => s.currency);
     // Show last 6 months, most recent on the right
     const recent = history.slice(0, 6).reverse();
 

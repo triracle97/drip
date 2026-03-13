@@ -2,6 +2,7 @@ import AnimatedPressable from '@/components/AnimatedPressable';
 import Card from '@/components/Card';
 import { C, R, SHADOW, SP } from '@/constants/design';
 import { Sub, useStore } from '@/store';
+import { useSettings } from '@/store/settings';
 import { blended, fmt, subMo, toHrs } from '@/utils/calc';
 import React from 'react';
 import {
@@ -20,6 +21,7 @@ interface Props {
 
 export default function TrialSheet({ sub: t, onClose }: Props) {
     const { incomes, decideTrial } = useStore();
+    const currency = useSettings(s => s.currency);
     const rate = blended(incomes);
     const today = new Date();
     const curDay = today.getDate();

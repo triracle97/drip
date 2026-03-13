@@ -1,9 +1,12 @@
 import Card from '@/components/Card';
 import CategoryManager from '@/components/CategoryManager';
+import CurrencySheet from '@/components/CurrencySheet';
 import IncomeSheet from '@/components/IncomeSheet';
 import Toast from '@/components/Toast';
+import { getCurrency } from '@/constants/currencies';
 import { C, LAYOUT, R, SP } from '@/constants/design';
 import { useStore } from '@/store';
+import { useSettings } from '@/store/settings';
 import { blended, fmt, monthlyIncome, subMo, toHrs } from '@/utils/calc';
 import { requestPermissions, rescheduleAllNotifications } from '@/utils/notifications';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -14,11 +17,14 @@ import Svg, { Path } from 'react-native-svg';
 
 export default function SettingsScreen() {
     const insets = useSafeAreaInsets();
-    const { incomes, subs, categories, notificationsEnabled, notificationTime, setNotificationsEnabled, setNotificationTime } = useStore();
+    const { incomes, subs, categories } = useStore();
+    const { currency, notificationsEnabled, notificationTime, setNotificationsEnabled, setNotificationTime } = useSettings();
     const [showIncome, setShowIncome] = useState(false);
     const [showCategories, setShowCategories] = useState(false);
+    const [showCurrency, setShowCurrency] = useState(false);
     const [showTimePicker, setShowTimePicker] = useState(false);
     const [toast, setToast] = useState<string | null>(null);
+    const currencyInfo = getCurrency(currency);
     const rate = blended(incomes);
     const moIncome = monthlyIncome(incomes);
     const totalMo = subs.filter(s => s.active && !s.isTrial).reduce((sum, s) => sum + subMo(s), 0);
@@ -81,14 +87,14 @@ export default function SettingsScreen() {
                 contentContainerStyle={{ paddingHorizontal: LAYOUT.screenHPad, paddingBottom: LAYOUT.tabBarHeight + 32 }}
                 showsVerticalScrollIndicator={false}
             >
-                <Card style={s.summaryCard}>
+                <Card key={`summary-${currency}`} style={s.summaryCard}>
                     <Text style={s.summaryLabel}>TOTAL MONTHLY COST</Text>
                     <Text style={s.summaryValue}>{fmt(totalMo)}</Text>
                     <Text style={s.summarySub}>= {toHrs(totalMo, rate)} of work at {fmt(rate)}/hr blended</Text>
                 </Card>
 
                 <Text style={s.sectionCap}>INCOME & RATE</Text>
-                <View style={s.incomeCard}>
+                <View key={`income-${currency}`} style={s.incomeCard}>
                     <View style={s.incomeTop}>
                         <View style={s.incomeIcon}>
                             <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
@@ -118,8 +124,8 @@ export default function SettingsScreen() {
                 <SettingsRow label="Manage categories" hint={`${categories.length} categories`} onPress={() => setShowCategories(true)} />
 
                 <Text style={[s.sectionCap, { marginTop: 24 }]}>GENERAL</Text>
-                <SettingsRow label="Appearance" hint="Light" onPress={() => {}} />
-                <SettingsRow label="Currency" hint="USD" onPress={() => {}} />
+                <SettingsRow label="Appearance" hint="Light" onPress={() => { }} />
+                <SettingsRow label="Currency" hint={`${currencyInfo.symbol} ${currency}`} onPress={() => setShowCurrency(true)} />
 
                 <TouchableOpacity onPress={() => handleToggleNotifications(!notificationsEnabled)} style={s.row} activeOpacity={0.75}>
                     <Text style={s.rowLabel}>Notifications</Text>
@@ -157,6 +163,7 @@ export default function SettingsScreen() {
 
             <IncomeSheet visible={showIncome} onClose={() => setShowIncome(false)} />
             <CategoryManager visible={showCategories} onClose={() => setShowCategories(false)} />
+            <CurrencySheet visible={showCurrency} onClose={() => setShowCurrency(false)} />
             <Toast message={toast} />
         </View>
     );
