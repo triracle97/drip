@@ -2,11 +2,14 @@ import BudgetHealthCard from '@/components/BudgetHealthCard';
 import CategoryBreakdownList from '@/components/CategoryBreakdownList';
 import IncomeCTA from '@/components/IncomeCTA';
 import IncomeSheet from '@/components/IncomeSheet';
+import LifetimeCostList from '@/components/LifetimeCostList';
 import SpendingChart from '@/components/SpendingChart';
 import { C, LAYOUT } from '@/constants/design';
 import { Category, useStore } from '@/store';
+import { getAllEvents } from '@/store/repository';
+import type { SubscriptionEvent } from '@/store/repository';
 import { useSettings } from '@/store/settings';
-import { budgetHealth, fmt, monthlyIncome, monthName, subMo } from '@/utils/calc';
+import { blended, budgetHealth, fmt, lifetimeCost, monthlyIncome, monthName, subMo } from '@/utils/calc';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -46,6 +49,27 @@ export default function InsightsScreen() {
             .map(([categoryId, amount]) => ({ categoryId, amount }))
             .sort((a, b) => b.amount - a.amount);
     }, [activeSubs]);
+
+    const rate = blended(incomes);
+    const [allEvents, setAllEvents] = useState<SubscriptionEvent[]>([]);
+
+    useEffect(() => {
+        getAllEvents().then(setAllEvents);
+    }, []);
+
+    const lifetimeEntries = useMemo(() => {
+        return activeSubs
+            .map(sub => {
+                const subEvents = allEvents.filter(e => e.subscriptionId === sub.id);
+                const totalCost = lifetimeCost(subEvents, sub.cost, sub.cycle, sub.customNum, sub.customUnit);
+                const addedEvent = subEvents.find(e => e.type === 'added');
+                const monthsActive = addedEvent
+                    ? (Date.now() - addedEvent.timestamp) / (1000 * 60 * 60 * 24 * 30.44)
+                    : 0;
+                return { sub, totalCost, monthsActive };
+            })
+            .sort((a, b) => b.totalCost - a.totalCost);
+    }, [activeSubs, allEvents]);
 
     const now = new Date();
     const currentMonthLabel = monthName(now.getMonth(), now.getFullYear());
@@ -116,6 +140,10 @@ export default function InsightsScreen() {
                         </View>
                     </Animated.View>
                 )}
+                {/* Lifetime Cost */}
+                <Animated.View entering={FadeInDown.duration(300).delay(400)}>
+                    <LifetimeCostList entries={lifetimeEntries} rate={rate} />
+                </Animated.View>
             </ScrollView>
             <IncomeSheet visible={showIncome} onClose={() => setShowIncome(false)} />
         </View>
