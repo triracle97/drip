@@ -5,29 +5,29 @@ import type { Category, Income, SpendingSnapshot, Sub } from './index';
 
 export async function getAllSubs(): Promise<Sub[]> {
     const db = await getDb();
-    const rows = await db.getAllAsync<any>('SELECT * FROM subscriptions ORDER BY created_at DESC');
+    const rows = await db.getAllAsync<any>('SELECT * FROM subscriptions ORDER BY sort_order ASC, created_at DESC');
     return rows.map(rowToSub);
 }
 
 export async function insertSub(s: Sub): Promise<void> {
     const db = await getDb();
     await db.runAsync(
-        `INSERT INTO subscriptions (id, name, icon, cost, cycle, category_id, active, bill_day, start_date, is_trial, trial_end_day, trial_decision, color, custom_num, custom_unit, reminder_days)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO subscriptions (id, name, icon, cost, cycle, category_id, active, bill_day, start_date, is_trial, trial_end_day, trial_decision, color, custom_num, custom_unit, reminder_days, sort_order)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         s.id, s.name, s.icon, s.cost, s.cycle, s.categoryId, s.active ? 1 : 0, s.billDay,
         s.startDate ?? null, s.isTrial ? 1 : 0, s.trialEndDay, s.trialDecision, s.color,
-        s.customNum ?? null, s.customUnit ?? null, s.reminderDays ?? null,
+        s.customNum ?? null, s.customUnit ?? null, s.reminderDays ?? null, s.sortOrder ?? 0,
     );
 }
 
 export async function updateSub(s: Sub): Promise<void> {
     const db = await getDb();
     await db.runAsync(
-        `UPDATE subscriptions SET name=?, icon=?, cost=?, cycle=?, category_id=?, active=?, bill_day=?, start_date=?, is_trial=?, trial_end_day=?, trial_decision=?, color=?, custom_num=?, custom_unit=?, reminder_days=?, updated_at=datetime('now')
+        `UPDATE subscriptions SET name=?, icon=?, cost=?, cycle=?, category_id=?, active=?, bill_day=?, start_date=?, is_trial=?, trial_end_day=?, trial_decision=?, color=?, custom_num=?, custom_unit=?, reminder_days=?, sort_order=?, updated_at=datetime('now')
          WHERE id=?`,
         s.name, s.icon, s.cost, s.cycle, s.categoryId, s.active ? 1 : 0, s.billDay,
         s.startDate ?? null, s.isTrial ? 1 : 0, s.trialEndDay, s.trialDecision, s.color,
-        s.customNum ?? null, s.customUnit ?? null, s.reminderDays ?? null, s.id,
+        s.customNum ?? null, s.customUnit ?? null, s.reminderDays ?? null, s.sortOrder ?? 0, s.id,
     );
 }
 
@@ -54,7 +54,15 @@ function rowToSub(r: any): Sub {
         customNum: r.custom_num ?? undefined,
         customUnit: r.custom_unit ?? undefined,
         reminderDays: r.reminder_days ?? null,
+        sortOrder: r.sort_order ?? 0,
     };
+}
+
+export async function reorderSubs(ids: string[]): Promise<void> {
+    const db = await getDb();
+    for (let i = 0; i < ids.length; i++) {
+        await db.runAsync('UPDATE subscriptions SET sort_order=? WHERE id=?', i, ids[i]);
+    }
 }
 
 // ─── INCOMES ────────────────────────────────

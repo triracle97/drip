@@ -6,7 +6,7 @@ import IncomeSheet from '@/components/IncomeSheet';
 import SubRow from '@/components/SubRow';
 import Toast from '@/components/Toast';
 import TrialSheet from '@/components/TrialSheet';
-import { C, LAYOUT, R, SHADOW, SP, TS } from '@/constants/design';
+import { C, LAYOUT, R, SP, TS } from '@/constants/design';
 import { Sub, useStore } from '@/store';
 import { useSettings } from '@/store/settings';
 import { getPopularSubs, PopularSub } from '@/store/supabase';
@@ -17,40 +17,29 @@ import {
   fmt,
   nextChargeIn,
   subMo,
-  timeTier,
-  toHrs,
+  toHrs
 } from '@/utils/calc';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   StyleSheet,
   Text,
   TouchableOpacity,
   View
 } from 'react-native';
+import DraggableFlatList, { RenderItemParams, ScaleDecorator } from 'react-native-draggable-flatlist';
 import Animated, {
-  Extrapolation,
   FadeInDown,
-  interpolate,
-  useAnimatedScrollHandler,
-  useAnimatedStyle,
-  useSharedValue,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 import type { Category } from '@/store';
 
-const SORT_LABELS: Record<string, string> = {
-  cost: 'Highest cost',
-  costLow: 'Lowest cost',
-  renewing: 'Renewing soon',
-  name: 'Name A-Z',
-};
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const { subs, incomes, categories } = useStore();
+  const { subs, incomes, categories, reorderSubs } = useStore();
   const currency = useSettings(s => s.currency);
 
   const catMap = useMemo(() => {
@@ -60,8 +49,6 @@ export default function HomeScreen() {
   }, [categories]);
   const [viewPeriod, setViewPeriod] = useState<'mo' | 'yr'>('mo');
   const [filterCat, setFilterCat] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState('cost');
-  const [sortOpen, setSortOpen] = useState(false);
   const [trialSheet, setTrialSheet] = useState<Sub | null>(null);
   const [editSubId, setEditSubId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -101,40 +88,132 @@ export default function HomeScreen() {
   }, [active]);
 
   const displaySubs = useMemo(() => {
-    let list = filterCat ? active.filter(s => s.categoryId === filterCat) : active;
-    if (sortBy === 'cost') list = [...list].sort((a, b) => subMo(b) - subMo(a));
-    if (sortBy === 'costLow') list = [...list].sort((a, b) => subMo(a) - subMo(b));
-    if (sortBy === 'renewing') list = [...list].sort((a, b) => nextChargeIn(a) - nextChargeIn(b));
-    if (sortBy === 'name') list = [...list].sort((a, b) => a.name.localeCompare(b.name));
-    return list;
-  }, [active, filterCat, sortBy]);
+    const list = filterCat ? active.filter(s => s.categoryId === filterCat) : active;
+    return [...list].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  }, [active, filterCat]);
 
   const isYr = viewPeriod === 'yr';
 
-  // Scroll-driven hero animation
-  const scrollY = useSharedValue(0);
-  const scrollHandler = useAnimatedScrollHandler({
-    onScroll: (e) => { scrollY.value = e.contentOffset.y; },
-  });
+  const handleDragEnd = useCallback(({ data }: { data: Sub[] }) => {
+    // Persist the full ordering: dragged items + non-active items
+    const activeIds = data.map(s => s.id);
+    const otherIds = subs.filter(s => !activeIds.includes(s.id)).map(s => s.id);
+    reorderSubs([...activeIds, ...otherIds]);
+  }, [subs, reorderSubs]);
 
-  const heroAnimStyle = useAnimatedStyle(() => {
-    const translateY = interpolate(scrollY.value, [0, 120], [0, -40], Extrapolation.CLAMP);
-    const scale = interpolate(scrollY.value, [0, 120], [1, 0.92], Extrapolation.CLAMP);
-    const opacity = interpolate(scrollY.value, [0, 100], [1, 0], Extrapolation.CLAMP);
-    return {
-      transform: [{ translateY }, { scale }],
-      opacity,
-    };
-  });
+  const renderItem = useCallback(({ item: s_, drag, isActive: isDragging }: RenderItemParams<Sub>) => {
+    const mc = subMo(s_);
+    const displayCost = isYr ? mc * 12 : mc;
+    const remain = nextChargeIn(s_);
+    const total = cycleDays(s_);
+    const urgent = remain <= 3;
+    return (
+      <ScaleDecorator>
+        <SubRow
+          name={s_.name}
+          icon={s_.icon}
+          color={s_.color}
+          costLabel={fmt(displayCost)}
+          costSub={`/${isYr ? 'year' : 'month'}`}
+          renewLabel={daysLabel(remain)}
+          hoursLabel={toHrs(displayCost, rate)}
+          urgent={urgent}
+          onPress={() => setEditSubId(s_.id)}
+          onLongPress={drag}
+          isDragging={isDragging}
+        />
+      </ScaleDecorator>
+    );
+  }, [isYr, rate]);
 
-  const pillsAnimStyle = useAnimatedStyle(() => {
-    const translateY = interpolate(scrollY.value, [0, 120], [0, -30], Extrapolation.CLAMP);
-    const opacity = interpolate(scrollY.value, [0, 80], [1, 0], Extrapolation.CLAMP);
-    return {
-      transform: [{ translateY }],
-      opacity,
-    };
-  });
+  const ListHeader = useMemo(() => (
+    <>
+      {/* Compact Hero Summary Card */}
+      <Animated.View entering={FadeInDown.duration(400)}>
+        <Card style={s.heroCard}>
+          <View style={s.heroRow}>
+            <View style={s.heroStat}>
+              <Text style={s.heroStatLabel}>Total Cost</Text>
+              <Text style={s.heroStatValue}>{fmt(displayTotal)}</Text>
+              <Text style={s.heroStatHint}>{active.length} active</Text>
+            </View>
+            <View style={s.heroDivider} />
+            {incomes.length === 0 ? (
+              <TouchableOpacity onPress={() => setShowIncome(true)} style={s.heroStat} activeOpacity={0.7}>
+                <Text style={s.heroStatLabel}>Work Hours</Text>
+                <View style={s.heroAddBtn}>
+                  <Svg width={14} height={14} viewBox="0 0 24 24" fill="none">
+                    <Path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth={2.5} strokeLinecap="round" />
+                  </Svg>
+                </View>
+                <Text style={[s.heroStatHint, { color: C.green }]}>set income</Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={s.heroStat}>
+                <Text style={s.heroStatLabel}>Work Hours</Text>
+                <Text style={s.heroStatValue}>{toHrs(displayTotal, rate)}</Text>
+                <Text style={s.heroStatHint}>to earn this</Text>
+              </View>
+            )}
+            <View style={s.heroDivider} />
+            <View style={s.heroStat}>
+              <Text style={s.heroStatLabel}>% Income</Text>
+              <Text style={s.heroStatValue}>{pctIncome.toFixed(1)}%</Text>
+              <Text style={s.heroStatHint}>of monthly</Text>
+            </View>
+          </View>
+        </Card>
+      </Animated.View>
+
+      {/* Subscription List Header */}
+      <View style={{ marginBottom: 12, marginTop: 12 }}>
+        <Text style={s.subCount}>{displaySubs.length} subscriptions</Text>
+        <Text style={s.dragHint}>Long press to drag and reorder</Text>
+      </View>
+
+      {/* Active trial rows */}
+      {activeTrials.map((s_) => {
+        const mc = subMo(s_);
+        const daysLeft = s_.trialEndDay - curDay;
+        const displayCost = isYr ? mc * 12 : mc;
+        return (
+          <Animated.View key={s_.id} entering={FadeInDown.duration(300).delay(50)}>
+            <SubRow
+              name={s_.name}
+              icon={s_.icon}
+              color={s_.color}
+              costLabel={fmt(displayCost)}
+              variant="trial"
+              trialDaysLeft={daysLeft}
+              trialCostLabel={`Then ${fmt(displayCost)}/${isYr ? 'year' : 'month'}`}
+              onPress={() => setTrialSheet(s_)}
+            />
+          </Animated.View>
+        );
+      })}
+    </>
+  ), [displayTotal, active.length, incomes.length, rate, pctIncome, displaySubs.length, isYr, activeTrials]);
+
+  const ListFooter = useMemo(() => (
+    <>
+      {inactive.length > 0 && (
+        <View style={{ marginTop: 24 }}>
+          <Text style={[s.sectionCap, { marginBottom: 8 }]}>Cancelled</Text>
+          {inactive.map(s_ => (
+            <SubRow
+              key={s_.id}
+              name={s_.name}
+              icon={s_.icon}
+              color={s_.color}
+              costLabel={fmt(s_.cost)}
+              variant="inactive"
+              onPress={() => setEditSubId(s_.id)}
+            />
+          ))}
+        </View>
+      )}
+    </>
+  ), [inactive, isYr]);
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
@@ -154,156 +233,17 @@ export default function HomeScreen() {
         </AnimatedPressable>
       </View>
 
-      <Animated.ScrollView
-        style={{ flex: 1 }}
+      <DraggableFlatList
+        data={displaySubs}
+        keyExtractor={(item, index) => item.id + index}
+        renderItem={renderItem}
+        onDragEnd={handleDragEnd}
+        ListHeaderComponent={ListHeader}
+        ListFooterComponent={ListFooter}
         contentContainerStyle={{ paddingHorizontal: LAYOUT.screenHPad, paddingBottom: LAYOUT.tabBarHeight + 16 }}
         showsVerticalScrollIndicator={false}
-        onScroll={scrollHandler}
-        scrollEventThrottle={16}
-      >
-        {/* Compact Hero Summary Card */}
-        <Animated.View entering={FadeInDown.duration(400)} style={heroAnimStyle}>
-          <Card style={s.heroCard}>
-            <View style={s.heroRow}>
-              <View style={s.heroStat}>
-                <Text style={s.heroStatLabel}>Total Cost</Text>
-                <Text style={s.heroStatValue}>{fmt(displayTotal)}</Text>
-                <Text style={s.heroStatHint}>{active.length} active</Text>
-              </View>
-              <View style={s.heroDivider} />
-              {incomes.length === 0 ? (
-                <TouchableOpacity onPress={() => setShowIncome(true)} style={s.heroStat} activeOpacity={0.7}>
-                  <Text style={s.heroStatLabel}>Work Hours</Text>
-                  <View style={s.heroAddBtn}>
-                    <Svg width={14} height={14} viewBox="0 0 24 24" fill="none">
-                      <Path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth={2.5} strokeLinecap="round" />
-                    </Svg>
-                  </View>
-                  <Text style={[s.heroStatHint, { color: C.green }]}>set income</Text>
-                </TouchableOpacity>
-              ) : (
-                <View style={s.heroStat}>
-                  <Text style={s.heroStatLabel}>Work Hours</Text>
-                  <Text style={s.heroStatValue}>{toHrs(displayTotal, rate)}</Text>
-                  <Text style={s.heroStatHint}>to earn this</Text>
-                </View>
-              )}
-              <View style={s.heroDivider} />
-              <View style={s.heroStat}>
-                <Text style={s.heroStatLabel}>% Income</Text>
-                <Text style={s.heroStatValue}>{pctIncome.toFixed(1)}%</Text>
-                <Text style={s.heroStatHint}>of monthly</Text>
-              </View>
-            </View>
-          </Card>
-        </Animated.View>
-
-        {/* Subscription List Header */}
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, marginTop: 12 }}>
-          <Text style={s.subCount}>{displaySubs.length} subscriptions</Text>
-          <View style={{ position: 'relative' }}>
-            <TouchableOpacity
-              onPress={() => setSortOpen(o => !o)}
-              style={[s.sortBtn, sortOpen && { backgroundColor: C.bgSub }]}
-              activeOpacity={0.75}
-            >
-              <Svg width={13} height={13} viewBox="0 0 16 16" fill="none">
-                <Path d="M5 3L5 13M5 3L2.5 5.5M5 3L7.5 5.5M11 13L11 3M11 13L8.5 10.5M11 13L13.5 10.5" stroke={C.t3} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
-              </Svg>
-              <Text style={s.sortLabel}>{SORT_LABELS[sortBy]}</Text>
-            </TouchableOpacity>
-            {sortOpen && (
-              <>
-                <TouchableOpacity style={StyleSheet.absoluteFillObject} onPress={() => setSortOpen(false)} />
-                <View style={s.sortDropdown}>
-                  {Object.entries(SORT_LABELS).map(([k, l]) => (
-                    <TouchableOpacity
-                      key={k}
-                      onPress={() => { setSortBy(k); setSortOpen(false); }}
-                      style={[s.sortItem, sortBy === k && { backgroundColor: C.bgSub }]}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={[s.sortItemTxt, { color: sortBy === k ? C.t1 : C.t2, fontWeight: sortBy === k ? '600' : '500' }]}>{l}</Text>
-                      {sortBy === k && <Text style={{ color: C.t1, fontSize: 12 }}>✓</Text>}
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </>
-            )}
-          </View>
-        </View>
-
-        {/* Active trial rows */}
-        {activeTrials.map((s_) => {
-          const mc = subMo(s_);
-          const daysLeft = s_.trialEndDay - curDay;
-          const displayCost = isYr ? mc * 12 : mc;
-          const totalDays = 14;
-          const pct = Math.min(1, Math.max(0, (totalDays - daysLeft) / totalDays));
-          return (
-            <Animated.View key={s_.id} entering={FadeInDown.duration(300).delay(50)}>
-              <SubRow
-                name={s_.name}
-                icon={s_.icon}
-                color={s_.color}
-                costLabel={fmt(displayCost)}
-                variant="trial"
-                trialDaysLeft={daysLeft}
-                trialCostLabel={`Then ${fmt(displayCost)}/${isYr ? 'year' : 'month'}`}
-                onPress={() => setTrialSheet(s_)}
-              />
-            </Animated.View >
-          );
-        })}
-
-        {/* Active sub rows */}
-        {
-          displaySubs.map((s_, idx) => {
-            const mc = subMo(s_);
-            const displayCost = isYr ? mc * 12 : mc;
-            const remain = nextChargeIn(s_);
-            const total = cycleDays(s_);
-            const pct = Math.min(1, Math.max(0, (total - remain) / total));
-            const urgent = remain <= 3;
-            const tier = timeTier(displayCost, rate);
-            return (
-              <Animated.View key={s_.id} entering={FadeInDown.duration(300).delay(idx * 30)}>
-                <SubRow
-                  name={s_.name}
-                  icon={s_.icon}
-                  color={s_.color}
-                  costLabel={fmt(displayCost)}
-                  costSub={`/${isYr ? 'year' : 'month'}`}
-                  renewLabel={daysLabel(remain)}
-                  hoursLabel={toHrs(displayCost, rate)}
-                  urgent={urgent}
-                  onPress={() => setEditSubId(s_.id)}
-                />
-              </Animated.View>
-            );
-          })
-        }
-
-        {/* Inactive */}
-        {
-          inactive.length > 0 && (
-            <View style={{ marginTop: 24 }}>
-              <Text style={[s.sectionCap, { marginBottom: 8 }]}>Cancelled</Text>
-              {inactive.map(s_ => (
-                <SubRow
-                  key={s_.id}
-                  name={s_.name}
-                  icon={s_.icon}
-                  color={s_.color}
-                  costLabel={fmt(s_.cost)}
-                  variant="inactive"
-                  onPress={() => setEditSubId(s_.id)}
-                />
-              ))}
-            </View>
-          )
-        }
-      </Animated.ScrollView >
+        activationDistance={0}
+      />
 
       <TrialSheet sub={trialSheet} onClose={() => setTrialSheet(null)} />
 
@@ -313,7 +253,7 @@ export default function HomeScreen() {
 
       <Toast message={toast} />
       <IncomeSheet visible={showIncome} onClose={() => setShowIncome(false)} />
-    </View >
+    </View>
   );
 }
 
@@ -376,26 +316,7 @@ const s = StyleSheet.create({
   subCount: {
     fontSize: 15, fontWeight: '700', color: C.t1,
   },
-  sortBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 12, paddingVertical: 8,
-    borderRadius: R.pill,
-  },
-  sortLabel: {
-    fontSize: 12, fontWeight: '500', color: C.t3,
-  },
-  sortDropdown: {
-    position: 'absolute', top: 44, right: 0, zIndex: 20, minWidth: 170,
-    backgroundColor: C.bg, borderWidth: 1, borderColor: C.line,
-    borderRadius: R.md, padding: 4,
-    ...SHADOW.cardHover,
-  },
-  sortItem: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 12, paddingVertical: 10,
-    borderRadius: R.pill,
-  },
-  sortItemTxt: {
-    fontSize: 12,
+  dragHint: {
+    fontSize: 11, fontWeight: '400', color: C.t3, marginTop: 2,
   },
 });

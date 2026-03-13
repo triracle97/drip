@@ -159,6 +159,7 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
             customNum: f.cycle === 'custom' ? parseFloat(f.customNum) || 1 : undefined,
             customUnit: f.cycle === 'custom' ? f.customUnit : undefined,
             reminderDays: f.reminderDays ? parseInt(f.reminderDays) : null,
+            sortOrder: 0,
         };
         addSub(newSub);
         dismiss();

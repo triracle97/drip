@@ -20,6 +20,7 @@ export interface Sub {
     customNum?: number;
     customUnit?: string;
     reminderDays: number | null;
+    sortOrder: number;
 }
 
 export interface Income {
@@ -66,6 +67,7 @@ type Action =
     | { type: 'UPDATE_INCOME'; income: Income }
     | { type: 'REMOVE_INCOME'; id: string }
     | { type: 'DECIDE_TRIAL'; id: string; decision: 'kept' | 'cancelled' }
+    | { type: 'REORDER_SUBS'; ids: string[] }
     | { type: 'ADD_CATEGORY'; category: Category }
     | { type: 'UPDATE_CATEGORY'; category: Category }
     | { type: 'REMOVE_CATEGORY'; id: string; reassignTo: string }
@@ -111,6 +113,14 @@ function reducer(state: State, action: Action): State {
                     return { ...s, isTrial: false, trialDecision: 'cancelled', active: false };
                 }),
             };
+        case 'REORDER_SUBS':
+            return {
+                ...state,
+                subs: action.ids.map((id, i) => {
+                    const sub = state.subs.find(s => s.id === id)!;
+                    return { ...sub, sortOrder: i };
+                }),
+            };
         case 'ADD_CATEGORY':
             return { ...state, categories: [...state.categories, action.category] };
         case 'UPDATE_CATEGORY':
@@ -149,6 +159,7 @@ type Ctx = {
     addIncome: (i: Income) => void;
     updateIncome: (i: Income) => void;
     removeIncome: (id: string) => void;
+    reorderSubs: (ids: string[]) => void;
     decideTrial: (id: string, decision: 'kept' | 'cancelled') => void;
     addCategory: (c: Category) => void;
     updateCategory: (c: Category) => void;
@@ -205,6 +216,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     const removeIncome = useCallback((id: string) => {
         dispatch({ type: 'REMOVE_INCOME', id });
         repo.deleteIncome(id);
+    }, []);
+
+    const reorderSubs = useCallback((ids: string[]) => {
+        dispatch({ type: 'REORDER_SUBS', ids });
+        repo.reorderSubs(ids);
     }, []);
 
     const decideTrial = useCallback((id: string, decision: 'kept' | 'cancelled') => {
@@ -276,7 +292,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
             categories: state.categories,
             spendingHistory: state.spendingHistory,
             isLoaded: state.isLoaded,
-            addSub, updateSub, removeSub,
+            addSub, updateSub, removeSub, reorderSubs,
             addIncome, updateIncome, removeIncome,
             decideTrial,
             addCategory, updateCategory, removeCategory, reorderCategories,

@@ -6,6 +6,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef } from 'react';
 import { ActivityIndicator, AppState, Text, TextInput, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
 // Prevent system font scaling from affecting the app
@@ -61,8 +62,10 @@ function AppContent() {
 
 export default function RootLayout() {
   return (
-    <StoreProvider>
-      <AppContent />
-    </StoreProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <StoreProvider>
+        <AppContent />
+      </StoreProvider>
+    </GestureHandlerRootView>
   );
 }

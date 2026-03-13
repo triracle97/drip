@@ -73,6 +73,13 @@ async function migrate(db: SQLite.SQLiteDatabase) {
         // Column already exists — safe to ignore
     }
 
+    // Migrate: add sort_order column to subscriptions
+    try {
+        await db.execAsync('ALTER TABLE subscriptions ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0;');
+    } catch {
+        // Column already exists — safe to ignore
+    }
+
     // Seed default categories if empty
     const catCount = await db.getFirstAsync<{ cnt: number }>('SELECT COUNT(*) as cnt FROM categories');
     if (!catCount || catCount.cnt === 0) {
