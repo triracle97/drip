@@ -9,8 +9,9 @@ import { useStore } from '@/store';
 import { useSettings } from '@/store/settings';
 import { blended, fmt, monthlyIncome, subMo, toHrs } from '@/utils/calc';
 import { requestPermissions, rescheduleAllNotifications } from '@/utils/notifications';
+import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -19,7 +20,7 @@ export default function SettingsScreen() {
     const insets = useSafeAreaInsets();
     const { incomes, subs, categories } = useStore();
     const { currency, notificationsEnabled, notificationTime, setNotificationsEnabled, setNotificationTime } = useSettings();
-    const [showIncome, setShowIncome] = useState(false);
+    const incomeRef = useRef<TrueSheet>(null);
     const [showCategories, setShowCategories] = useState(false);
     const [showCurrency, setShowCurrency] = useState(false);
     const [showTimePicker, setShowTimePicker] = useState(false);
@@ -111,7 +112,7 @@ export default function SettingsScreen() {
                             <Text style={s.incomeRate}>{fmt(rate)}/hr</Text>
                         </View>
                     </View>
-                    <TouchableOpacity onPress={() => setShowIncome(true)} style={s.incomeBtn} activeOpacity={0.8}>
+                    <TouchableOpacity onPress={() => incomeRef.current?.present()} style={s.incomeBtn} activeOpacity={0.8}>
                         <Svg width={14} height={14} viewBox="0 0 24 24" fill="none">
                             <Path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="#fff" strokeWidth={2} strokeLinecap="round" />
                             <Path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
@@ -161,7 +162,7 @@ export default function SettingsScreen() {
                 <Text style={s.version}>Drip v1.0 · Track what you pay with your time</Text>
             </ScrollView>
 
-            <IncomeSheet visible={showIncome} onClose={() => setShowIncome(false)} />
+            <IncomeSheet ref={incomeRef} />
             <CategoryManager visible={showCategories} onClose={() => setShowCategories(false)} />
             <CurrencySheet visible={showCurrency} onClose={() => setShowCurrency(false)} />
             <Toast message={toast} />

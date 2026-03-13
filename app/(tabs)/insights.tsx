@@ -6,10 +6,11 @@ import LifetimeCostList from '@/components/LifetimeCostList';
 import SpendingChart from '@/components/SpendingChart';
 import { C, LAYOUT } from '@/constants/design';
 import { Category, useStore } from '@/store';
-import { getAllEvents } from '@/store/repository';
 import type { SubscriptionEvent } from '@/store/repository';
+import { getAllEvents } from '@/store/repository';
 import { blended, budgetHealth, fmt, lifetimeCost, monthlyIncome, monthName, subMo } from '@/utils/calc';
-import React, { useEffect, useMemo, useState } from 'react';
+import { TrueSheet } from '@lodev09/react-native-true-sheet';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -27,7 +28,7 @@ export default function InsightsScreen() {
     const totalMo = activeSubs.reduce((sum, s) => sum + subMo(s), 0);
     const moIncome = monthlyIncome(incomes);
     const health = budgetHealth(totalMo, moIncome);
-    const [showIncome, setShowIncome] = useState(false);
+    const incomeRef = useRef<TrueSheet>(null);
 
     // Record snapshot on mount
     useEffect(() => {
@@ -82,7 +83,7 @@ export default function InsightsScreen() {
                 contentContainerStyle={{ paddingHorizontal: LAYOUT.screenHPad, paddingBottom: LAYOUT.tabBarHeight + 32 }}
                 showsVerticalScrollIndicator={false}
             >
-                {incomes.length === 0 && <IncomeCTA onPress={() => setShowIncome(true)} />}
+                {incomes.length === 0 && <IncomeCTA onPress={() => incomeRef.current?.present()} />}
 
                 {/* Spending Trend */}
                 <Animated.View entering={FadeInDown.duration(300)}>
@@ -143,7 +144,7 @@ export default function InsightsScreen() {
                     <LifetimeCostList entries={lifetimeEntries} rate={rate} />
                 </Animated.View>
             </ScrollView>
-            <IncomeSheet visible={showIncome} onClose={() => setShowIncome(false)} />
+            <IncomeSheet ref={incomeRef} />
         </View>
     );
 }

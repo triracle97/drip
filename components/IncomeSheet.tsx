@@ -3,23 +3,23 @@ import { C, R, SP } from '@/constants/design';
 import { useStore } from '@/store';
 import { useSettings } from '@/store/settings';
 import { fmt } from '@/utils/calc';
-import React, { useState } from 'react';
+import { TrueSheet } from '@lodev09/react-native-true-sheet';
+import React, { forwardRef, useCallback, useRef, useState } from 'react';
 import {
-    Modal,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
     StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
-interface Props {
-    visible: boolean;
-    onClose: () => void;
-}
-
-export default function IncomeSheet({ visible, onClose }: Props) {
+const IncomeSheet = forwardRef<TrueSheet>(function IncomeSheet(_props, ref) {
+    const insets = useSafeAreaInsets();
     const { incomes, addIncome, updateIncome } = useStore();
     const currency = useSettings(s => s.currency);
     const existing = incomes[0] ?? null;
@@ -28,7 +28,15 @@ export default function IncomeSheet({ visible, onClose }: Props) {
     const [isHourly, setIsHourly] = useState(false);
     const [hours, setHours] = useState('40');
 
-    const handlePresent = () => {
+    // Keep a local ref so we can call dismiss() internally
+    const sheetRef = useRef<TrueSheet>(null);
+    const setRefs = useCallback((node: TrueSheet | null) => {
+        sheetRef.current = node;
+        if (typeof ref === 'function') ref(node);
+        else if (ref) (ref as React.MutableRefObject<TrueSheet | null>).current = node;
+    }, [ref]);
+
+    const handlePresent = useCallback(() => {
         if (existing) {
             setAmount(String(existing.amount));
             setIsHourly(existing.isHourly);
@@ -38,7 +46,11 @@ export default function IncomeSheet({ visible, onClose }: Props) {
             setIsHourly(false);
             setHours('40');
         }
-    };
+    }, [existing]);
+
+    const dismiss = useCallback(() => {
+        sheetRef.current?.dismiss();
+    }, []);
 
     const canSave = parseFloat(amount) > 0;
 
@@ -51,7 +63,7 @@ export default function IncomeSheet({ visible, onClose }: Props) {
         } else {
             addIncome({ ...data, id: `i${Date.now()}` });
         }
-        onClose();
+        dismiss();
     };
 
     const hourlyRate = parseFloat(amount) > 0
@@ -59,17 +71,35 @@ export default function IncomeSheet({ visible, onClose }: Props) {
         : 0;
 
     return (
-        <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} onShow={handlePresent}>
-            <View style={s.backdrop}>
-                <TouchableOpacity style={StyleSheet.absoluteFillObject} onPress={onClose} />
-                <View style={s.sheet}>
-                    {/* Handle */}
-                    <View style={s.handle} />
+        <TrueSheet
+            ref={setRefs}
+            detents={['auto']}
+            grabber={false}
+            cornerRadius={24}
+            dismissible={true}
+            dimmed={true}
+            dimmedDetentIndex={0}
+            backgroundColor={C.bg}
+            onWillPresent={handlePresent}
+        >
+            {/* Custom grabber */}
+            <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+                <View style={{ backgroundColor: 'rgba(0,0,0,0.2)', width: 40, height: 4, borderRadius: 99, marginTop: 8, marginBottom: 4 }} />
+            </View>
 
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                style={{ flexShrink: 1 }}
+            >
+                <ScrollView
+                    keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={{ paddingHorizontal: SP[4], paddingBottom: Math.max(insets.bottom, 16) }}
+                >
                     {/* Header */}
                     <View style={s.headerRow}>
                         <Text style={s.title}>{existing ? 'Update Income' : 'Add Income'}</Text>
-                        <TouchableOpacity onPress={onClose} style={s.closeBtn} activeOpacity={0.7}>
+                        <TouchableOpacity onPress={dismiss} style={s.closeBtn} activeOpacity={0.7}>
                             <Svg width={14} height={14} viewBox="0 0 16 16" fill="none">
                                 <Path d="M4 4l8 8M12 4l-8 8" stroke={C.t3} strokeWidth={1.8} strokeLinecap="round" />
                             </Svg>
@@ -143,31 +173,15 @@ export default function IncomeSheet({ visible, onClose }: Props) {
                             {existing ? 'Save Changes' : 'Add Income'}
                         </Text>
                     </AnimatedPressable>
-                </View>
-            </View>
-        </Modal>
+                </ScrollView>
+            </KeyboardAvoidingView>
+        </TrueSheet>
     );
-}
+});
+
+export default IncomeSheet;
 
 const s = StyleSheet.create({
-    backdrop: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.4)',
-        justifyContent: 'flex-end',
-    },
-    sheet: {
-        backgroundColor: C.bg,
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-        paddingTop: 12,
-        paddingHorizontal: SP[4],
-        paddingBottom: 32,
-    },
-    handle: {
-        width: 36, height: 4, borderRadius: 2,
-        backgroundColor: 'rgba(0,0,0,0.12)',
-        alignSelf: 'center', marginBottom: 16,
-    },
     headerRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -178,7 +192,7 @@ const s = StyleSheet.create({
         fontSize: 20, fontWeight: '700', color: C.t1,
     },
     closeBtn: {
-        width: 32, height: 32, borderRadius: 16,
+        width: 36, height: 36, borderRadius: R.pill,
         backgroundColor: C.bgSub,
         alignItems: 'center', justifyContent: 'center',
     },

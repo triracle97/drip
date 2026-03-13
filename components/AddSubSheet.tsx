@@ -10,7 +10,9 @@ import { blended, curDay, fmt, moEq, toHrs } from '@/utils/calc';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import React, { forwardRef, useCallback, useMemo, useRef, useState } from 'react';
 import {
+    KeyboardAvoidingView,
     Modal,
+    Platform,
     ScrollView,
     StyleSheet,
     Switch,
@@ -417,17 +419,19 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
                 </Field>
 
                 {/* Trial toggle */}
-                <View style={[s.trialBox, { backgroundColor: f.isTrial ? C.redBg : C.bgSub, borderColor: f.isTrial ? C.redLine : 'transparent' }]}>
+                <View style={[s.trialBox, { backgroundColor: f.isTrial ? C.redBg : C.bgSub, borderBottomLeftRadius: f.isTrial ? 0 : R.md, borderBottomRightRadius: f.isTrial ? 0 : R.md }]}>
                     <View style={{ flex: 1 }}>
                         <Text style={[s.trialLabel, { color: f.isTrial ? C.red : C.t1 }]}>Free trial</Text>
                         <Text style={{ fontSize: 12, color: C.t3 }}>Get reminded before it charges</Text>
                     </View>
-                    <Switch
-                        value={f.isTrial}
-                        onValueChange={v => u('isTrial', v)}
-                        trackColor={{ false: 'rgba(0,0,0,0.16)', true: C.black }}
-                        thumbColor="#fff"
-                    />
+                    <View style={{ transform: [{ scale: 0.7 }] }}>
+                        <Switch
+                            value={f.isTrial}
+                            onValueChange={v => u('isTrial', v)}
+                            trackColor={{ false: 'rgba(0,0,0,0.16)', true: C.black }}
+                            thumbColor="#fff"
+                        />
+                    </View>
                 </View>
 
                 {f.isTrial && (
@@ -441,11 +445,11 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
                                     style={[s.trialDayBtn, f.trialDays === d && { backgroundColor: C.redBg, borderColor: C.redLine }]}
                                     activeOpacity={0.8}
                                 >
-                                    <Text style={{ fontSize: 12, fontWeight: '600', color: f.trialDays === d ? C.red : C.t3 }}>{d}d</Text>
+                                    <Text style={{ fontSize: 11, fontWeight: '600', color: f.trialDays === d ? C.red : C.t3 }}>{d}d</Text>
                                 </TouchableOpacity>
                             ))}
                             <TextInput
-                                style={[s.inp, { flex: 1, textAlign: 'center', color: C.red }]}
+                                style={[s.inp, { flex: 1, textAlign: 'center', color: C.red, fontSize: 11, height: 36, padding: 0 }]}
                                 value={!['7', '14', '30'].includes(f.trialDays) ? f.trialDays : ''}
                                 onChangeText={v => u('trialDays', v)}
                                 placeholder="Custom"
@@ -549,9 +553,12 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
                 <View style={{ backgroundColor: 'rgba(0,0,0,0.2)', width: 40, height: 4, borderRadius: 99, marginTop: 8, marginBottom: 4 }} />
             </View>
 
-            <View style={{ flex: 1 }}>
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                style={{ flex: 1 }}
+            >
                 {phase === 'pick' ? renderPicker() : renderForm()}
-            </View>
+            </KeyboardAvoidingView>
         </TrueSheet>
     );
 });
@@ -745,18 +752,18 @@ const s = StyleSheet.create({
     },
     trialBox: {
         flexDirection: 'row', alignItems: 'center',
-        padding: 14, borderRadius: R.md, borderWidth: 1.5, marginBottom: 0,
+        padding: 14, borderRadius: R.md, marginBottom: 0,
     },
     trialLabel: {
         fontSize: 14, fontWeight: '600',
     },
     trialDaysRow: {
-        backgroundColor: C.redBg, borderWidth: 1, borderColor: C.redLine,
-        borderTopWidth: 0, borderBottomLeftRadius: R.md, borderBottomRightRadius: R.md,
-        padding: 14, marginBottom: 20,
+        backgroundColor: C.redBg,
+        borderBottomLeftRadius: R.md, borderBottomRightRadius: R.md,
+        paddingHorizontal: 14, paddingTop: 10, paddingBottom: 12, marginBottom: 20,
     },
     trialDayBtn: {
-        flex: 1, padding: 8, borderRadius: R.md, alignItems: 'center',
+        flex: 1, height: 36, justifyContent: 'center', borderRadius: R.md, alignItems: 'center',
         backgroundColor: C.bgSub, borderWidth: 1.5, borderColor: 'rgba(0,0,0,0.04)',
     },
     workPreview: {

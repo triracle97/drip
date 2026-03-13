@@ -52,8 +52,8 @@ export default function HomeScreen() {
   const [trialSheet, setTrialSheet] = useState<Sub | null>(null);
   const [editSubId, setEditSubId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [showIncome, setShowIncome] = useState(false);
   const addSheetRef = useRef<TrueSheet>(null);
+  const incomeRef = useRef<TrueSheet>(null);
 
   // ─── Sheet state ───
   const [popularSubs, setPopularSubs] = useState<PopularSub[]>([]);
@@ -139,7 +139,7 @@ export default function HomeScreen() {
             </View>
             <View style={s.heroDivider} />
             {incomes.length === 0 ? (
-              <TouchableOpacity onPress={() => setShowIncome(true)} style={s.heroStat} activeOpacity={0.7}>
+              <TouchableOpacity onPress={() => incomeRef.current?.present()} style={s.heroStat} activeOpacity={0.7}>
                 <Text style={s.heroStatLabel}>Work Hours</Text>
                 <View style={s.heroAddBtn}>
                   <Svg width={14} height={14} viewBox="0 0 24 24" fill="none">
@@ -252,7 +252,7 @@ export default function HomeScreen() {
       <AddSubSheet ref={addSheetRef} />
 
       <Toast message={toast} />
-      <IncomeSheet visible={showIncome} onClose={() => setShowIncome(false)} />
+      <IncomeSheet ref={incomeRef} />
     </View>
   );
 }
