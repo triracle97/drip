@@ -1,6 +1,7 @@
 import { getCurrency } from '@/constants/currencies';
 import { useSettings } from '@/store/settings';
 import { Income, Sub } from '@/store';
+import type { SubscriptionEvent } from '@/store/repository';
 
 // ─── FORMATTERS ───────────────────────────
 export const fmt = (n: number) => {
@@ -143,6 +144,50 @@ export const budgetHealth = (monthlySubCost: number, moIncome: number): { level:
     if (pct < 15) return { level: 'high', label: 'High', color: '#FF6B35', pct };
     return { level: 'alert', label: 'Alert', color: '#FF3B30', pct };
 };
+
+// ─── LIFETIME COST ───────────────────────
+
+/** Calculate total lifetime cost from event log for a single subscription */
+export function lifetimeCost(events: SubscriptionEvent[], currentCost: number, currentCycle: string, customNum?: number, customUnit?: string): number {
+    if (events.length === 0) return 0;
+
+    let total = 0;
+    let activeSince: number | null = null;
+    let monthlyCost = 0;
+
+    for (const evt of events) {
+        if (evt.type === 'added') {
+            activeSince = evt.timestamp;
+            const meta = evt.metadata ? JSON.parse(evt.metadata) : null;
+            monthlyCost = meta?.cost != null ? moEq(meta.cost, meta.cycle) : moEq(currentCost, currentCycle, customNum, customUnit);
+        } else if (evt.type === 'price_change' && activeSince != null) {
+            const months = (evt.timestamp - activeSince) / (1000 * 60 * 60 * 24 * 30.44);
+            total += months * monthlyCost;
+            activeSince = evt.timestamp;
+            const meta = JSON.parse(evt.metadata!);
+            monthlyCost = moEq(meta.newCost, meta.cycle ?? currentCycle, customNum, customUnit);
+        } else if ((evt.type === 'cycle_change') && activeSince != null) {
+            const months = (evt.timestamp - activeSince) / (1000 * 60 * 60 * 24 * 30.44);
+            total += months * monthlyCost;
+            activeSince = evt.timestamp;
+            const meta = JSON.parse(evt.metadata!);
+            monthlyCost = moEq(meta.cost ?? currentCost, meta.newCycle, customNum, customUnit);
+        } else if (evt.type === 'cancelled' && activeSince != null) {
+            const months = (evt.timestamp - activeSince) / (1000 * 60 * 60 * 24 * 30.44);
+            total += months * monthlyCost;
+            activeSince = null;
+        } else if (evt.type === 'reactivated') {
+            activeSince = evt.timestamp;
+        }
+    }
+
+    if (activeSince != null) {
+        const months = (Date.now() - activeSince) / (1000 * 60 * 60 * 24 * 30.44);
+        total += months * monthlyCost;
+    }
+
+    return total;
+}
 
 // ─── DATE HELPERS ─────────────────────────
 export const today = new Date();
