@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useReducer } from 'react';
 import * as repo from './repository';
+import type { SubscriptionEvent } from './repository';
 import { migrateSettingsFromSQLite } from './settings';
 
 // ─── DATA TYPES ───────────────────────────
@@ -191,14 +192,67 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     const addSub = useCallback((sub: Sub) => {
         dispatch({ type: 'ADD_SUB', sub });
         repo.insertSub(sub);
+        repo.insertEvent({
+            id: `evt_${sub.id}_${Date.now()}`,
+            subscriptionId: sub.id,
+            type: 'added',
+            timestamp: Date.now(),
+            metadata: JSON.stringify({ cost: sub.cost, cycle: sub.cycle }),
+        });
     }, []);
 
     const updateSub = useCallback((sub: Sub) => {
+        const old = state.subs.find(s => s.id === sub.id);
         dispatch({ type: 'UPDATE_SUB', sub });
         repo.updateSub(sub);
-    }, []);
+        if (old) {
+            if (old.cost !== sub.cost) {
+                repo.insertEvent({
+                    id: `evt_${sub.id}_${Date.now()}_price`,
+                    subscriptionId: sub.id,
+                    type: 'price_change',
+                    timestamp: Date.now(),
+                    metadata: JSON.stringify({ oldCost: old.cost, newCost: sub.cost, cycle: sub.cycle }),
+                });
+            }
+            if (old.cycle !== sub.cycle) {
+                repo.insertEvent({
+                    id: `evt_${sub.id}_${Date.now()}_cycle`,
+                    subscriptionId: sub.id,
+                    type: 'cycle_change',
+                    timestamp: Date.now(),
+                    metadata: JSON.stringify({ oldCycle: old.cycle, newCycle: sub.cycle, cost: sub.cost }),
+                });
+            }
+            if (old.active && !sub.active) {
+                repo.insertEvent({
+                    id: `evt_${sub.id}_${Date.now()}_cancel`,
+                    subscriptionId: sub.id,
+                    type: 'cancelled',
+                    timestamp: Date.now(),
+                    metadata: null,
+                });
+            }
+            if (!old.active && sub.active) {
+                repo.insertEvent({
+                    id: `evt_${sub.id}_${Date.now()}_reactivate`,
+                    subscriptionId: sub.id,
+                    type: 'reactivated',
+                    timestamp: Date.now(),
+                    metadata: null,
+                });
+            }
+        }
+    }, [state.subs]);
 
     const removeSub = useCallback((id: string) => {
+        repo.insertEvent({
+            id: `evt_${id}_${Date.now()}_cancel`,
+            subscriptionId: id,
+            type: 'cancelled',
+            timestamp: Date.now(),
+            metadata: null,
+        });
         dispatch({ type: 'REMOVE_SUB', id });
         repo.deleteSub(id);
     }, []);
@@ -232,6 +286,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
                 ? { ...sub, isTrial: false, trialDecision: 'kept', active: true }
                 : { ...sub, isTrial: false, trialDecision: 'cancelled', active: false };
             repo.updateSub(updated);
+            repo.insertEvent({
+                id: `evt_${id}_${Date.now()}_trial`,
+                subscriptionId: id,
+                type: decision === 'kept' ? 'reactivated' : 'cancelled',
+                timestamp: Date.now(),
+                metadata: JSON.stringify({ fromTrial: true }),
+            });
         }
     }, [state.subs]);
 
