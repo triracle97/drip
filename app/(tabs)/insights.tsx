@@ -8,7 +8,6 @@ import { C, LAYOUT } from '@/constants/design';
 import { Category, useStore } from '@/store';
 import { getAllEvents } from '@/store/repository';
 import type { SubscriptionEvent } from '@/store/repository';
-import { useSettings } from '@/store/settings';
 import { blended, budgetHealth, fmt, lifetimeCost, monthlyIncome, monthName, subMo } from '@/utils/calc';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -18,8 +17,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 export default function InsightsScreen() {
     const insets = useSafeAreaInsets();
     const { subs, incomes, categories, spendingHistory, recordSnapshot } = useStore();
-    const currency = useSettings(s => s.currency);
-
     const catMap = useMemo(() => {
         const m: Record<string, Category> = {};
         categories.forEach(c => { m[c.id] = c; });
