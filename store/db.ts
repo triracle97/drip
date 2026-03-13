@@ -80,6 +80,31 @@ async function migrate(db: SQLite.SQLiteDatabase) {
         // Column already exists — safe to ignore
     }
 
+    // Event log for subscription changes
+    await db.execAsync(`
+  CREATE TABLE IF NOT EXISTS subscription_events (
+    id TEXT PRIMARY KEY,
+    subscriptionId TEXT NOT NULL,
+    type TEXT NOT NULL,
+    timestamp INTEGER NOT NULL,
+    metadata TEXT,
+    FOREIGN KEY (subscriptionId) REFERENCES subscriptions(id)
+  );
+`);
+    await db.execAsync(`CREATE INDEX IF NOT EXISTS idx_events_sub_ts ON subscription_events(subscriptionId, timestamp);`);
+    await db.execAsync(`CREATE INDEX IF NOT EXISTS idx_events_ts ON subscription_events(timestamp);`);
+
+    const existingSubs = await db.getAllAsync<{ id: string; created_at: string | null }>(
+        `SELECT id, created_at FROM subscriptions WHERE id NOT IN (SELECT subscriptionId FROM subscription_events WHERE type = 'added')`
+    );
+    for (const row of existingSubs) {
+        const ts = row.created_at ? new Date(row.created_at).getTime() : Date.now();
+        await db.runAsync(
+            `INSERT OR IGNORE INTO subscription_events (id, subscriptionId, type, timestamp, metadata) VALUES (?, ?, 'added', ?, ?)`,
+            [`evt_${row.id}_added`, row.id, ts, JSON.stringify({ backfilled: true })]
+        );
+    }
+
     // Seed default categories if empty
     const catCount = await db.getFirstAsync<{ cnt: number }>('SELECT COUNT(*) as cnt FROM categories');
     if (!catCount || catCount.cnt === 0) {
