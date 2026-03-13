@@ -1,268 +1,230 @@
+import ActivityLog from '@/components/ActivityLog';
 import AnimatedPressable from '@/components/AnimatedPressable';
-import Card from '@/components/Card';
 import EditSubSheet from '@/components/EditSubSheet';
 import IncomeCTA from '@/components/IncomeCTA';
 import IncomeSheet from '@/components/IncomeSheet';
+import MonthSummaryCard from '@/components/MonthSummaryCard';
 import TrialSheet from '@/components/TrialSheet';
+import UpcomingChargeCompact from '@/components/UpcomingChargeCompact';
+import UpcomingChargeHero from '@/components/UpcomingChargeHero';
 import { C, LAYOUT, R } from '@/constants/design';
 import { Sub, useStore } from '@/store';
-import { useSettings } from '@/store/settings';
-import { blended, curDay, curMonth, curYear, dayName, daysInMonth, fmt, monthName, subMo, toHrs } from '@/utils/calc';
-import React, { useMemo, useRef, useState } from 'react';
-import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
-} from 'react-native';
+import { getEventsByMonth } from '@/store/repository';
+import type { SubscriptionEvent } from '@/store/repository';
+import { blended, curMonth, curYear, fmt, monthName, nextChargeIn, subMo, toHrs } from '@/utils/calc';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import type { Category } from '@/store';
 
-export default function CalendarScreen() {
-    const insets = useSafeAreaInsets();
-    const { subs, incomes, categories } = useStore();
-    const currency = useSettings(s => s.currency);
-    const rate = blended(incomes);
+export default function TimelineScreen() {
+  const insets = useSafeAreaInsets();
+  const { subs, incomes, categories, spendingHistory } = useStore();
+  const rate = blended(incomes);
 
-    const catMap = useMemo(() => {
-        const m: Record<string, Category> = {};
-        categories.forEach(c => { m[c.id] = c; });
-        return m;
-    }, [categories]);
+  const catMap = useMemo(() => {
+    const m: Record<string, Category> = {};
+    categories.forEach(c => { m[c.id] = c; });
+    return m;
+  }, [categories]);
 
-    const [calMonth, setCalMonth] = useState(curMonth);
-    const [calYear, setCalYear] = useState(curYear);
-    const [calDay, setCalDay] = useState<number | null>(null);
-    const [trialSheet, setTrialSheet] = useState<Sub | null>(null);
-    const [editSubId, setEditSubId] = useState<string | null>(null);
-    const [showIncome, setShowIncome] = useState(false);
-    const stripRef = useRef<ScrollView>(null);
+  const subMap = useMemo(() => {
+    const m: Record<string, Sub> = {};
+    subs.forEach(s => { m[s.id] = s; });
+    return m;
+  }, [subs]);
 
-    const calDays = daysInMonth(calMonth, calYear);
+  const [calMonth, setCalMonth] = useState(curMonth);
+  const [calYear, setCalYear] = useState(curYear);
+  const [trialSheet, setTrialSheet] = useState<Sub | null>(null);
+  const [editSubId, setEditSubId] = useState<string | null>(null);
+  const [showIncome, setShowIncome] = useState(false);
+  const [monthEvents, setMonthEvents] = useState<SubscriptionEvent[]>([]);
 
-    const billMap = useMemo(() => {
-        const map: Record<number, Sub[]> = {};
-        subs.filter(s => s.active || s.isTrial).forEach(s => {
-            const d = s.isTrial ? s.trialEndDay : s.billDay;
-            if (d >= 1 && d <= calDays) {
-                if (!map[d]) map[d] = [];
-                map[d].push(s);
-            }
-        });
-        return map;
-    }, [subs, calMonth, calYear, calDays]);
+  const isCurrentMonth = calMonth === curMonth && calYear === curYear;
 
-    const maxDayCost = useMemo(() => {
-        let mx = 0;
-        Object.values(billMap).forEach(arr => {
-            const t = arr.reduce((s, x) => s + subMo(x), 0);
-            if (t > mx) mx = t;
-        });
-        return mx || 1;
-    }, [billMap]);
+  // Fetch events when month changes
+  useEffect(() => {
+    getEventsByMonth(calMonth, calYear).then(setMonthEvents);
+  }, [calMonth, calYear]);
 
-    const moTotal = useMemo(() =>
-        Object.values(billMap).flat().reduce((s, x) => s + subMo(x), 0),
-        [billMap]);
+  // Upcoming charges (current month only)
+  const upcoming = useMemo(() => {
+    if (!isCurrentMonth) return [];
+    return subs
+      .filter(s => s.active || s.isTrial)
+      .map(s => ({ sub: s, daysLeft: nextChargeIn(s) }))
+      .filter(({ daysLeft }) => daysLeft >= 0)
+      .sort((a, b) => a.daysLeft - b.daysLeft);
+  }, [subs, isCurrentMonth]);
 
-    const daySubs = calDay ? (billMap[calDay] || []) : [];
-    const dayTotal = daySubs.reduce((s, x) => s + subMo(x), 0);
+  const heroCharge = upcoming[0] ?? null;
+  const otherCharges = upcoming.slice(1);
 
-    const prevMonth = () => {
-        if (calMonth === 0) { setCalMonth(11); setCalYear(calYear - 1); }
-        else setCalMonth(calMonth - 1);
-        setCalDay(null);
-    };
-    const nextMonth = () => {
-        if (calMonth === 11) { setCalMonth(0); setCalYear(calYear + 1); }
-        else setCalMonth(calMonth + 1);
-        setCalDay(null);
-    };
+  // Month totals
+  const activeSubs = subs.filter(s => s.active && !s.isTrial);
+  const totalMo = activeSubs.reduce((sum, s) => sum + subMo(s), 0);
 
-    return (
-        <View style={{ flex: 1, backgroundColor: C.bg }}>
-            {/* Header */}
-            <View style={[s.header, { paddingTop: insets.top + 8 }]}>
-                <AnimatedPressable onPress={prevMonth} style={s.navBtn}>
-                    <Svg width={12} height={12} viewBox="0 0 16 16" fill="none">
-                        <Path d="M10 3L5 8l5 5" stroke={C.t2} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
-                    </Svg>
-                </AnimatedPressable>
-                <View style={{ alignItems: 'center' }}>
-                    <Text style={s.monthTitle}>{monthName(calMonth, calYear)}</Text>
-                    <Text style={s.monthMeta}>{fmt(moTotal)} · {toHrs(moTotal, rate)}</Text>
-                </View>
-                <AnimatedPressable onPress={nextMonth} style={s.navBtn}>
-                    <Svg width={12} height={12} viewBox="0 0 16 16" fill="none">
-                        <Path d="M6 3l5 5-5 5" stroke={C.t2} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
-                    </Svg>
-                </AnimatedPressable>
+  // Category breakdown for summary
+  const catBreakdown = useMemo(() => {
+    const bd: Record<string, number> = {};
+    activeSubs.forEach(s => { bd[s.categoryId] = (bd[s.categoryId] || 0) + subMo(s); });
+    return Object.entries(bd)
+      .map(([categoryId, amount]) => ({ categoryId, amount }))
+      .sort((a, b) => b.amount - a.amount);
+  }, [activeSubs]);
+
+  // Previous month total from spending history
+  const prevMonthTotal = useMemo(() => {
+    const prevM = calMonth === 0 ? 11 : calMonth - 1;
+    const prevY = calMonth === 0 ? calYear - 1 : calYear;
+    const snap = spendingHistory.find(s => s.month === prevM && s.year === prevY);
+    return snap?.totalMonthlyCost ?? null;
+  }, [spendingHistory, calMonth, calYear]);
+
+  const prevMonth = () => {
+    if (calMonth === 0) { setCalMonth(11); setCalYear(calYear - 1); }
+    else setCalMonth(calMonth - 1);
+  };
+  const nextMonth = () => {
+    if (isCurrentMonth) return;
+    if (calMonth === 11) { setCalMonth(0); setCalYear(calYear + 1); }
+    else setCalMonth(calMonth + 1);
+  };
+
+  const canGoNext = !(calMonth === curMonth && calYear === curYear);
+
+  const handleSubPress = (sub: Sub) => {
+    if (sub.isTrial) setTrialSheet(sub);
+    else setEditSubId(sub.id);
+  };
+
+  return (
+    <View style={{ flex: 1, backgroundColor: C.bg }}>
+      <View style={[s.header, { paddingTop: insets.top + 8 }]}>
+        <Text style={s.title}>Timeline</Text>
+      </View>
+
+      <ScrollView
+        contentContainerStyle={{ paddingHorizontal: LAYOUT.screenHPad, paddingBottom: LAYOUT.tabBarHeight + 32 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {incomes.length === 0 && <IncomeCTA onPress={() => setShowIncome(true)} />}
+
+        {/* Upcoming Charges (current month only) */}
+        {isCurrentMonth && heroCharge && (
+          <Animated.View entering={FadeInDown.duration(300)}>
+            <Text style={s.sectionLabel}>NEXT UP</Text>
+            <UpcomingChargeHero
+              name={heroCharge.sub.name}
+              icon={heroCharge.sub.icon}
+              color={heroCharge.sub.color}
+              cost={fmt(heroCharge.sub.cost)}
+              date={`${monthName(calMonth, calYear).split(' ')[0]} ${heroCharge.sub.billDay}`}
+              daysLeft={heroCharge.daysLeft}
+              hoursLabel={toHrs(subMo(heroCharge.sub), rate)}
+              onPress={() => handleSubPress(heroCharge.sub)}
+            />
+            {otherCharges.length > 0 && (
+              <View style={s.compactRow}>
+                {otherCharges.slice(0, 4).map(({ sub, daysLeft }) => (
+                  <UpcomingChargeCompact
+                    key={sub.id}
+                    name={sub.name}
+                    icon={sub.icon}
+                    color={sub.color}
+                    daysLeft={daysLeft}
+                    cost={fmt(sub.cost)}
+                    onPress={() => handleSubPress(sub)}
+                  />
+                ))}
+              </View>
+            )}
+          </Animated.View>
+        )}
+
+        {/* Divider between upcoming and history */}
+        {isCurrentMonth && heroCharge && (
+          <View style={s.divider} />
+        )}
+
+        {/* Month Navigator */}
+        <Animated.View entering={FadeInDown.duration(300).delay(100)}>
+          <View style={s.monthNav}>
+            <AnimatedPressable onPress={prevMonth} style={s.navBtn}>
+              <Svg width={12} height={12} viewBox="0 0 16 16" fill="none">
+                <Path d="M10 3L5 8l5 5" stroke={C.t2} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+              </Svg>
+            </AnimatedPressable>
+            <View style={{ alignItems: 'center' }}>
+              <Text style={s.monthTitle}>{monthName(calMonth, calYear)}</Text>
+              <Text style={s.monthMeta}>{fmt(totalMo)} · {toHrs(totalMo, rate)}</Text>
             </View>
+            <AnimatedPressable onPress={nextMonth} style={[s.navBtn, !canGoNext && { opacity: 0.3 }]}>
+              <Svg width={12} height={12} viewBox="0 0 16 16" fill="none">
+                <Path d="M6 3l5 5-5 5" stroke={C.t2} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+              </Svg>
+            </AnimatedPressable>
+          </View>
+        </Animated.View>
 
-            {/* Day strip */}
-            <ScrollView
-                ref={stripRef}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 8, flexDirection: 'row', gap: 2 }}
-                style={{ flexGrow: 0 }}
-                onLayout={() => {
-                    if (calMonth === curMonth && calYear === curYear && stripRef.current) {
-                        setTimeout(() => {
-                            stripRef.current?.scrollTo({ x: (curDay - 4) * 46, animated: true });
-                        }, 200);
-                    }
-                }}
-            >
-                {Array.from({ length: calDays }, (_, i) => {
-                    const d = i + 1;
-                    const hasBill = !!billMap[d];
-                    const isToday = d === curDay && calMonth === curMonth && calYear === curYear;
-                    const isSel = calDay === d;
-                    const dayCost = (billMap[d] || []).reduce((s, x) => s + subMo(x), 0);
-                    const barH = hasBill ? Math.max(6, (dayCost / maxDayCost) * 32) : 0;
-                    const hasTrial = (billMap[d] || []).some(s => s.isTrial);
-                    const domCat = (billMap[d] || []).sort((a, b) => subMo(b) - subMo(a))[0]?.categoryId;
-                    const barColor = catMap[domCat]?.color ?? C.t3;
-                    const isWeekend = new Date(calYear, calMonth, d).getDay() % 6 === 0;
+        {/* Month Summary */}
+        <Animated.View entering={FadeInDown.duration(300).delay(200)}>
+          <MonthSummaryCard
+            breakdown={catBreakdown}
+            catMap={catMap}
+            totalMo={totalMo}
+            activeCount={activeSubs.length}
+            prevMonthTotal={prevMonthTotal}
+          />
+        </Animated.View>
 
-                    return (
-                        <TouchableOpacity
-                            key={d}
-                            onPress={() => setCalDay(calDay === d ? null : d)}
-                            style={[
-                                s.dayCell,
-                                isToday && { borderColor: C.black, borderWidth: 1.5 },
-                                isSel && { backgroundColor: C.bgSub },
-                                !isToday && !isSel && { borderColor: 'transparent', borderWidth: 1 },
-                                isWeekend && !hasBill && { opacity: 0.5 },
-                            ]}
-                            activeOpacity={0.75}
-                        >
-                            <Text style={s.dayName}>{dayName(d, calMonth, calYear)}</Text>
-                            <Text style={[s.dayNum, { fontWeight: isToday ? '700' : '500' }]}>{d}</Text>
-                            <View style={{ width: '100%', height: 34, alignItems: 'center', justifyContent: 'flex-end' }}>
-                                {hasBill ? (
-                                    <View style={[s.dayBar, { height: barH, backgroundColor: barColor, opacity: hasTrial ? 0.5 : 1 }]} />
-                                ) : (
-                                    <View style={{ width: 3, height: 3, borderRadius: 2, backgroundColor: C.bgSub }} />
-                                )}
-                            </View>
-                        </TouchableOpacity>
-                    );
-                })}
-            </ScrollView>
+        {/* Activity Log */}
+        <Animated.View entering={FadeInDown.duration(300).delay(300)} style={{ marginTop: 8 }}>
+          <ActivityLog events={monthEvents} subMap={subMap} />
+        </Animated.View>
+      </ScrollView>
 
-            {incomes.length === 0 && (
-                <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
-                    <IncomeCTA onPress={() => setShowIncome(true)} />
-                </View>
-            )}
-
-            {/* Day detail */}
-            {calDay && (
-                <Animated.View entering={FadeInDown.duration(250)}>
-                    <Card style={s.dayDetail}>
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
-                            <Text style={{ fontSize: 14, fontWeight: '600', color: C.t1 }}>
-                                {new Date(calYear, calMonth, calDay).toLocaleDateString('en', { weekday: 'long', month: 'short', day: 'numeric' })}
-                            </Text>
-                            {daySubs.length > 0 && (
-                                <Text style={{ fontSize: 12, color: C.t1 }}>{fmt(dayTotal)} · {toHrs(dayTotal, rate)}</Text>
-                            )}
-                        </View>
-                        {daySubs.length === 0 ? (
-                            <Text style={{ fontSize: 12, color: C.t3, textAlign: 'center', paddingVertical: 12 }}>
-                                No drips today
-                            </Text>
-                        ) : (
-                            <View style={{ gap: 8 }}>
-                                {daySubs.map(sub => (
-                                    <AnimatedPressable
-                                        key={sub.id}
-                                        onPress={() => sub.isTrial ? setTrialSheet(sub) : setEditSubId(sub.id)}
-                                        style={[s.daySubRow, {
-                                            backgroundColor: sub.isTrial ? C.redBg : C.surface,
-                                            borderColor: sub.isTrial ? C.redLine : C.line,
-                                        }]}
-                                    >
-                                        <View style={[s.daySubIcon, { backgroundColor: sub.color }]}>
-                                            <Text style={{ fontSize: 14 }}>{sub.icon}</Text>
-                                        </View>
-                                        <View style={{ flex: 1 }}>
-                                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                                                <Text style={{ fontSize: 12, fontWeight: '600', color: C.t1 }}>{sub.name}</Text>
-                                                {sub.isTrial && (
-                                                    <View style={{ backgroundColor: C.redBg, paddingHorizontal: 8, paddingVertical: 2, borderRadius: R.sm }}>
-                                                        <Text style={{ fontSize: 10, color: C.red, fontWeight: '600' }}>TRIAL ENDS</Text>
-                                                    </View>
-                                                )}
-                                            </View>
-                                        </View>
-                                        <View style={{ alignItems: 'flex-end' }}>
-                                            <Text style={{ fontSize: 12, fontWeight: '600', color: C.t1 }}>{fmt(sub.cost)}</Text>
-                                            <Text style={{ fontSize: 12, color: C.t2 }}>{toHrs(subMo(sub), rate)}</Text>
-                                        </View>
-                                    </AnimatedPressable>
-                                ))}
-                            </View>
-                        )}
-                    </Card>
-                </Animated.View>
-            )}
-
-            <View style={{ flex: 1 }} />
-            <TrialSheet sub={trialSheet} onClose={() => setTrialSheet(null)} />
-            <EditSubSheet id={editSubId} onClose={() => setEditSubId(null)} />
-            <IncomeSheet visible={showIncome} onClose={() => setShowIncome(false)} />
-        </View>
-    );
+      <TrialSheet sub={trialSheet} onClose={() => setTrialSheet(null)} />
+      <EditSubSheet id={editSubId} onClose={() => setEditSubId(null)} />
+      <IncomeSheet visible={showIncome} onClose={() => setShowIncome(false)} />
+    </View>
+  );
 }
 
 const s = StyleSheet.create({
-    header: {
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-        paddingHorizontal: LAYOUT.screenHPad, paddingBottom: 16,
-        backgroundColor: C.bg,
-    },
-    navBtn: {
-        width: 44, height: 44, borderRadius: R.md,
-        backgroundColor: C.surface, borderWidth: 1, borderColor: C.line,
-        alignItems: 'center', justifyContent: 'center',
-    },
-    monthTitle: {
-        fontSize: 18, fontWeight: '700', color: C.t1,
-    },
-    monthMeta: {
-        fontSize: 12, color: C.t1, marginTop: 2,
-    },
-    dayCell: {
-        width: 44, minWidth: 44, height: 78,
-        flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end',
-        paddingBottom: 4, borderRadius: R.pill,
-    },
-    dayName: {
-        fontSize: 10, color: C.t3, marginBottom: 2,
-    },
-    dayNum: {
-        fontSize: 12, color: C.t1,
-    },
-    dayBar: {
-        width: 6, borderRadius: 6,
-    },
-    dayDetail: {
-        marginHorizontal: 12, marginTop: 8,
-    },
-    daySubRow: {
-        flexDirection: 'row', alignItems: 'center', gap: 12,
-        borderRadius: R.md, padding: 10, borderWidth: 1,
-    },
-    daySubIcon: {
-        width: 34, height: 34, borderRadius: R.md,
-        alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-    },
+  header: {
+    paddingHorizontal: LAYOUT.screenHPad, paddingBottom: 16, backgroundColor: C.bg,
+  },
+  title: {
+    fontSize: 22, fontWeight: '700', color: C.t1,
+  },
+  sectionLabel: {
+    fontSize: 10, fontWeight: '600', color: C.t3, letterSpacing: 0.5,
+    textTransform: 'uppercase', marginBottom: 8, marginTop: 4,
+  },
+  compactRow: {
+    flexDirection: 'row', gap: 6, marginTop: 6,
+  },
+  divider: {
+    height: 1, backgroundColor: C.line, marginVertical: 12,
+  },
+  monthNav: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  navBtn: {
+    width: 44, height: 44, borderRadius: R.md,
+    backgroundColor: C.surface, borderWidth: 1, borderColor: C.line,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  monthTitle: {
+    fontSize: 18, fontWeight: '700', color: C.t1,
+  },
+  monthMeta: {
+    fontSize: 12, color: C.t1, marginTop: 2,
+  },
 });
