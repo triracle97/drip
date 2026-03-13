@@ -46,6 +46,9 @@ export async function getPopularSubs(): Promise<PopularSub[]> {
 
 // Offline fallback — used when Supabase is unreachable and no cache exists
 const FALLBACK_POPULAR: PopularSub[] = [
+    // ── Drip ──
+    { id: 'pop_drip', name: 'Drip', icon: 'svg:drip-fill', default_cost: 0, default_cycle: 'monthly', category_id: 'cat_productivity', color: '#1A8CAF' },
+
     // ── Entertainment ──
     { id: 'pop_netflix', name: 'Netflix', icon: 'svg:netflix-fill', default_cost: 15.99, default_cycle: 'monthly', category_id: 'cat_entertainment', color: '#E60000' },
     { id: 'pop_spotify', name: 'Spotify', icon: 'svg:spotify-fill', default_cost: 10.99, default_cycle: 'monthly', category_id: 'cat_entertainment', color: '#1DB954' },

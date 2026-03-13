@@ -182,10 +182,10 @@ export default function HomeScreen() {
               name={s_.name}
               icon={s_.icon}
               color={s_.color}
-              costLabel={fmt(displayCost)}
+              costLabel={fmt(0)}
               variant="trial"
               trialDaysLeft={daysLeft}
-              trialCostLabel={`Then ${fmt(displayCost)}/${isYr ? 'year' : 'month'}`}
+              trialCostLabel={`Then ${fmt(displayCost)}/${isYr ? 'yr' : 'mo'}`}
               onPress={() => setTrialSheet(s_)}
             />
           </Animated.View>
@@ -240,7 +240,7 @@ export default function HomeScreen() {
         onDragEnd={handleDragEnd}
         ListHeaderComponent={ListHeader}
         ListFooterComponent={ListFooter}
-        contentContainerStyle={{ paddingHorizontal: LAYOUT.screenHPad, paddingBottom: LAYOUT.tabBarHeight + 16 }}
+        contentContainerStyle={{ paddingHorizontal: LAYOUT.screenHPad, paddingBottom: LAYOUT.tabBarHeight + 128 }}
         showsVerticalScrollIndicator={false}
         activationDistance={0}
       />

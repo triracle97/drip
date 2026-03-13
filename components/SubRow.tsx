@@ -44,7 +44,12 @@ export default function SubRow({
                         <IconContent icon={icon} size={22} color={color} useOriginalColor />
                     </View>
                     <View style={{ flex: 1, minWidth: 0 }}>
-                        <Text style={s.rowName} numberOfLines={1}>{name}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <Text style={s.rowName} numberOfLines={1}>{name}</Text>
+                            <View style={[s.trialBadge]}>
+                                <Text style={s.trialBadgeText}>Trial</Text>
+                            </View>
+                        </View>
                         {trialCostLabel && <Text style={s.dateText}>{trialCostLabel}</Text>}
                     </View>
                     <View style={s.rightCol}>
@@ -184,5 +189,16 @@ const s = StyleSheet.create({
     pillText: {
         fontSize: 11,
         fontWeight: '700',
+    },
+    trialBadge: {
+        backgroundColor: `${C.red}12`,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: R.pill,
+    },
+    trialBadgeText: {
+        fontSize: 10,
+        fontWeight: '700',
+        color: C.red,
     },
 });

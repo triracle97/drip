@@ -33,7 +33,7 @@ export default function CategoryBreakdownList({ breakdown, catMap, totalMo, mont
                         <View key={categoryId}>
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
                                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                                    <Text style={{ fontSize: 14 }}>{cat?.icon ?? '📦'}</Text>
+                                    <View style={[s.catDot, { backgroundColor: cat?.color ?? C.t3 }]} />
                                     <Text style={s.catName}>{cat?.name ?? 'Other'}</Text>
                                 </View>
                                 <Text style={s.catAmount}>{fmt(amount)} <Text style={s.catPct}>({pct.toFixed(0)}%)</Text></Text>
@@ -67,5 +67,8 @@ const s = StyleSheet.create({
     },
     barFill: {
         height: '100%', borderRadius: 3,
+    },
+    catDot: {
+        width: 8, height: 8, borderRadius: 4,
     },
 });

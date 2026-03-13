@@ -120,9 +120,29 @@ export default function TimelineScreen() {
       >
         {incomes.length === 0 && <IncomeCTA onPress={() => setShowIncome(true)} />}
 
+        {/* Month Navigator */}
+        <Animated.View entering={FadeInDown.duration(300)}>
+          <View style={s.monthNav}>
+            <AnimatedPressable onPress={prevMonth} style={s.navBtn}>
+              <Svg width={12} height={12} viewBox="0 0 16 16" fill="none">
+                <Path d="M10 3L5 8l5 5" stroke={C.t2} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+              </Svg>
+            </AnimatedPressable>
+            <View style={{ alignItems: 'center' }}>
+              <Text style={s.monthTitle}>{monthName(calMonth, calYear)}</Text>
+              <Text style={s.monthMeta}>{fmt(totalMo)} · {toHrs(totalMo, rate)}</Text>
+            </View>
+            <AnimatedPressable onPress={nextMonth} style={[s.navBtn, !canGoNext && { opacity: 0.3 }]}>
+              <Svg width={12} height={12} viewBox="0 0 16 16" fill="none">
+                <Path d="M6 3l5 5-5 5" stroke={C.t2} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+              </Svg>
+            </AnimatedPressable>
+          </View>
+        </Animated.View>
+
         {/* Upcoming Charges (current month only) */}
         {isCurrentMonth && heroCharge && (
-          <Animated.View entering={FadeInDown.duration(300)}>
+          <Animated.View entering={FadeInDown.duration(300).delay(100)}>
             <Text style={s.sectionLabel}>NEXT UP</Text>
             <UpcomingChargeHero
               name={heroCharge.sub.name}
@@ -152,33 +172,13 @@ export default function TimelineScreen() {
           </Animated.View>
         )}
 
-        {/* Divider between upcoming and history */}
+        {/* Divider between upcoming and summary */}
         {isCurrentMonth && heroCharge && (
           <View style={s.divider} />
         )}
 
-        {/* Month Navigator */}
-        <Animated.View entering={FadeInDown.duration(300).delay(100)}>
-          <View style={s.monthNav}>
-            <AnimatedPressable onPress={prevMonth} style={s.navBtn}>
-              <Svg width={12} height={12} viewBox="0 0 16 16" fill="none">
-                <Path d="M10 3L5 8l5 5" stroke={C.t2} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
-              </Svg>
-            </AnimatedPressable>
-            <View style={{ alignItems: 'center' }}>
-              <Text style={s.monthTitle}>{monthName(calMonth, calYear)}</Text>
-              <Text style={s.monthMeta}>{fmt(totalMo)} · {toHrs(totalMo, rate)}</Text>
-            </View>
-            <AnimatedPressable onPress={nextMonth} style={[s.navBtn, !canGoNext && { opacity: 0.3 }]}>
-              <Svg width={12} height={12} viewBox="0 0 16 16" fill="none">
-                <Path d="M6 3l5 5-5 5" stroke={C.t2} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
-              </Svg>
-            </AnimatedPressable>
-          </View>
-        </Animated.View>
-
         {/* Month Summary */}
-        <Animated.View entering={FadeInDown.duration(300).delay(200)}>
+        <Animated.View entering={FadeInDown.duration(300).delay(isCurrentMonth && heroCharge ? 200 : 100)}>
           <MonthSummaryCard
             breakdown={catBreakdown}
             catMap={catMap}
@@ -190,7 +190,7 @@ export default function TimelineScreen() {
         </Animated.View>
 
         {/* Activity Log */}
-        <Animated.View entering={FadeInDown.duration(300).delay(300)} style={{ marginTop: 8 }}>
+        <Animated.View entering={FadeInDown.duration(300).delay(isCurrentMonth && heroCharge ? 300 : 200)} style={{ marginTop: 8 }}>
           <ActivityLog events={monthEvents} subMap={subMap} />
         </Animated.View>
       </ScrollView>

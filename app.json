@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.triracle.Drip"
+      "bundleIdentifier": "com.triracle.drip"
     },
     "android": {
       "adaptiveIcon": {
@@ -21,7 +21,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.triracle.Drip"
+      "package": "com.triracle.drip"
     },
     "web": {
       "output": "static",

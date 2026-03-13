@@ -124,7 +124,7 @@ export default function InsightsScreen() {
                                     const pctOfIncome = (amount / moIncome) * 100;
                                     return (
                                         <View key={categoryId} style={s.perCatRow}>
-                                            <Text style={{ fontSize: 14 }}>{cat?.icon ?? '📦'}</Text>
+                                            <View style={[s.perCatDot, { backgroundColor: cat?.color ?? C.t3 }]} />
                                             <Text style={s.perCatName}>{cat?.name ?? 'Other'}</Text>
                                             <Text style={s.perCatAmt}>{fmt(amount)}</Text>
                                             <Text style={s.perCatPct}>{pctOfSubs.toFixed(0)}% subs</Text>
@@ -172,5 +172,8 @@ const s = StyleSheet.create({
     },
     perCatPct: {
         fontSize: 10, color: C.t3, width: 60, textAlign: 'right',
+    },
+    perCatDot: {
+        width: 8, height: 8, borderRadius: 4,
     },
 });

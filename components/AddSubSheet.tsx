@@ -542,6 +542,7 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
             scrollable
             backgroundColor={C.bg}
             onWillPresent={handlePresent}
+            onDidDismiss={() => { setPhase('pick'); setQuery(''); setF({ ...DEFAULT_FORM }); setCycleOpen(false); setCategoryOpen(false); setReminderOpen(false); setShowAppearance(false); }}
         >
             {/* Custom grabber */}
             <View style={{ alignItems: 'center', justifyContent: 'center' }}>
