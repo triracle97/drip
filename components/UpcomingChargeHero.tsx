@@ -40,6 +40,7 @@ export default function UpcomingChargeHero({ name, icon, color, cost, date, days
         </View>
         <View style={s.rightCol}>
           <Text style={s.cost}>{cost}</Text>
+          <Text style={s.hours}>{hoursLabel}</Text>
           <View style={[s.pill, { backgroundColor: urgent ? `${C.red}18` : `${color}15` }]}>
             <Text style={[s.pillText, { color: urgent ? C.red : C.t2 }]}>
               {daysLeft <= 1 ? 'Tomorrow' : `${daysLeft} days`}
@@ -77,6 +78,7 @@ const s = StyleSheet.create({
   date: { fontSize: 13, color: C.t3, marginTop: 2 },
   rightCol: { alignItems: 'flex-end', gap: 4 },
   cost: { fontSize: 16, fontWeight: '700', color: C.t1 },
+  hours: { fontSize: 11, fontWeight: '500', color: C.t2 },
   pill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: R.pill },
   pillText: { fontSize: 11, fontWeight: '700' },
 });

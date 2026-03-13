@@ -11,9 +11,10 @@ interface Props {
   totalMo: number;
   activeCount: number;
   prevMonthTotal: number | null;
+  prevMonthLabel?: string | null;
 }
 
-export default function MonthSummaryCard({ breakdown, catMap, totalMo, activeCount, prevMonthTotal }: Props) {
+export default function MonthSummaryCard({ breakdown, catMap, totalMo, activeCount, prevMonthTotal, prevMonthLabel }: Props) {
   const delta = prevMonthTotal != null ? totalMo - prevMonthTotal : null;
 
   return (
@@ -48,7 +49,7 @@ export default function MonthSummaryCard({ breakdown, catMap, totalMo, activeCou
       {delta != null && (
         <View style={s.deltaRow}>
           <Text style={s.deltaText}>
-            vs prev: <Text style={{ color: delta > 0 ? C.red : C.green, fontWeight: '600' }}>
+            vs {prevMonthLabel ?? 'prev'}: <Text style={{ color: delta > 0 ? C.red : C.green, fontWeight: '600' }}>
               {delta > 0 ? '+' : ''}{fmt(delta)}
             </Text>
           </Text>
@@ -63,7 +64,7 @@ const s = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8,
   },
   sectionLabel: {
-    fontSize: 10, fontWeight: '600', color: C.t3, letterSpacing: 0.5, textTransform: 'uppercase',
+    fontSize: 10, fontWeight: '500', color: C.t3, letterSpacing: 0.5, textTransform: 'uppercase',
   },
   subLabel: {
     fontSize: 10, fontWeight: '500', color: C.t2,

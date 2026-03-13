@@ -63,7 +63,8 @@ export default function InsightsScreen() {
                 const monthsActive = addedEvent
                     ? (Date.now() - addedEvent.timestamp) / (1000 * 60 * 60 * 24 * 30.44)
                     : 0;
-                return { sub, totalCost, monthsActive };
+                const startTimestamp = addedEvent?.timestamp;
+                return { sub, totalCost, monthsActive, startTimestamp };
             })
             .sort((a, b) => b.totalCost - a.totalCost);
     }, [activeSubs, allEvents]);

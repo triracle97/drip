@@ -23,21 +23,6 @@ function formatEventDate(timestamp: number): string {
   return d.toLocaleDateString('en', { month: 'short', day: 'numeric' });
 }
 
-function formatEventText(event: SubscriptionEvent, subMap: Record<string, Sub>): string {
-  const name = subMap[event.subscriptionId]?.name ?? 'Unknown';
-  switch (event.type) {
-    case 'added': return `Added ${name}`;
-    case 'cancelled': return `Cancelled ${name}`;
-    case 'reactivated': return `Reactivated ${name}`;
-    case 'price_change': {
-      const meta = event.metadata ? JSON.parse(event.metadata) : null;
-      return meta ? `${name} price → $${meta.newCost}` : `${name} price changed`;
-    }
-    case 'cycle_change': return `${name} cycle changed`;
-    default: return name;
-  }
-}
-
 export default function ActivityLog({ events, subMap }: Props) {
   return (
     <Card>
@@ -46,13 +31,23 @@ export default function ActivityLog({ events, subMap }: Props) {
         <Text style={s.empty}>No changes this month</Text>
       ) : (
         <View style={{ gap: 10, marginTop: 10 }}>
-          {events.map(evt => (
-            <View key={evt.id} style={s.row}>
-              <View style={[s.dot, { backgroundColor: EVENT_COLORS[evt.type] ?? C.t3 }]} />
-              <Text style={s.text} numberOfLines={1}>{formatEventText(evt, subMap)}</Text>
-              <Text style={s.date}>{formatEventDate(evt.timestamp)}</Text>
-            </View>
-          ))}
+          {events.map(evt => {
+            const name = subMap[evt.subscriptionId]?.name ?? 'Unknown';
+            const meta = evt.metadata ? JSON.parse(evt.metadata) : null;
+            return (
+              <View key={evt.id} style={s.row}>
+                <View style={[s.dot, { backgroundColor: EVENT_COLORS[evt.type] ?? C.t3 }]} />
+                <Text style={s.text} numberOfLines={1}>
+                  {evt.type === 'added' && <>Added <Text style={s.boldName}>{name}</Text></>}
+                  {evt.type === 'cancelled' && <>Cancelled <Text style={s.boldName}>{name}</Text></>}
+                  {evt.type === 'reactivated' && <>Reactivated <Text style={s.boldName}>{name}</Text></>}
+                  {evt.type === 'price_change' && <><Text style={s.boldName}>{name}</Text> price → ${meta?.newCost}</>}
+                  {evt.type === 'cycle_change' && <><Text style={s.boldName}>{name}</Text> cycle changed</>}
+                </Text>
+                <Text style={s.date}>{formatEventDate(evt.timestamp)}</Text>
+              </View>
+            );
+          })}
         </View>
       )}
     </Card>
@@ -61,7 +56,7 @@ export default function ActivityLog({ events, subMap }: Props) {
 
 const s = StyleSheet.create({
   sectionLabel: {
-    fontSize: 10, fontWeight: '600', color: C.t3, letterSpacing: 0.5, textTransform: 'uppercase',
+    fontSize: 10, fontWeight: '500', color: C.t3, letterSpacing: 0.5, textTransform: 'uppercase',
   },
   empty: {
     fontSize: 12, color: C.t3, textAlign: 'center', paddingVertical: 12,
@@ -78,4 +73,5 @@ const s = StyleSheet.create({
   date: {
     fontSize: 11, fontWeight: '500', color: C.t3,
   },
+  boldName: { fontWeight: '700', color: C.t1 },
 });

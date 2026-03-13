@@ -85,6 +85,12 @@ export default function TimelineScreen() {
     return snap?.totalMonthlyCost ?? null;
   }, [spendingHistory, calMonth, calYear]);
 
+  const prevMonthLabel = useMemo(() => {
+    const prevM = calMonth === 0 ? 11 : calMonth - 1;
+    const prevY = calMonth === 0 ? calYear - 1 : calYear;
+    return monthName(prevM, prevY).split(' ')[0];
+  }, [calMonth, calYear]);
+
   const prevMonth = () => {
     if (calMonth === 0) { setCalMonth(11); setCalYear(calYear - 1); }
     else setCalMonth(calMonth - 1);
@@ -179,6 +185,7 @@ export default function TimelineScreen() {
             totalMo={totalMo}
             activeCount={activeSubs.length}
             prevMonthTotal={prevMonthTotal}
+            prevMonthLabel={prevMonthLabel}
           />
         </Animated.View>
 

@@ -10,6 +10,7 @@ interface LifetimeEntry {
   sub: Sub;
   totalCost: number;
   monthsActive: number;
+  startTimestamp?: number;
 }
 
 interface Props {
@@ -24,8 +25,13 @@ function IconContent({ icon }: { icon: string }) {
   return <Text style={{ fontSize: 14 }}>{icon}</Text>;
 }
 
-function sinceLabel(months: number): string {
+function sinceLabel(months: number, startTimestamp?: number): string {
   if (months < 1) return 'This month';
+  if (startTimestamp) {
+    const d = new Date(startTimestamp);
+    const monthStr = d.toLocaleDateString('en', { month: 'short', year: 'numeric' });
+    return `Since ${monthStr} · ${Math.round(months)} months`;
+  }
   return `${Math.round(months)} months`;
 }
 
@@ -39,7 +45,7 @@ export default function LifetimeCostList({ entries, rate }: Props) {
         <Text style={s.subLabel}>Since first tracked</Text>
       </View>
       <View style={{ gap: 10, marginTop: 10 }}>
-        {entries.map(({ sub, totalCost, monthsActive }) => {
+        {entries.map(({ sub, totalCost, monthsActive, startTimestamp }) => {
           const isWhiteBg = sub.color.toUpperCase() === '#FFFFFF' || sub.color.toUpperCase() === '#FFF';
           const iconBg = isWhiteBg ? '#F5F5F5' : `${sub.color}15`;
           const hoursLabel = toHrs(totalCost, rate);
@@ -52,7 +58,7 @@ export default function LifetimeCostList({ entries, rate }: Props) {
               </View>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={s.name} numberOfLines={1}>{sub.name}</Text>
-                <Text style={s.duration}>{sinceLabel(monthsActive)}</Text>
+                <Text style={s.duration}>{sinceLabel(monthsActive, startTimestamp)}</Text>
               </View>
               <View style={s.rightCol}>
                 <Text style={s.cost}>{fmt(totalCost)}</Text>
@@ -80,7 +86,7 @@ const s = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline',
   },
   sectionLabel: {
-    fontSize: 10, fontWeight: '600', color: C.t3, letterSpacing: 0.5, textTransform: 'uppercase',
+    fontSize: 10, fontWeight: '500', color: C.t3, letterSpacing: 0.5, textTransform: 'uppercase',
   },
   subLabel: {
     fontSize: 10, fontWeight: '500', color: C.t3,
