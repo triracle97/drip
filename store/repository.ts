@@ -1,6 +1,14 @@
 import { getDb } from './db';
 import type { Category, Income, SpendingSnapshot, Sub } from './index';
 
+export interface SubscriptionEvent {
+    id: string;
+    subscriptionId: string;
+    type: 'added' | 'cancelled' | 'reactivated' | 'price_change' | 'cycle_change';
+    timestamp: number;
+    metadata: string | null;
+}
+
 // ─── SUBSCRIPTIONS ──────────────────────────
 
 export async function getAllSubs(): Promise<Sub[]> {
@@ -177,5 +185,41 @@ export async function recordMonthlySnapshot(snapshot: SpendingSnapshot): Promise
          ON CONFLICT(month, year) DO UPDATE SET total_monthly_cost=excluded.total_monthly_cost, category_breakdown=excluded.category_breakdown, subscription_count=excluded.subscription_count`,
         snapshot.id, snapshot.month, snapshot.year, snapshot.totalMonthlyCost,
         JSON.stringify(snapshot.categoryBreakdown), snapshot.subscriptionCount,
+    );
+}
+
+// ─── SUBSCRIPTION EVENTS ────────────────────
+
+export async function insertEvent(event: SubscriptionEvent): Promise<void> {
+    const db = await getDb();
+    await db.runAsync(
+        `INSERT INTO subscription_events (id, subscriptionId, type, timestamp, metadata) VALUES (?, ?, ?, ?, ?)`,
+        [event.id, event.subscriptionId, event.type, event.timestamp, event.metadata]
+    );
+}
+
+export async function getEventsByMonth(month: number, year: number): Promise<SubscriptionEvent[]> {
+    const db = await getDb();
+    const start = new Date(year, month, 1).getTime();
+    const end = new Date(year, month + 1, 1).getTime();
+    const rows = await db.getAllAsync<SubscriptionEvent>(
+        `SELECT * FROM subscription_events WHERE timestamp >= ? AND timestamp < ? ORDER BY timestamp DESC`,
+        [start, end]
+    );
+    return rows;
+}
+
+export async function getAllEventsForSub(subscriptionId: string): Promise<SubscriptionEvent[]> {
+    const db = await getDb();
+    return db.getAllAsync<SubscriptionEvent>(
+        `SELECT * FROM subscription_events WHERE subscriptionId = ? ORDER BY timestamp ASC`,
+        [subscriptionId]
+    );
+}
+
+export async function getAllEvents(): Promise<SubscriptionEvent[]> {
+    const db = await getDb();
+    return db.getAllAsync<SubscriptionEvent>(
+        `SELECT * FROM subscription_events ORDER BY timestamp ASC`
     );
 }
