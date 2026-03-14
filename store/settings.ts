@@ -7,11 +7,13 @@ interface SettingsState {
     currency: string;
     notificationsEnabled: boolean;
     notificationTime: string;
+    language: string;
     _hydrated: boolean;
 
     setCurrency: (code: string) => void;
     setNotificationsEnabled: (enabled: boolean) => void;
     setNotificationTime: (time: string) => void;
+    setLanguage: (lang: string) => void;
 }
 
 export const useSettings = create<SettingsState>()(
@@ -20,11 +22,13 @@ export const useSettings = create<SettingsState>()(
             currency: DEFAULT_CURRENCY_CODE,
             notificationsEnabled: false,
             notificationTime: '08:00',
+            language: 'auto',
             _hydrated: false,
 
             setCurrency: (code) => set({ currency: code }),
             setNotificationsEnabled: (enabled) => set({ notificationsEnabled: enabled }),
             setNotificationTime: (time) => set({ notificationTime: time }),
+            setLanguage: (lang) => set({ language: lang }),
         }),
         {
             name: 'drip-settings',
@@ -36,6 +40,7 @@ export const useSettings = create<SettingsState>()(
                 currency: state.currency,
                 notificationsEnabled: state.notificationsEnabled,
                 notificationTime: state.notificationTime,
+                language: state.language,
             }),
         },
     ),

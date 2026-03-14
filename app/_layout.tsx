@@ -1,4 +1,6 @@
 import { C } from '@/constants/design';
+import '@/i18n';
+import i18n, { resolveLanguage } from '@/i18n';
 import { StoreProvider, useStore } from '@/store';
 import { useSettings } from '@/store/settings';
 import { rescheduleAllNotifications } from '@/utils/notifications';
@@ -24,7 +26,7 @@ export const unstable_settings = {
 
 function AppContent() {
   const { isLoaded, subs } = useStore();
-  const { notificationsEnabled, notificationTime, _hydrated } = useSettings();
+  const { notificationsEnabled, notificationTime, _hydrated, language } = useSettings();
   const appState = useRef(AppState.currentState);
 
   useEffect(() => {
@@ -41,6 +43,14 @@ function AppContent() {
     });
     return () => sub.remove();
   }, [isLoaded, subs, notificationsEnabled, notificationTime]);
+
+  useEffect(() => {
+    if (!_hydrated) return;
+    const resolved = resolveLanguage(language);
+    if (i18n.language !== resolved) {
+      i18n.changeLanguage(resolved);
+    }
+  }, [_hydrated, language]);
 
   if (!isLoaded || !_hydrated) {
     return (
