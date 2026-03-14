@@ -80,13 +80,12 @@ const FALLBACK_POPULAR: PopularSub[] = [
     { id: 'pop_x', name: 'X Premium', icon: 'svg:x-fill', default_cost: 8, default_cycle: 'monthly', category_id: 'cat_entertainment', color: '#000000' },
 
     // ── Gaming (4) ──
-    { id: 'pop_xbox', name: 'Xbox Game Pass', icon: 'svg:xbox-fill', default_cost: 14.99, default_cycle: 'monthly', category_id: 'cat_entertainment', color: '#FFFFFF' },
+    { id: 'pop_xbox', name: 'Xbox Game Pass', icon: 'svg:xbox-fill', default_cost: 14.99, default_cycle: 'monthly', category_id: 'cat_entertainment', color: '#107C10' },
     { id: 'pop_playstation', name: 'PlayStation Plus', icon: 'svg:playstation-fill', default_cost: 9.99, default_cycle: 'monthly', category_id: 'cat_entertainment', color: '#003087' },
     { id: 'pop_nintendo', name: 'Nintendo Switch Online', icon: 'svg:nintendo-switch-fill', default_cost: 3.99, default_cycle: 'monthly', category_id: 'cat_entertainment', color: '#E60012' },
-    { id: 'pop_steam', name: 'Steam', icon: 'svg:steam-fill', default_cost: 9.99, default_cycle: 'monthly', category_id: 'cat_entertainment', color: '#1B2838' },
 
     // ── Health & Fitness ──
-    { id: 'pop_strava', name: 'Strava', icon: 'svg:strava-fill', default_cost: 7.99, default_cycle: 'monthly', category_id: 'cat_health', color: '#FFFFFF' },
+    { id: 'pop_strava', name: 'Strava', icon: 'svg:strava-fill', default_cost: 7.99, default_cycle: 'monthly', category_id: 'cat_health', color: '#FC4C02' },
     { id: 'pop_gym', name: 'Gym', icon: 'svg:gym-fill', default_cost: 49.99, default_cycle: 'monthly', category_id: 'cat_health', color: '#E05555' },
 
     // ── Finance & News ──
