@@ -14,7 +14,7 @@ import { getEventsByMonth } from '@/store/repository';
 import { blended, curMonth, curYear, fmt, monthName, nextChargeIn, subMo, toHrs } from '@/utils/calc';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -47,10 +47,10 @@ export default function TimelineScreen() {
 
     const isCurrentMonth = calMonth === curMonth && calYear === curYear;
 
-    // Fetch events when month changes
+    // Fetch events when month changes or subs change
     useEffect(() => {
         getEventsByMonth(calMonth, calYear).then(setMonthEvents);
-    }, [calMonth, calYear]);
+    }, [calMonth, calYear, subs]);
 
     // Upcoming charges (current month only)
     const upcoming = useMemo(() => {
@@ -59,7 +59,12 @@ export default function TimelineScreen() {
             .filter(s => s.active || s.isTrial)
             .map(s => ({ sub: s, daysLeft: nextChargeIn(s) }))
             .filter(({ daysLeft }) => daysLeft >= 0)
-            .sort((a, b) => a.daysLeft - b.daysLeft);
+            .sort((a, b) => {
+                // Trials always come first
+                if (a.sub.isTrial && !b.sub.isTrial) return -1;
+                if (!a.sub.isTrial && b.sub.isTrial) return 1;
+                return a.daysLeft - b.daysLeft;
+            });
     }, [subs, isCurrentMonth]);
 
     const heroCharge = upcoming[0] ?? null;
@@ -196,20 +201,52 @@ export default function TimelineScreen() {
                             hoursLabel={toHrs(subMo(heroCharge.sub), rate)}
                             onPress={() => handleSubPress(heroCharge.sub)}
                         />
-                        {otherCharges.length > 0 && (
-                            <View style={s.compactRow}>
-                                {otherCharges.slice(0, 4).map(({ sub, daysLeft }) => (
-                                    <UpcomingChargeCompact
-                                        key={sub.id}
-                                        name={sub.name}
-                                        icon={sub.icon}
-                                        color={sub.color}
-                                        daysLeft={daysLeft}
-                                        cost={fmt(sub.cost)}
-                                        onPress={() => handleSubPress(sub)}
-                                    />
+                        {otherCharges.length > 0 && otherCharges.length <= 2 && (
+                            <View style={s.compactInlineRow}>
+                                {otherCharges.map(({ sub, daysLeft }) => (
+                                    <View key={sub.id} style={{ flex: 1 }}>
+                                        <UpcomingChargeCompact
+                                            name={sub.name}
+                                            icon={sub.icon}
+                                            color={sub.color}
+                                            daysLeft={daysLeft}
+                                            cost={fmt(sub.cost)}
+                                            onPress={() => handleSubPress(sub)}
+                                        />
+                                    </View>
                                 ))}
                             </View>
+                        )}
+                        {otherCharges.length > 2 && (
+                            <ScrollView
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                contentContainerStyle={s.compactScroll}
+                                style={s.compactScrollOuter}
+                            >
+                                {(() => {
+                                    // Group charges into pairs (columns of 2)
+                                    const pairs: { sub: typeof otherCharges[0]['sub']; daysLeft: number }[][] = [];
+                                    for (let i = 0; i < otherCharges.length; i += 2) {
+                                        pairs.push(otherCharges.slice(i, i + 2));
+                                    }
+                                    return pairs.map((pair, idx) => (
+                                        <View key={idx} style={s.compactColumn}>
+                                            {pair.map(({ sub, daysLeft }) => (
+                                                <UpcomingChargeCompact
+                                                    key={sub.id}
+                                                    name={sub.name}
+                                                    icon={sub.icon}
+                                                    color={sub.color}
+                                                    daysLeft={daysLeft}
+                                                    cost={fmt(sub.cost)}
+                                                    onPress={() => handleSubPress(sub)}
+                                                />
+                                            ))}
+                                        </View>
+                                    ));
+                                })()}
+                            </ScrollView>
                         )}
                     </Animated.View>
                 )}
@@ -260,8 +297,20 @@ const s = StyleSheet.create({
         fontSize: 10, fontWeight: '600', color: C.t3, letterSpacing: 0.5,
         textTransform: 'uppercase', marginBottom: 8, marginTop: 4,
     },
-    compactRow: {
+    compactInlineRow: {
         flexDirection: 'row', gap: 6, marginTop: 6,
+    },
+    compactScrollOuter: {
+        marginTop: 6,
+        marginHorizontal: -LAYOUT.screenHPad,
+    },
+    compactScroll: {
+        paddingHorizontal: LAYOUT.screenHPad,
+        gap: 6,
+    },
+    compactColumn: {
+        width: (Dimensions.get('window').width - LAYOUT.screenHPad * 2 - 6) / 2,
+        gap: 6,
     },
     divider: {
         height: 1, backgroundColor: C.line, marginVertical: 12,

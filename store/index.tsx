@@ -1,6 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useReducer } from 'react';
 import * as repo from './repository';
-import type { SubscriptionEvent } from './repository';
 import { migrateSettingsFromSQLite } from './settings';
 
 // ─── DATA TYPES ───────────────────────────
@@ -195,6 +194,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         repo.insertEvent({
             id: `evt_${sub.id}_${Date.now()}`,
             subscriptionId: sub.id,
+            subscriptionName: sub.name,
             type: 'added',
             timestamp: Date.now(),
             metadata: JSON.stringify({ cost: sub.cost, cycle: sub.cycle }),
@@ -210,6 +210,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
                 repo.insertEvent({
                     id: `evt_${sub.id}_${Date.now()}_price`,
                     subscriptionId: sub.id,
+                    subscriptionName: sub.name,
                     type: 'price_change',
                     timestamp: Date.now(),
                     metadata: JSON.stringify({ oldCost: old.cost, newCost: sub.cost, cycle: sub.cycle }),
@@ -219,6 +220,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
                 repo.insertEvent({
                     id: `evt_${sub.id}_${Date.now()}_cycle`,
                     subscriptionId: sub.id,
+                    subscriptionName: sub.name,
                     type: 'cycle_change',
                     timestamp: Date.now(),
                     metadata: JSON.stringify({ oldCycle: old.cycle, newCycle: sub.cycle, cost: sub.cost }),
@@ -228,6 +230,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
                 repo.insertEvent({
                     id: `evt_${sub.id}_${Date.now()}_cancel`,
                     subscriptionId: sub.id,
+                    subscriptionName: sub.name,
                     type: 'cancelled',
                     timestamp: Date.now(),
                     metadata: null,
@@ -237,6 +240,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
                 repo.insertEvent({
                     id: `evt_${sub.id}_${Date.now()}_reactivate`,
                     subscriptionId: sub.id,
+                    subscriptionName: sub.name,
                     type: 'reactivated',
                     timestamp: Date.now(),
                     metadata: null,
@@ -246,16 +250,22 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }, [state.subs]);
 
     const removeSub = useCallback((id: string) => {
-        repo.insertEvent({
-            id: `evt_${id}_${Date.now()}_cancel`,
-            subscriptionId: id,
-            type: 'cancelled',
-            timestamp: Date.now(),
-            metadata: null,
-        });
+        const sub = state.subs.find(s => s.id === id);
+        // Only log cancelled event if the sub is still active — if it was already
+        // toggled inactive, updateSub already logged a cancelled event.
+        if (sub?.active) {
+            repo.insertEvent({
+                id: `evt_${id}_${Date.now()}_cancel`,
+                subscriptionId: id,
+                subscriptionName: sub.name,
+                type: 'cancelled',
+                timestamp: Date.now(),
+                metadata: null,
+            });
+        }
         dispatch({ type: 'REMOVE_SUB', id });
         repo.deleteSub(id);
-    }, []);
+    }, [state.subs]);
 
     const addIncome = useCallback((income: Income) => {
         dispatch({ type: 'ADD_INCOME', income });
@@ -289,6 +299,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
             repo.insertEvent({
                 id: `evt_${id}_${Date.now()}_trial`,
                 subscriptionId: id,
+                subscriptionName: sub.name,
                 type: decision === 'kept' ? 'reactivated' : 'cancelled',
                 timestamp: Date.now(),
                 metadata: JSON.stringify({ fromTrial: true }),

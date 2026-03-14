@@ -43,7 +43,6 @@ export default function UpcomingChargeCompact({ name, icon, color, daysLeft, cos
 
 const s = StyleSheet.create({
   card: {
-    flex: 1,
     backgroundColor: C.surfaceElevated,
     borderRadius: 16,
     borderWidth: 1,

@@ -4,6 +4,7 @@ import type { Category, Income, SpendingSnapshot, Sub } from './index';
 export interface SubscriptionEvent {
     id: string;
     subscriptionId: string;
+    subscriptionName: string | null;
     type: 'added' | 'cancelled' | 'reactivated' | 'price_change' | 'cycle_change';
     timestamp: number;
     metadata: string | null;
@@ -193,8 +194,8 @@ export async function recordMonthlySnapshot(snapshot: SpendingSnapshot): Promise
 export async function insertEvent(event: SubscriptionEvent): Promise<void> {
     const db = await getDb();
     await db.runAsync(
-        `INSERT INTO subscription_events (id, subscriptionId, type, timestamp, metadata) VALUES (?, ?, ?, ?, ?)`,
-        [event.id, event.subscriptionId, event.type, event.timestamp, event.metadata]
+        `INSERT INTO subscription_events (id, subscriptionId, subscriptionName, type, timestamp, metadata) VALUES (?, ?, ?, ?, ?, ?)`,
+        [event.id, event.subscriptionId, event.subscriptionName, event.type, event.timestamp, event.metadata]
     );
 }
 

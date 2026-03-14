@@ -94,6 +94,19 @@ async function migrate(db: SQLite.SQLiteDatabase) {
     await db.execAsync(`CREATE INDEX IF NOT EXISTS idx_events_sub_ts ON subscription_events(subscriptionId, timestamp);`);
     await db.execAsync(`CREATE INDEX IF NOT EXISTS idx_events_ts ON subscription_events(timestamp);`);
 
+    // Migrate: add subscriptionName column to subscription_events
+    try {
+        await db.execAsync('ALTER TABLE subscription_events ADD COLUMN subscriptionName TEXT;');
+        // Backfill existing events with subscription names
+        await db.execAsync(`
+            UPDATE subscription_events
+            SET subscriptionName = (SELECT name FROM subscriptions WHERE subscriptions.id = subscription_events.subscriptionId)
+            WHERE subscriptionName IS NULL;
+        `);
+    } catch {
+        // Column already exists — safe to ignore
+    }
+
     const existingSubs = await db.getAllAsync<{ id: string; created_at: string | null }>(
         `SELECT id, created_at FROM subscriptions WHERE id NOT IN (SELECT subscriptionId FROM subscription_events WHERE type = 'added')`
     );

@@ -1,7 +1,7 @@
 import Card from '@/components/Card';
 import { C } from '@/constants/design';
-import type { SubscriptionEvent } from '@/store/repository';
 import { Sub } from '@/store';
+import type { SubscriptionEvent } from '@/store/repository';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -32,7 +32,7 @@ export default function ActivityLog({ events, subMap }: Props) {
       ) : (
         <View style={{ gap: 10, marginTop: 10 }}>
           {events.map(evt => {
-            const name = subMap[evt.subscriptionId]?.name ?? 'Unknown';
+            const name = evt.subscriptionName ?? subMap[evt.subscriptionId]?.name ?? 'Unknown';
             const meta = evt.metadata ? JSON.parse(evt.metadata) : null;
             return (
               <View key={evt.id} style={s.row}>
