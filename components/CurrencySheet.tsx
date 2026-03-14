@@ -2,6 +2,7 @@ import { C, R, SP } from '@/constants/design';
 import { CURRENCIES, getCurrency } from '@/constants/currencies';
 import { useSettings } from '@/store/settings';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     FlatList,
     Modal,
@@ -20,6 +21,7 @@ interface Props {
 }
 
 export default function CurrencySheet({ visible, onClose }: Props) {
+    const { t } = useTranslation();
     const insets = useSafeAreaInsets();
     const { currency, setCurrency: setCurrencyCode } = useSettings();
     const [search, setSearch] = useState('');
@@ -41,7 +43,7 @@ export default function CurrencySheet({ visible, onClose }: Props) {
         <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
             <View style={[s.container, { paddingTop: insets.top + 8 }]}>
                 <View style={s.header}>
-                    <Text style={s.title}>Currency</Text>
+                    <Text style={s.title}>{t('currencySheet.title')}</Text>
                     <TouchableOpacity onPress={onClose} hitSlop={16}>
                         <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
                             <Path d="M18 6L6 18M6 6l12 12" stroke={C.t1} strokeWidth={2} strokeLinecap="round" />
@@ -55,7 +57,7 @@ export default function CurrencySheet({ visible, onClose }: Props) {
                     </Svg>
                     <TextInput
                         style={s.searchInput}
-                        placeholder="Search currencies..."
+                        placeholder={t('currencySheet.search')}
                         placeholderTextColor={C.t3}
                         value={search}
                         onChangeText={setSearch}

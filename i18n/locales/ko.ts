@@ -199,6 +199,32 @@ const ko = {
   // Language
   'language.title': '언어',
   'language.auto': '자동 (시스템)',
+
+  // Lifetime cost
+  'lifetime.title': '누적 비용',
+  'lifetime.sinceTracked': '첫 추적 이후',
+  'lifetime.thisMonth': '이번 달',
+  'lifetime.since': '{{month}} 부터 · {{count}}개월',
+  'lifetime.months': '{{count}}개월',
+  'lifetime.allTime': '전체 합계:',
+
+  // Activity
+  'activity.title': '활동',
+  'activity.noChanges': '이번 달 변경 없음',
+  'activity.added': '추가됨',
+  'activity.cancelled': '취소됨',
+  'activity.reactivated': '재활성화됨',
+  'activity.priceChange': '{{name}} 가격 → {{cost}}',
+  'activity.cycleChange': '{{name}} 청구 주기 변경',
+
+  // Spending trend
+  'spending.title': '지출 추세',
+  'spending.empty': '첫 번째 달 이후 지출 추세가 표시됩니다.',
+  'spending.vsLastMonth': '전월 대비',
+
+  // Breakdown
+  'breakdown.title': '{{month}} 분석',
+  'breakdown.other': '기타',
 };
 
 export default ko;

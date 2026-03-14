@@ -5,6 +5,7 @@ import { useSettings } from '@/store/settings';
 import { fmt } from '@/utils/calc';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 interface CatAmount {
     categoryId: string;
@@ -19,12 +20,13 @@ interface Props {
 }
 
 export default function CategoryBreakdownList({ breakdown, catMap, totalMo, monthLabel }: Props) {
+    const { t } = useTranslation();
     const currency = useSettings(s => s.currency);
     if (breakdown.length === 0) return null;
 
     return (
         <Card style={{ marginTop: 12 }}>
-            <Text style={s.title}>{monthLabel.toUpperCase()} BREAKDOWN</Text>
+            <Text style={s.title}>{t('breakdown.title', { month: monthLabel.toUpperCase() })}</Text>
             <View style={{ gap: 12, marginTop: 12 }}>
                 {breakdown.map(({ categoryId, amount }) => {
                     const cat = catMap[categoryId];
@@ -34,7 +36,7 @@ export default function CategoryBreakdownList({ breakdown, catMap, totalMo, mont
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
                                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                                     <View style={[s.catDot, { backgroundColor: cat?.color ?? C.t3 }]} />
-                                    <Text style={s.catName}>{cat?.name ?? 'Other'}</Text>
+                                    <Text style={s.catName}>{cat?.name ?? t('breakdown.other')}</Text>
                                 </View>
                                 <Text style={s.catAmount}>{fmt(amount)} <Text style={s.catPct}>({pct.toFixed(0)}%)</Text></Text>
                             </View>

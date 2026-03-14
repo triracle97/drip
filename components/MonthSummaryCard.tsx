@@ -4,6 +4,7 @@ import { Category } from '@/store';
 import { fmt } from '@/utils/calc';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   breakdown: { categoryId: string; amount: number }[];
@@ -15,13 +16,14 @@ interface Props {
 }
 
 export default function MonthSummaryCard({ breakdown, catMap, totalMo, activeCount, prevMonthTotal, prevMonthLabel }: Props) {
+  const { t } = useTranslation();
   const delta = prevMonthTotal != null ? totalMo - prevMonthTotal : null;
 
   return (
     <Card>
       <View style={s.headerRow}>
-        <Text style={s.sectionLabel}>SUMMARY</Text>
-        <Text style={s.subLabel}>{activeCount} active subs</Text>
+        <Text style={s.sectionLabel}>{t('summary.title')}</Text>
+        <Text style={s.subLabel}>{t('summary.activeSubs', { count: activeCount })}</Text>
       </View>
       {breakdown.length > 0 && totalMo > 0 && (
         <View style={s.barContainer}>

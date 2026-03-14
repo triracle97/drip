@@ -2,6 +2,7 @@ import AnimatedPressable from '@/components/AnimatedPressable';
 import { C, R, SP } from '@/constants/design';
 import { Category, useStore } from '@/store';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     Alert,
     Modal,
@@ -47,6 +48,7 @@ interface Props {
 }
 
 export default function CategoryManager({ visible, onClose }: Props) {
+    const { t } = useTranslation();
     const { categories, subs, addCategory, updateCategory, removeCategory, reorderCategories } = useStore();
     const [editing, setEditing] = useState<Category | null>(null);
     const [adding, setAdding] = useState(false);
@@ -58,11 +60,11 @@ export default function CategoryManager({ visible, onClose }: Props) {
         if (count > 0) {
             const otherCat = categories.find(c => c.id !== cat.id) ?? categories[0];
             Alert.alert(
-                'Delete category?',
-                `${count} subscription${count > 1 ? 's' : ''} will be moved to "${otherCat.name}"`,
+                t('categories.deleteTitle'),
+                t('categories.deleteMsg', { count, name: otherCat.name }),
                 [
-                    { text: 'Cancel', style: 'cancel' },
-                    { text: 'Delete', style: 'destructive', onPress: () => { removeCategory(cat.id, otherCat.id); setEditing(null); } },
+                    { text: t('common.cancel'), style: 'cancel' },
+                    { text: t('common.delete'), style: 'destructive', onPress: () => { removeCategory(cat.id, otherCat.id); setEditing(null); } },
                 ],
             );
         } else {
@@ -78,9 +80,9 @@ export default function CategoryManager({ visible, onClose }: Props) {
                 <View style={s.sheet}>
                     <View style={s.handle} />
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                        <Text style={s.title}>Categories</Text>
+                        <Text style={s.title}>{t('categories.title')}</Text>
                         <TouchableOpacity onPress={onClose} activeOpacity={0.7}>
-                            <Text style={{ fontSize: 14, color: C.t2, fontWeight: '500' }}>Done</Text>
+                            <Text style={{ fontSize: 14, color: C.t2, fontWeight: '500' }}>{t('common.done')}</Text>
                         </TouchableOpacity>
                     </View>
 
@@ -114,7 +116,7 @@ export default function CategoryManager({ visible, onClose }: Props) {
                                         </View>
                                         <View style={{ flex: 1 }}>
                                             <Text style={s.catName}>{cat.name}</Text>
-                                            <Text style={s.catSub}>{subCountFor(cat.id)} subscriptions</Text>
+                                            <Text style={s.catSub}>{t('categories.subsCount', { count: subCountFor(cat.id) })}</Text>
                                         </View>
                                         <View style={[s.colorSwatch, { backgroundColor: cat.color }]} />
                                         <Svg width={12} height={12} viewBox="0 0 16 16" fill="none">
@@ -124,7 +126,7 @@ export default function CategoryManager({ visible, onClose }: Props) {
                                 ))}
 
                                 <AnimatedPressable onPress={() => setAdding(true)} style={s.addRow}>
-                                    <Text style={s.addLabel}>+ Add category</Text>
+                                    <Text style={s.addLabel}>{t('categories.addCategory')}</Text>
                                 </AnimatedPressable>
                             </>
                         )}
@@ -148,6 +150,7 @@ function CategoryForm({
     onDelete?: () => void;
     isDefault?: boolean;
 }) {
+    const { t } = useTranslation();
     const [name, setName] = useState(initial?.name ?? '');
     const [icon, setIcon] = useState(initial?.icon ?? '📦');
     const [color, setColor] = useState(initial?.color ?? '#8E8E93');
@@ -156,7 +159,7 @@ function CategoryForm({
 
     return (
         <View>
-            <Text style={s.fieldLabel}>NAME</Text>
+            <Text style={s.fieldLabel}>{t('addSub.name')}</Text>
             <TextInput
                 style={s.inp}
                 value={name}
@@ -180,7 +183,7 @@ function CategoryForm({
                 ))}
             </View>
 
-            <Text style={[s.fieldLabel, { marginTop: 16 }]}>COLOR</Text>
+            <Text style={[s.fieldLabel, { marginTop: 16 }]}>{t('appearance.color')}</Text>
             <View style={s.grid}>
                 {PRESET_COLORS.map(c => (
                     <TouchableOpacity
@@ -195,7 +198,7 @@ function CategoryForm({
             {/* Preview */}
             <View style={[s.preview, { backgroundColor: `${color}18` }]}>
                 <Text style={{ fontSize: 18 }}>{icon}</Text>
-                <Text style={{ fontSize: 14, fontWeight: '600', color }}>{name || 'Category'}</Text>
+                <Text style={{ fontSize: 14, fontWeight: '600', color }}>{name || t('addSub.category')}</Text>
             </View>
 
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 16 }}>
@@ -205,18 +208,18 @@ function CategoryForm({
                     disabled={!canSave}
                 >
                     <Text style={{ fontSize: 14, fontWeight: '700', color: canSave ? '#fff' : C.t3 }}>
-                        {initial ? 'Save' : 'Add category'}
+                        {initial ? t('common.save') : t('categories.addCategory')}
                     </Text>
                 </AnimatedPressable>
                 {onDelete && !isDefault && (
                     <AnimatedPressable onPress={onDelete} style={[s.btn, { flex: 1, backgroundColor: C.redBg, borderWidth: 1, borderColor: C.redLine }]}>
-                        <Text style={{ fontSize: 14, fontWeight: '600', color: C.red }}>Delete</Text>
+                        <Text style={{ fontSize: 14, fontWeight: '600', color: C.red }}>{t('common.delete')}</Text>
                     </AnimatedPressable>
                 )}
             </View>
 
             <TouchableOpacity onPress={onCancel} style={{ marginTop: 12, alignItems: 'center', paddingVertical: 8 }} activeOpacity={0.7}>
-                <Text style={{ color: C.t3, fontSize: 14, fontWeight: '500' }}>Cancel</Text>
+                <Text style={{ color: C.t3, fontSize: 14, fontWeight: '500' }}>{t('common.cancel')}</Text>
             </TouchableOpacity>
         </View>
     );

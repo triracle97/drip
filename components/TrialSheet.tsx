@@ -7,6 +7,7 @@ import { useSettings } from '@/store/settings';
 import { blended, fmt, subMo, toHrs } from '@/utils/calc';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import React, { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     StyleSheet,
     Text,
@@ -20,6 +21,7 @@ interface Props {
 }
 
 export default function TrialSheet({ sub: t, onClose }: Props) {
+    const { t: i18n } = useTranslation();
     const { incomes, decideTrial } = useStore();
     const currency = useSettings(s => s.currency);
     const rate = blended(incomes);
@@ -82,7 +84,7 @@ export default function TrialSheet({ sub: t, onClose }: Props) {
                     </View>
                     <View style={{ flex: 1 }}>
                         <Text style={s.name}>{t?.name}</Text>
-                        <Text style={s.trialBadge}>Trial ends in {daysLeft} day{daysLeft !== 1 ? 's' : ''}</Text>
+                        <Text style={s.trialBadge}>{i18n('trial.endsIn', { count: daysLeft })}</Text>
                     </View>
                     {/* Countdown ring */}
                     <Svg width={48} height={48} viewBox="0 0 40 40">
@@ -114,7 +116,7 @@ export default function TrialSheet({ sub: t, onClose }: Props) {
                 <Card style={s.costCard}>
                     <Text style={s.costCardLabel}>RIGHT NOW</Text>
                     <Text style={s.costHours}>{fmt(0)}/month</Text>
-                    <Text style={s.costMeta}>Free during trial · {daysLeft} day{daysLeft !== 1 ? 's' : ''} left</Text>
+                    <Text style={s.costMeta}>Free during trial · {i18n('trial.endsIn', { count: daysLeft })}</Text>
                 </Card>
 
                 {/* After trial cost */}
@@ -138,13 +140,13 @@ export default function TrialSheet({ sub: t, onClose }: Props) {
                         style={[s.actionBtn, { flex: 1, backgroundColor: C.redBg, borderWidth: 1, borderColor: C.redLine }]}
                         onPress={() => handleDecide('cancelled')}
                     >
-                        <Text style={[s.actionLabel, { color: C.red }]}>Cancel — not worth it</Text>
+                        <Text style={[s.actionLabel, { color: C.red }]}>{i18n('trial.cancelSubscription')}</Text>
                     </AnimatedPressable>
                     <AnimatedPressable
                         style={[s.actionBtn, { flex: 1, backgroundColor: C.black }]}
                         onPress={() => handleDecide('kept')}
                     >
-                        <Text style={[s.actionLabel, { color: '#fff' }]}>Keep — worth it</Text>
+                        <Text style={[s.actionLabel, { color: '#fff' }]}>{i18n('trial.keepSubscription')}</Text>
                     </AnimatedPressable>
                 </View>
             </View>

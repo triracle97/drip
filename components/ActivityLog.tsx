@@ -4,6 +4,7 @@ import { Sub } from '@/store';
 import type { SubscriptionEvent } from '@/store/repository';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   events: SubscriptionEvent[];
@@ -24,11 +25,12 @@ function formatEventDate(timestamp: number): string {
 }
 
 export default function ActivityLog({ events, subMap }: Props) {
+  const { t } = useTranslation();
   return (
     <Card>
-      <Text style={s.sectionLabel}>ACTIVITY</Text>
+      <Text style={s.sectionLabel}>{t('activity.title')}</Text>
       {events.length === 0 ? (
-        <Text style={s.empty}>No changes this month</Text>
+        <Text style={s.empty}>{t('activity.noChanges')}</Text>
       ) : (
         <View style={{ gap: 10, marginTop: 10 }}>
           {events.map(evt => {
@@ -38,11 +40,11 @@ export default function ActivityLog({ events, subMap }: Props) {
               <View key={evt.id} style={s.row}>
                 <View style={[s.dot, { backgroundColor: EVENT_COLORS[evt.type] ?? C.t3 }]} />
                 <Text style={s.text} numberOfLines={1}>
-                  {evt.type === 'added' && <>Added <Text style={s.boldName}>{name}</Text></>}
-                  {evt.type === 'cancelled' && <>Cancelled <Text style={s.boldName}>{name}</Text></>}
-                  {evt.type === 'reactivated' && <>Reactivated <Text style={s.boldName}>{name}</Text></>}
-                  {evt.type === 'price_change' && <><Text style={s.boldName}>{name}</Text> price → ${meta?.newCost}</>}
-                  {evt.type === 'cycle_change' && <><Text style={s.boldName}>{name}</Text> cycle changed</>}
+                  {evt.type === 'added' && t('activity.added', { name })}
+                  {evt.type === 'cancelled' && t('activity.cancelled', { name })}
+                  {evt.type === 'reactivated' && t('activity.reactivated', { name })}
+                  {evt.type === 'price_change' && t('activity.priceChange', { name, cost: meta?.newCost })}
+                  {evt.type === 'cycle_change' && t('activity.cycleChange', { name })}
                 </Text>
                 <Text style={s.date}>{formatEventDate(evt.timestamp)}</Text>
               </View>

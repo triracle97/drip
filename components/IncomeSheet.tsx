@@ -5,6 +5,7 @@ import { useSettings } from '@/store/settings';
 import { fmt } from '@/utils/calc';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import React, { forwardRef, useCallback, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     KeyboardAvoidingView,
     Platform,
@@ -20,6 +21,7 @@ import Svg, { Path } from 'react-native-svg';
 
 const IncomeSheet = forwardRef<TrueSheet>(function IncomeSheet(_props, ref) {
     const insets = useSafeAreaInsets();
+    const { t } = useTranslation();
     const { incomes, addIncome, updateIncome } = useStore();
     const currency = useSettings(s => s.currency);
     const existing = incomes[0] ?? null;
@@ -98,7 +100,7 @@ const IncomeSheet = forwardRef<TrueSheet>(function IncomeSheet(_props, ref) {
                 >
                     {/* Header */}
                     <View style={s.headerRow}>
-                        <Text style={s.title}>{existing ? 'Update Income' : 'Add Income'}</Text>
+                        <Text style={s.title}>{existing ? t('income.updateIncome') : t('income.addIncome')}</Text>
                         <TouchableOpacity onPress={dismiss} style={s.closeBtn} activeOpacity={0.7}>
                             <Svg width={14} height={14} viewBox="0 0 16 16" fill="none">
                                 <Path d="M4 4l8 8M12 4l-8 8" stroke={C.t3} strokeWidth={1.8} strokeLinecap="round" />
@@ -108,11 +110,11 @@ const IncomeSheet = forwardRef<TrueSheet>(function IncomeSheet(_props, ref) {
 
                     {/* Type */}
                     <View style={s.field}>
-                        <Text style={s.fieldLabel}>TYPE</Text>
+                        <Text style={s.fieldLabel}>{t('income.type')}</Text>
                         <View style={s.segRow}>
                             {[
-                                { v: false, l: 'Annual Salary' },
-                                { v: true, l: 'Hourly Rate' },
+                                { v: false, l: t('income.annualSalary') },
+                                { v: true, l: t('income.hourlyRate') },
                             ].map(({ v, l }) => (
                                 <TouchableOpacity
                                     key={l}
@@ -128,7 +130,7 @@ const IncomeSheet = forwardRef<TrueSheet>(function IncomeSheet(_props, ref) {
 
                     {/* Amount */}
                     <View style={s.field}>
-                        <Text style={s.fieldLabel}>{isHourly ? 'HOURLY RATE' : 'ANNUAL SALARY'}</Text>
+                        <Text style={s.fieldLabel}>{isHourly ? t('income.hourlyRateLabel') : t('income.annualSalaryLabel')}</Text>
                         <View style={s.dollarRow}>
                             <Text style={s.dollarSign}>$</Text>
                             <TextInput
@@ -144,7 +146,7 @@ const IncomeSheet = forwardRef<TrueSheet>(function IncomeSheet(_props, ref) {
 
                     {/* Hours */}
                     <View style={s.field}>
-                        <Text style={s.fieldLabel}>HOURS PER WEEK</Text>
+                        <Text style={s.fieldLabel}>{t('income.hoursPerWeek')}</Text>
                         <TextInput
                             style={s.inp}
                             value={hours}
@@ -158,7 +160,7 @@ const IncomeSheet = forwardRef<TrueSheet>(function IncomeSheet(_props, ref) {
                     {/* Rate preview */}
                     {hourlyRate > 0 && (
                         <View style={s.preview}>
-                            <Text style={s.previewLabel}>BLENDED RATE</Text>
+                            <Text style={s.previewLabel}>{t('income.calculateRate')}</Text>
                             <Text style={s.previewValue}>{fmt(hourlyRate)}<Text style={s.previewUnit}>/hr</Text></Text>
                         </View>
                     )}
@@ -170,7 +172,7 @@ const IncomeSheet = forwardRef<TrueSheet>(function IncomeSheet(_props, ref) {
                         style={[s.saveBtn, { backgroundColor: canSave ? C.black : C.bgSub, opacity: canSave ? 1 : 0.5 }]}
                     >
                         <Text style={[s.saveBtnText, { color: canSave ? '#fff' : C.t3 }]}>
-                            {existing ? 'Save Changes' : 'Add Income'}
+                            {existing ? t('income.updateIncome') : t('income.addIncome')}
                         </Text>
                     </AnimatedPressable>
                 </ScrollView>

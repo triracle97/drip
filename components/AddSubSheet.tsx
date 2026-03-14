@@ -24,15 +24,16 @@ import {
 import Animated, { FadeInLeft, FadeInRight, FadeOutLeft, FadeOutRight } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
+import { useTranslation } from 'react-i18next';
 
 // ─── Constants ───
-const CYCLES: [string, string][] = [
-    ['weekly', 'Every week'], ['biweekly', 'Every 2 weeks'], ['monthly', 'Every month'],
-    ['quarterly', 'Every 3 months'], ['biannual', 'Every 6 months'], ['yearly', 'Every year'], ['custom', 'Custom...'],
+const CYCLE_KEYS: [string, string][] = [
+    ['weekly', 'billing.everyWeek'], ['biweekly', 'billing.every2Weeks'], ['monthly', 'billing.everyMonth'],
+    ['quarterly', 'billing.every3Months'], ['biannual', 'billing.every6Months'], ['yearly', 'billing.everyYear'], ['custom', 'billing.custom'],
 ];
 
-const REMINDER_OPTIONS: [string, string][] = [
-    ['', 'Never'], ['1', '1 day before'], ['2', '2 days before'], ['3', '3 days before'], ['7', '7 days before'],
+const REMINDER_KEYS: [string, string][] = [
+    ['', 'reminder.never'], ['1', 'reminder.1day'], ['2', 'reminder.2days'], ['3', 'reminder.3days'], ['7', 'reminder.7days'],
 ];
 
 interface Form {
@@ -60,9 +61,10 @@ const DEFAULT_FORM: Form = {
     reminderDays: '',
 };
 
-function cycleLabelFull(f: Form) {
+function cycleLabelFull(f: Form, t: (key: string) => string) {
     if (f.cycle === 'custom') return `Every ${f.customNum || 2} ${f.customUnit || 'months'} `;
-    return CYCLES.find(([v]) => v === f.cycle)?.[1] ?? 'Every month';
+    const key = CYCLE_KEYS.find(([v]) => v === f.cycle)?.[1] ?? 'billing.everyMonth';
+    return t(key);
 }
 
 function ServiceIcon({ icon, size = 22, useOriginalColor }: { icon: string; size?: number; useOriginalColor?: boolean }) {
@@ -83,6 +85,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
     const insets = useSafeAreaInsets();
+    const { t } = useTranslation();
     const { addSub, incomes, categories } = useStore();
     const currency = useSettings(s => s.currency);
     const rate = blended(incomes);
@@ -179,7 +182,7 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
         >
             {/* Header */}
             <View style={s.headerRow}>
-                <Text style={s.title}>Add Subscription</Text>
+                <Text style={s.title}>{t('addSub.title')}</Text>
                 <TouchableOpacity onPress={dismiss} style={s.closeBtn} activeOpacity={0.7}>
                     <Svg width={16} height={16} viewBox="0 0 16 16" fill="none">
                         <Path d="M4 4l8 8M12 4l-8 8" stroke={C.t3} strokeWidth={1.8} strokeLinecap="round" />
@@ -197,7 +200,7 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
                         style={s.searchInput}
                         value={query}
                         onChangeText={setQuery}
-                        placeholder="Search subscriptions..."
+                        placeholder={t('addSub.searchPlaceholder')}
                         placeholderTextColor={C.t3}
                         autoCapitalize="none"
                         autoCorrect={false}
@@ -212,7 +215,7 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
             >
-                <Text style={s.sectionLabel}>Popular Services</Text>
+                <Text style={s.sectionLabel}>{t('addSub.popularServices')}</Text>
 
                 {filtered.map(q => {
                     const isWhiteBg = q.color.toUpperCase() === '#FFFFFF' || q.color.toUpperCase() === '#FFF';
@@ -238,7 +241,7 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
 
                 {filtered.length === 0 && query.trim() !== '' && (
                     <View style={{ alignItems: 'center', paddingVertical: 32 }}>
-                        <Text style={{ fontSize: 14, color: C.t3 }}>No results for "{query}"</Text>
+                        <Text style={{ fontSize: 14, color: C.t3 }}>{t('addSub.noResults', { query })}</Text>
                     </View>
                 )}
             </ScrollView>
@@ -249,7 +252,7 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
                     <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
                         <Path d="M12 5v14M5 12h14" stroke={C.t2} strokeWidth={2} strokeLinecap="round" />
                     </Svg>
-                    <Text style={s.customBtnText}>Add custom subscription</Text>
+                    <Text style={s.customBtnText}>{t('addSub.addCustom')}</Text>
                 </AnimatedPressable>
             </View>
         </Animated.View>
@@ -269,7 +272,7 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
                     <Svg width={14} height={14} viewBox="0 0 16 16" fill="none">
                         <Path d="M10 3L5 8l5 5" stroke={C.t2} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
                     </Svg>
-                    <Text style={{ fontSize: 14, color: C.t2, fontWeight: '500' }}>Back</Text>
+                    <Text style={{ fontSize: 14, color: C.t2, fontWeight: '500' }}>{t('common.back')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={dismiss} style={s.closeBtn} activeOpacity={0.7}>
                     <Svg width={16} height={16} viewBox="0 0 16 16" fill="none">
@@ -285,7 +288,7 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
                 showsVerticalScrollIndicator={false}
             >
                 {/* Name */}
-                <Field label="NAME">
+                <Field label={t('addSub.name')}>
                     <TextInput
                         style={s.inp}
                         value={f.name}
@@ -296,7 +299,7 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
                 </Field>
 
                 {/* Price & Billing cycle */}
-                <Field label="PRICE & BILLING CYCLE">
+                <Field label={t('addSub.priceBilling')}>
                     <View style={s.priceCycleRow}>
                         <View style={[s.dollarRow, { flex: 1 }]}>
                             <Text style={s.dollarSign}>$</Text>
@@ -310,7 +313,7 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
                             />
                         </View>
                         <TouchableOpacity onPress={() => setCycleOpen(true)} style={s.cyclePill} activeOpacity={0.8}>
-                            <Text style={{ fontSize: 13, fontWeight: '600', color: C.t1 }} numberOfLines={1}>{cycleLabelFull(f)}</Text>
+                            <Text style={{ fontSize: 13, fontWeight: '600', color: C.t1 }} numberOfLines={1}>{cycleLabelFull(f, t)}</Text>
                             <Svg width={10} height={10} viewBox="0 0 16 16" fill="none">
                                 <Path d="M6 3l5 5-5 5" stroke={C.t3} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
                             </Svg>
@@ -341,14 +344,14 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
                     <TouchableOpacity style={s.popupOverlay} activeOpacity={1} onPress={() => setCycleOpen(false)}>
                         <View style={s.popupCard}>
                             <Text style={s.popupTitle}>Billing Cycle</Text>
-                            {CYCLES.map(([v, l]) => (
+                            {CYCLE_KEYS.map(([v, key]) => (
                                 <TouchableOpacity
                                     key={v}
                                     onPress={() => { u('cycle', v); setCycleOpen(false); }}
                                     style={[s.popupItem, f.cycle === v && { backgroundColor: C.bgSub }]}
                                     activeOpacity={0.75}
                                 >
-                                    <Text style={{ fontSize: 15, color: f.cycle === v ? C.t1 : C.t2, fontWeight: f.cycle === v ? '600' : '500' }}>{l}</Text>
+                                    <Text style={{ fontSize: 15, color: f.cycle === v ? C.t1 : C.t2, fontWeight: f.cycle === v ? '600' : '500' }}>{t(key)}</Text>
                                     {f.cycle === v && <Text style={{ color: C.t1, fontSize: 14 }}>✓</Text>}
                                 </TouchableOpacity>
                             ))}
@@ -357,7 +360,7 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
                 </Modal>
 
                 {/* Category */}
-                <Field label="CATEGORY">
+                <Field label={t('addSub.category')}>
                     <TouchableOpacity onPress={() => setCategoryOpen(true)} style={s.selectBtn} activeOpacity={0.8}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                             <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: categories.find(c => c.id === f.categoryId)?.color || C.t3 }} />
@@ -373,7 +376,7 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
                 <Modal visible={categoryOpen} transparent animationType="fade" onRequestClose={() => setCategoryOpen(false)}>
                     <TouchableOpacity style={s.popupOverlay} activeOpacity={1} onPress={() => setCategoryOpen(false)}>
                         <View style={s.popupCard}>
-                            <Text style={s.popupTitle}>Category</Text>
+                            <Text style={s.popupTitle}>{t('addSub.category')}</Text>
                             {categories.map(c => (
                                 <TouchableOpacity
                                     key={c.id}
@@ -393,15 +396,15 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
                 </Modal>
 
                 {/* Start date */}
-                <Field label="START DATE">
+                <Field label={t('addSub.startDate')}>
                     <Text style={[s.inp, { color: C.t1, fontSize: 14, fontWeight: '500' }]}>
-                        {f.startDate || 'Today'}
+                        {f.startDate || t('time.today')}
                     </Text>
-                    <Text style={{ fontSize: 10, color: C.t3, marginTop: 4 }}>Bills on this date every cycle</Text>
+                    <Text style={{ fontSize: 10, color: C.t3, marginTop: 4 }}>{t('addSub.billsOnDate')}</Text>
                 </Field>
 
                 {/* Icon & Color */}
-                <Field label="ICON & COLOR">
+                <Field label={t('addSub.iconColor')}>
                     <AnimatedPressable onPress={() => setShowAppearance(true)} style={s.appearanceRow}>
                         <View style={[s.iconPreview, { backgroundColor: f.color }, (f.color.toUpperCase() === '#FFFFFF' || f.color.toUpperCase() === '#FFF') && s.serviceIconShadow]}>
                             {f.icon.startsWith('svg:')
@@ -409,8 +412,8 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
                                 : <Text style={{ fontSize: 22 }}>{f.icon}</Text>}
                         </View>
                         <View style={{ flex: 1 }}>
-                            <Text style={{ fontSize: 14, fontWeight: '600', color: C.t1 }}>{f.name || 'Subscription'}</Text>
-                            <Text style={{ fontSize: 12, color: C.t3, marginTop: 2 }}>Tap to change icon or color</Text>
+                            <Text style={{ fontSize: 14, fontWeight: '600', color: C.t1 }}>{f.name || t('appearance.subscription')}</Text>
+                            <Text style={{ fontSize: 12, color: C.t3, marginTop: 2 }}>{t('addSub.tapToChange')}</Text>
                         </View>
                         <Svg width={14} height={14} viewBox="0 0 16 16" fill="none">
                             <Path d="M6 3l5 5-5 5" stroke={C.t3} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
@@ -421,8 +424,8 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
                 {/* Trial toggle */}
                 <View style={[s.trialBox, { backgroundColor: f.isTrial ? C.redBg : C.bgSub, borderBottomLeftRadius: f.isTrial ? 0 : R.md, borderBottomRightRadius: f.isTrial ? 0 : R.md }]}>
                     <View style={{ flex: 1 }}>
-                        <Text style={[s.trialLabel, { color: f.isTrial ? C.red : C.t1 }]}>Free trial</Text>
-                        <Text style={{ fontSize: 12, color: C.t3 }}>Get reminded before it charges</Text>
+                        <Text style={[s.trialLabel, { color: f.isTrial ? C.red : C.t1 }]}>{t('addSub.freeTrial')}</Text>
+                        <Text style={{ fontSize: 12, color: C.t3 }}>{t('addSub.trialReminder')}</Text>
                     </View>
                     <View style={{ transform: [{ scale: 0.7 }] }}>
                         <Switch
@@ -436,7 +439,7 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
 
                 {f.isTrial && (
                     <View style={s.trialDaysRow}>
-                        <Text style={{ fontSize: 10, color: C.red, fontWeight: '600', marginBottom: 8 }}>TRIAL LENGTH</Text>
+                        <Text style={{ fontSize: 10, color: C.red, fontWeight: '600', marginBottom: 8 }}>{t('addSub.trialLength')}</Text>
                         <View style={{ flexDirection: 'row', gap: 8 }}>
                             {['7', '14', '30'].map(d => (
                                 <TouchableOpacity
@@ -452,7 +455,7 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
                                 style={[s.inp, { flex: 1, textAlign: 'center', color: C.red, fontSize: 11, height: 36, padding: 0 }]}
                                 value={!['7', '14', '30'].includes(f.trialDays) ? f.trialDays : ''}
                                 onChangeText={v => u('trialDays', v)}
-                                placeholder="Custom"
+                                placeholder={t('addSub.custom')}
                                 placeholderTextColor={C.t3}
                                 keyboardType="number-pad"
                             />
@@ -462,10 +465,10 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
 
                 {/* Reminder */}
                 <View style={{ marginTop: 20 }} />
-                <Field label="REMINDER">
+                <Field label={t('addSub.reminder')}>
                     <TouchableOpacity onPress={() => setReminderOpen(true)} style={s.selectBtn} activeOpacity={0.8}>
                         <Text style={{ fontSize: 14, fontWeight: '600', color: C.t1 }}>
-                            {REMINDER_OPTIONS.find(([v]) => v === f.reminderDays)?.[1] ?? 'Never'}
+                            {t(REMINDER_KEYS.find(([v]) => v === f.reminderDays)?.[1] ?? 'reminder.never')}
                         </Text>
                         <Svg width={14} height={14} viewBox="0 0 16 16" fill="none">
                             <Path d="M6 3l5 5-5 5" stroke={C.t3} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
@@ -477,15 +480,15 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
                 <Modal visible={reminderOpen} transparent animationType="fade" onRequestClose={() => setReminderOpen(false)}>
                     <TouchableOpacity style={s.popupOverlay} activeOpacity={1} onPress={() => setReminderOpen(false)}>
                         <View style={s.popupCard}>
-                            <Text style={s.popupTitle}>Reminder</Text>
-                            {REMINDER_OPTIONS.map(([v, l]) => (
+                            <Text style={s.popupTitle}>{t('addSub.reminder')}</Text>
+                            {REMINDER_KEYS.map(([v, key]) => (
                                 <TouchableOpacity
                                     key={v}
                                     onPress={() => { u('reminderDays', v); setReminderOpen(false); }}
                                     style={[s.popupItem, f.reminderDays === v && { backgroundColor: C.bgSub }]}
                                     activeOpacity={0.75}
                                 >
-                                    <Text style={{ fontSize: 15, color: f.reminderDays === v ? C.t1 : C.t2, fontWeight: f.reminderDays === v ? '600' : '500' }}>{l}</Text>
+                                    <Text style={{ fontSize: 15, color: f.reminderDays === v ? C.t1 : C.t2, fontWeight: f.reminderDays === v ? '600' : '500' }}>{t(key)}</Text>
                                     {f.reminderDays === v && <Text style={{ color: C.t1, fontSize: 14 }}>✓</Text>}
                                 </TouchableOpacity>
                             ))}
@@ -518,7 +521,7 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
                     style={[s.saveBtn, { backgroundColor: canSave ? C.black : C.bgSub, opacity: canSave ? 1 : 0.5 }]}
                 >
                     <Text style={[s.saveTxt, { color: canSave ? '#fff' : C.t3 }]}>
-                        {f.isTrial ? 'Add trial' : 'Add subscription'}
+                        {f.isTrial ? t('addSub.addTrial') : t('addSub.addSubscription')}
                     </Text>
                 </AnimatedPressable>
             </View>

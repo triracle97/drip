@@ -3,8 +3,10 @@ import Card from '@/components/Card';
 import { C, R } from '@/constants/design';
 import { Sub } from '@/store';
 import { fmt, toHrs } from '@/utils/calc';
+import i18n from '@/i18n';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 interface LifetimeEntry {
   sub: Sub;
@@ -26,23 +28,24 @@ function IconContent({ icon, useOriginalColor }: { icon: string; useOriginalColo
 }
 
 function sinceLabel(months: number, startTimestamp?: number): string {
-  if (months < 1) return 'This month';
+  if (months < 1) return i18n.t('lifetime.thisMonth');
   if (startTimestamp) {
     const d = new Date(startTimestamp);
     const monthStr = d.toLocaleDateString('en', { month: 'short', year: 'numeric' });
-    return `Since ${monthStr} · ${Math.round(months)} months`;
+    return i18n.t('lifetime.since', { month: monthStr, count: Math.round(months) });
   }
-  return `${Math.round(months)} months`;
+  return i18n.t('lifetime.months', { count: Math.round(months) });
 }
 
 export default function LifetimeCostList({ entries, rate }: Props) {
+  const { t } = useTranslation();
   const grandTotal = entries.reduce((sum, e) => sum + e.totalCost, 0);
 
   return (
     <Card>
       <View style={s.headerRow}>
-        <Text style={s.sectionLabel}>LIFETIME COST</Text>
-        <Text style={s.subLabel}>Since first tracked</Text>
+        <Text style={s.sectionLabel}>{t('lifetime.title')}</Text>
+        <Text style={s.subLabel}>{t('lifetime.sinceTracked')}</Text>
       </View>
       <View style={{ gap: 10, marginTop: 10 }}>
         {entries.map(({ sub, totalCost, monthsActive, startTimestamp }) => {
@@ -72,7 +75,7 @@ export default function LifetimeCostList({ entries, rate }: Props) {
       {entries.length > 0 && (
         <View style={s.footer}>
           <Text style={s.footerText}>
-            All time: <Text style={{ fontWeight: '700', color: C.t1 }}>{fmt(grandTotal)}</Text>
+            {t('lifetime.allTime')} <Text style={{ fontWeight: '700', color: C.t1 }}>{fmt(grandTotal)}</Text>
             {' · '}
             <Text style={{ fontWeight: '700', color: C.gold }}>{toHrs(grandTotal, rate)}</Text>
           </Text>

@@ -204,6 +204,32 @@ const es = {
   // Language
   'language.title': 'Idioma',
   'language.auto': 'Automático (Sistema)',
+
+  // Lifetime cost
+  'lifetime.title': 'COSTO ACUMULADO',
+  'lifetime.sinceTracked': 'Desde el primer registro',
+  'lifetime.thisMonth': 'Este mes',
+  'lifetime.since': 'Desde {{month}} · {{count}} meses',
+  'lifetime.months': '{{count}} meses',
+  'lifetime.allTime': 'Total histórico:',
+
+  // Activity
+  'activity.title': 'ACTIVIDAD',
+  'activity.noChanges': 'Sin cambios este mes',
+  'activity.added': 'Añadido',
+  'activity.cancelled': 'Cancelado',
+  'activity.reactivated': 'Reactivado',
+  'activity.priceChange': 'Precio de {{name}} → {{cost}}',
+  'activity.cycleChange': 'Ciclo de {{name}} cambiado',
+
+  // Spending trend
+  'spending.title': 'TENDENCIA DE GASTO',
+  'spending.empty': 'Tu tendencia de gasto aparecerá después del primer mes.',
+  'spending.vsLastMonth': 'vs mes anterior',
+
+  // Breakdown
+  'breakdown.title': 'DESGLOSE DE {{month}}',
+  'breakdown.other': 'Otro',
 };
 
 export default es;

@@ -5,6 +5,7 @@ import { useSettings } from '@/store/settings';
 import { fmt } from '@/utils/calc';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
     history: SpendingSnapshot[];
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export default function SpendingChart({ history, catMap }: Props) {
+    const { t } = useTranslation();
     const currency = useSettings(s => s.currency);
     // Show last 6 months, most recent on the right
     const recent = history.slice(0, 6).reverse();
@@ -19,8 +21,8 @@ export default function SpendingChart({ history, catMap }: Props) {
     if (recent.length === 0) {
         return (
             <Card style={s.card}>
-                <Text style={s.title}>SPENDING TREND</Text>
-                <Text style={s.empty}>Your spending trends will appear after your first month.</Text>
+                <Text style={s.title}>{t('spending.title')}</Text>
+                <Text style={s.empty}>{t('spending.empty')}</Text>
             </Card>
         );
     }
@@ -43,10 +45,10 @@ export default function SpendingChart({ history, catMap }: Props) {
     return (
         <Card style={s.card}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <Text style={s.title}>SPENDING TREND</Text>
+                <Text style={s.title}>{t('spending.title')}</Text>
                 {recent.length >= 2 && (
                     <Text style={[s.trend, { color: diff > 0 ? C.red : diff < 0 ? C.green : C.t3 }]}>
-                        {diff > 0 ? '+' : ''}{fmt(diff)} vs last month
+                        {diff > 0 ? '+' : ''}{fmt(diff)} {t('spending.vsLastMonth')}
                     </Text>
                 )}
             </View>

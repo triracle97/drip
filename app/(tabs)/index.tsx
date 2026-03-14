@@ -27,6 +27,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import DraggableFlatList, { RenderItemParams, ScaleDecorator } from 'react-native-draggable-flatlist';
 import Animated, {
   FadeInDown,
@@ -39,6 +40,7 @@ import type { Category } from '@/store';
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { subs, incomes, categories, reorderSubs } = useStore();
   const currency = useSettings(s => s.currency);
 
@@ -157,33 +159,33 @@ export default function HomeScreen() {
         <Card style={s.heroCard}>
           <View style={s.heroRow}>
             <View style={s.heroStat}>
-              <Text style={s.heroStatLabel}>Total Cost</Text>
+              <Text style={s.heroStatLabel}>{t('home.totalCost')}</Text>
               <Text style={s.heroStatValue}>{fmt(displayTotal)}</Text>
               <Text style={s.heroStatHint}>{active.length} active</Text>
             </View>
             <View style={s.heroDivider} />
             {incomes.length === 0 ? (
               <TouchableOpacity onPress={() => incomeRef.current?.present()} style={s.heroStat} activeOpacity={0.7}>
-                <Text style={s.heroStatLabel}>Work Hours</Text>
+                <Text style={s.heroStatLabel}>{t('home.workHours')}</Text>
                 <View style={s.heroAddBtn}>
                   <Svg width={14} height={14} viewBox="0 0 24 24" fill="none">
                     <Path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth={2.5} strokeLinecap="round" />
                   </Svg>
                 </View>
-                <Text style={[s.heroStatHint, { color: C.green }]}>set income</Text>
+                <Text style={[s.heroStatHint, { color: C.green }]}>{t('home.setIncome')}</Text>
               </TouchableOpacity>
             ) : (
               <View style={s.heroStat}>
-                <Text style={s.heroStatLabel}>Work Hours</Text>
+                <Text style={s.heroStatLabel}>{t('home.workHours')}</Text>
                 <Text style={s.heroStatValue}>{toHrs(displayTotal, rate)}</Text>
-                <Text style={s.heroStatHint}>to earn this</Text>
+                <Text style={s.heroStatHint}>{t('home.toEarnThis')}</Text>
               </View>
             )}
             <View style={s.heroDivider} />
             <View style={s.heroStat}>
-              <Text style={s.heroStatLabel}>% Income</Text>
+              <Text style={s.heroStatLabel}>{t('home.percentIncome')}</Text>
               <Text style={s.heroStatValue}>{pctIncome.toFixed(1)}%</Text>
-              <Text style={s.heroStatHint}>of monthly</Text>
+              <Text style={s.heroStatHint}>{t('home.ofMonthly')}</Text>
             </View>
           </View>
         </Card>
@@ -192,12 +194,12 @@ export default function HomeScreen() {
       {/* Subscription List Header */}
       <View style={{ marginBottom: 12, marginTop: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
         <Text style={s.subCount}>
-          {displaySubs.length} subscription{displaySubs.length !== 1 ? 's' : ''}
+          {t('home.subsCount', { count: displaySubs.length })}
           {activeTrials.length > 0 && (
-            <Text style={s.trialCount}> · {activeTrials.length} trial{activeTrials.length !== 1 ? 's' : ''}</Text>
+            <Text style={s.trialCount}> · {t('home.trialsCount', { count: activeTrials.length })}</Text>
           )}
         </Text>
-        {displaySubs.length > 0 && <Text style={s.dragHint}>Hold to reorder</Text>}
+        {displaySubs.length > 0 && <Text style={s.dragHint}>{t('home.holdToReorder')}</Text>}
       </View>
 
     </>
@@ -207,7 +209,7 @@ export default function HomeScreen() {
     <>
       {inactive.length > 0 && (
         <View style={{ marginTop: 24 }}>
-          <Text style={[s.sectionCap, { marginBottom: 8 }]}>Cancelled</Text>
+          <Text style={[s.sectionCap, { marginBottom: 8 }]}>{t('home.cancelled')}</Text>
           {inactive.map(s_ => (
             <SubRow
               key={s_.id}

@@ -201,6 +201,32 @@ const en = {
   'tier.low': 'Low',
   'tier.minimal': 'Minimal',
 
+  // Lifetime cost
+  'lifetime.title': 'LIFETIME COST',
+  'lifetime.sinceTracked': 'Since first tracked',
+  'lifetime.thisMonth': 'This month',
+  'lifetime.since': 'Since {{month}} · {{count}} months',
+  'lifetime.months': '{{count}} months',
+  'lifetime.allTime': 'All time:',
+
+  // Activity log
+  'activity.title': 'ACTIVITY',
+  'activity.noChanges': 'No changes this month',
+  'activity.added': 'Added',
+  'activity.cancelled': 'Cancelled',
+  'activity.reactivated': 'Reactivated',
+  'activity.priceChange': '{{name}} price → {{cost}}',
+  'activity.cycleChange': '{{name}} cycle changed',
+
+  // Spending chart
+  'spending.title': 'SPENDING TREND',
+  'spending.empty': 'Your spending trends will appear after your first month.',
+  'spending.vsLastMonth': 'vs last month',
+
+  // Category breakdown
+  'breakdown.title': '{{month}} BREAKDOWN',
+  'breakdown.other': 'Other',
+
   // Language
   'language.title': 'Language',
   'language.auto': 'Auto (System)',

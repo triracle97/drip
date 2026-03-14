@@ -2,13 +2,16 @@ import Card from '@/components/Card';
 import CategoryManager from '@/components/CategoryManager';
 import CurrencySheet from '@/components/CurrencySheet';
 import IncomeSheet from '@/components/IncomeSheet';
+import LanguageSheet from '@/components/LanguageSheet';
 import Toast from '@/components/Toast';
 import { getCurrency } from '@/constants/currencies';
 import { C, LAYOUT, R, SP } from '@/constants/design';
+import { LANGUAGE_OPTIONS } from '@/i18n';
 import { useStore } from '@/store';
 import { useSettings } from '@/store/settings';
 import { blended, fmt, monthlyIncome, subMo, toHrs } from '@/utils/calc';
 import { requestPermissions, rescheduleAllNotifications } from '@/utils/notifications';
+import { useTranslation } from 'react-i18next';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import React, { useRef, useState } from 'react';
@@ -19,13 +22,16 @@ import Svg, { Path } from 'react-native-svg';
 export default function SettingsScreen() {
     const insets = useSafeAreaInsets();
     const { incomes, subs, categories } = useStore();
-    const { currency, notificationsEnabled, notificationTime, setNotificationsEnabled, setNotificationTime } = useSettings();
+    const { currency, language, notificationsEnabled, notificationTime, setNotificationsEnabled, setNotificationTime } = useSettings();
     const incomeRef = useRef<TrueSheet>(null);
     const [showCategories, setShowCategories] = useState(false);
     const [showCurrency, setShowCurrency] = useState(false);
+    const [showLanguage, setShowLanguage] = useState(false);
     const [showTimePicker, setShowTimePicker] = useState(false);
+    const { t } = useTranslation();
     const [toast, setToast] = useState<string | null>(null);
     const currencyInfo = getCurrency(currency);
+    const languageLabel = LANGUAGE_OPTIONS.find(o => o.code === language)?.label ?? 'English';
     const rate = blended(incomes);
     const moIncome = monthlyIncome(incomes);
     const totalMo = subs.filter(s => s.active && !s.isTrial).reduce((sum, s) => sum + subMo(s), 0);
@@ -34,7 +40,7 @@ export default function SettingsScreen() {
         if (enabled) {
             const granted = await requestPermissions();
             if (!granted) {
-                setToast('Enable notifications in system Settings');
+                setToast(t('settings.enableNotifications'));
                 return;
             }
         }
@@ -81,7 +87,7 @@ export default function SettingsScreen() {
     return (
         <View style={{ flex: 1, backgroundColor: C.bg }}>
             <View style={[s.header, { paddingTop: insets.top + 8 }]}>
-                <Text style={s.title}>Settings</Text>
+                <Text style={s.title}>{t('settings.title')}</Text>
             </View>
 
             <ScrollView
@@ -89,12 +95,12 @@ export default function SettingsScreen() {
                 showsVerticalScrollIndicator={false}
             >
                 <Card key={`summary-${currency}`} style={s.summaryCard}>
-                    <Text style={s.summaryLabel}>TOTAL MONTHLY COST</Text>
+                    <Text style={s.summaryLabel}>{t('settings.totalMonthlyCost')}</Text>
                     <Text style={s.summaryValue}>{fmt(totalMo)}</Text>
                     <Text style={s.summarySub}>= {toHrs(totalMo, rate)} of work at {fmt(rate)}/hr blended</Text>
                 </Card>
 
-                <Text style={s.sectionCap}>INCOME & RATE</Text>
+                <Text style={s.sectionCap}>{t('settings.incomeRate')}</Text>
                 <View key={`income-${currency}`} style={s.incomeCard}>
                     <View style={s.incomeTop}>
                         <View style={s.incomeIcon}>
@@ -104,8 +110,8 @@ export default function SettingsScreen() {
                             </Svg>
                         </View>
                         <View style={{ flex: 1 }}>
-                            <Text style={s.incomeTitle}>Monthly Income</Text>
-                            <Text style={s.incomeSubtitle}>Baseline for budget insights</Text>
+                            <Text style={s.incomeTitle}>{t('settings.monthlyIncome')}</Text>
+                            <Text style={s.incomeSubtitle}>{t('settings.baselineInsights')}</Text>
                         </View>
                         <View style={{ alignItems: 'flex-end' }}>
                             <Text style={s.incomeAmount}>{fmt(moIncome)}</Text>
@@ -117,19 +123,20 @@ export default function SettingsScreen() {
                             <Path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="#fff" strokeWidth={2} strokeLinecap="round" />
                             <Path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
                         </Svg>
-                        <Text style={s.incomeBtnText}>Update Income</Text>
+                        <Text style={s.incomeBtnText}>{t('settings.updateIncome')}</Text>
                     </TouchableOpacity>
                 </View>
 
-                <Text style={[s.sectionCap, { marginTop: 24 }]}>DATA</Text>
-                <SettingsRow label="Manage categories" hint={`${categories.length} categories`} onPress={() => setShowCategories(true)} />
+                <Text style={[s.sectionCap, { marginTop: 24 }]}>{t('settings.data')}</Text>
+                <SettingsRow label={t('settings.manageCategories')} hint={t('settings.categoriesCount', { count: categories.length })} onPress={() => setShowCategories(true)} />
 
-                <Text style={[s.sectionCap, { marginTop: 24 }]}>GENERAL</Text>
-                <SettingsRow label="Appearance" hint="Light" onPress={() => { }} />
-                <SettingsRow label="Currency" hint={`${currencyInfo.symbol} ${currency}`} onPress={() => setShowCurrency(true)} />
+                <Text style={[s.sectionCap, { marginTop: 24 }]}>{t('settings.general')}</Text>
+                <SettingsRow label={t('settings.appearance')} hint={t('settings.light')} onPress={() => { }} />
+                <SettingsRow label={t('settings.currency')} hint={`${currencyInfo.symbol} ${currency}`} onPress={() => setShowCurrency(true)} />
+                <SettingsRow label={t('settings.language')} hint={languageLabel} onPress={() => setShowLanguage(true)} />
 
                 <TouchableOpacity onPress={() => handleToggleNotifications(!notificationsEnabled)} style={s.row} activeOpacity={0.75}>
-                    <Text style={s.rowLabel}>Notifications</Text>
+                    <Text style={s.rowLabel}>{t('settings.notifications')}</Text>
                     <View style={{ transform: [{ scaleX: 0.7 }, { scaleY: 0.7 }] }}>
                         <Switch
                             value={notificationsEnabled}
@@ -141,7 +148,7 @@ export default function SettingsScreen() {
                 </TouchableOpacity>
                 {notificationsEnabled && (
                     <TouchableOpacity onPress={() => setShowTimePicker(!showTimePicker)} style={s.row} activeOpacity={0.75}>
-                        <Text style={s.rowLabel}>Notification time</Text>
+                        <Text style={s.rowLabel}>{t('settings.notificationTime')}</Text>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                             <Text style={s.rowHint}>{formatTime12h(notificationTime)}</Text>
                             <Svg width={12} height={12} viewBox="0 0 16 16" fill="none">
@@ -159,12 +166,13 @@ export default function SettingsScreen() {
                     />
                 )}
 
-                <Text style={s.version}>Drip v1.0 · Track what you pay with your time</Text>
+                <Text style={s.version}>{t('settings.version')}</Text>
             </ScrollView>
 
             <IncomeSheet ref={incomeRef} />
             <CategoryManager visible={showCategories} onClose={() => setShowCategories(false)} />
             <CurrencySheet visible={showCurrency} onClose={() => setShowCurrency(false)} />
+            <LanguageSheet visible={showLanguage} onClose={() => setShowLanguage(false)} />
             <Toast message={toast} />
         </View>
     );

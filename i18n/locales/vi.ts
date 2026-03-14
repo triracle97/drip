@@ -199,6 +199,32 @@ const vi = {
   // Language
   'language.title': 'Ngôn ngữ',
   'language.auto': 'Tự động (Hệ thống)',
+
+  // Lifetime cost
+  'lifetime.title': 'TỔNG CHI PHÍ TÍCH LŨY',
+  'lifetime.sinceTracked': 'Từ lần đầu theo dõi',
+  'lifetime.thisMonth': 'Tháng này',
+  'lifetime.since': 'Từ {{month}} · {{count}} tháng',
+  'lifetime.months': '{{count}} tháng',
+  'lifetime.allTime': 'Toàn thời gian:',
+
+  // Activity
+  'activity.title': 'HOẠT ĐỘNG',
+  'activity.noChanges': 'Không có thay đổi trong tháng này',
+  'activity.added': 'Đã thêm',
+  'activity.cancelled': 'Đã hủy',
+  'activity.reactivated': 'Đã kích hoạt lại',
+  'activity.priceChange': 'Giá {{name}} → {{cost}}',
+  'activity.cycleChange': 'Chu kỳ của {{name}} đã thay đổi',
+
+  // Spending trend
+  'spending.title': 'XU HƯỚNG CHI TIÊU',
+  'spending.empty': 'Xu hướng chi tiêu của bạn sẽ xuất hiện sau tháng đầu tiên.',
+  'spending.vsLastMonth': 'so với tháng trước',
+
+  // Breakdown
+  'breakdown.title': 'PHÂN TÍCH {{month}}',
+  'breakdown.other': 'Khác',
 };
 
 export default vi;

@@ -6,6 +6,7 @@ import { useSettings } from '@/store/settings';
 import { fmt } from '@/utils/calc';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 interface CatSlice {
     categoryId: string;
@@ -23,6 +24,7 @@ interface Props {
 }
 
 export default function BudgetHealthCard({ slices, catMap, totalMo, moIncome, healthLabel, healthColor, healthPct }: Props) {
+    const { t } = useTranslation();
     const currency = useSettings(s => s.currency);
     const donutSlices = slices.map(s => ({
         value: s.amount,
@@ -31,14 +33,14 @@ export default function BudgetHealthCard({ slices, catMap, totalMo, moIncome, he
 
     return (
         <Card style={{ marginTop: 12 }}>
-            <Text style={s.title}>BUDGET HEALTH</Text>
+            <Text style={s.title}>{t('budget.title')}</Text>
             <View style={s.row}>
                 <DonutChart
                     slices={donutSlices}
                     size={120}
                     strokeWidth={12}
                     centerLabel={`${healthPct.toFixed(1)}%`}
-                    centerSub="of income"
+                    centerSub={t('budget.ofIncome')}
                 />
                 <View style={{ flex: 1, marginLeft: 16 }}>
                     <View style={[s.badge, { backgroundColor: `${healthColor}15` }]}>
@@ -54,14 +56,14 @@ export default function BudgetHealthCard({ slices, catMap, totalMo, moIncome, he
 
                     <View style={s.thresholds}>
                         {[
-                            { label: '<5%', tag: 'Healthy', color: '#00C805' },
-                            { label: '5-10%', tag: 'Moderate', color: '#F5A623' },
-                            { label: '10-15%', tag: 'High', color: '#FF6B35' },
-                            { label: '>15%', tag: 'Alert', color: '#FF3B30' },
-                        ].map(t => (
-                            <View key={t.tag} style={s.thRow}>
-                                <View style={[s.thDot, { backgroundColor: t.color }]} />
-                                <Text style={s.thLabel}>{t.label} {t.tag}</Text>
+                            { label: '<5%', tagKey: 'budget.healthy', color: '#00C805' },
+                            { label: '5-10%', tagKey: 'budget.moderate', color: '#F5A623' },
+                            { label: '10-15%', tagKey: 'budget.high', color: '#FF6B35' },
+                            { label: '>15%', tagKey: 'budget.alert', color: '#FF3B30' },
+                        ].map(th => (
+                            <View key={th.tagKey} style={s.thRow}>
+                                <View style={[s.thDot, { backgroundColor: th.color }]} />
+                                <Text style={s.thLabel}>{th.label} {t(th.tagKey)}</Text>
                             </View>
                         ))}
                     </View>

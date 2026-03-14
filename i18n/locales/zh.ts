@@ -199,6 +199,32 @@ const zh = {
   // Language
   'language.title': '语言',
   'language.auto': '自动（系统）',
+
+  // Lifetime cost
+  'lifetime.title': '累计费用',
+  'lifetime.sinceTracked': '自首次追踪起',
+  'lifetime.thisMonth': '本月',
+  'lifetime.since': '自 {{month}} 起 · {{count}} 个月',
+  'lifetime.months': '{{count}} 个月',
+  'lifetime.allTime': '总计：',
+
+  // Activity
+  'activity.title': '动态',
+  'activity.noChanges': '本月无变动',
+  'activity.added': '已添加',
+  'activity.cancelled': '已取消',
+  'activity.reactivated': '已重新激活',
+  'activity.priceChange': '{{name}} 价格 → {{cost}}',
+  'activity.cycleChange': '{{name}} 账单周期已更改',
+
+  // Spending trend
+  'spending.title': '支出趋势',
+  'spending.empty': '第一个月后将显示您的支出趋势。',
+  'spending.vsLastMonth': '较上月',
+
+  // Breakdown
+  'breakdown.title': '{{month}} 明细',
+  'breakdown.other': '其他',
 };
 
 export default zh;

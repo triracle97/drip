@@ -15,6 +15,7 @@ import { blended, curMonth, curYear, fmt, monthName, nextChargeIn, subMo, toHrs 
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Dimensions, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -23,6 +24,7 @@ import type { Category } from '@/store';
 
 export default function TimelineScreen() {
     const insets = useSafeAreaInsets();
+    const { t } = useTranslation();
     const { subs, incomes, categories, spendingHistory } = useStore();
     const rate = blended(incomes);
 
@@ -157,7 +159,7 @@ export default function TimelineScreen() {
         <View style={{ flex: 1, backgroundColor: C.bg }}>
             <View style={[s.header, { paddingTop: insets.top + 8 }]}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                    <Text style={s.title}>Timeline</Text>
+                    <Text style={s.title}>{t('calendar.title')}</Text>
                 </View>
             </View>
 
@@ -190,7 +192,7 @@ export default function TimelineScreen() {
                 {/* Upcoming Charges (current month only) */}
                 {isCurrentMonth && heroCharge && (
                     <Animated.View entering={FadeInDown.duration(300).delay(100)}>
-                        <Text style={s.sectionLabel}>NEXT UP</Text>
+                        <Text style={s.sectionLabel}>{t('calendar.nextUp')}</Text>
                         <UpcomingChargeHero
                             name={heroCharge.sub.name}
                             icon={heroCharge.sub.icon}

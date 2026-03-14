@@ -2,6 +2,7 @@ import { getCurrency } from '@/constants/currencies';
 import { useSettings } from '@/store/settings';
 import { Income, Sub } from '@/store';
 import type { SubscriptionEvent } from '@/store/repository';
+import i18n from '@/i18n';
 
 // ─── FORMATTERS ───────────────────────────
 export const fmt = (n: number) => {
@@ -32,10 +33,16 @@ export const subMo = (s: Sub): number => moEq(s.cost, s.cycle, s.customNum, s.cu
 
 export const cycleLabel = (s: Sub): string => {
     if (s.cycle === 'custom' && s.customNum && s.customUnit)
-        return `every ${s.customNum} ${s.customUnit}`;
-    return (
-        ({ weekly: 'weekly', biweekly: 'biweekly', monthly: 'monthly', quarterly: 'quarterly', biannual: 'every 6mo', yearly: 'yearly' } as Record<string, string>)[s.cycle] ?? s.cycle
-    );
+        return i18n.t('cycle.custom', { num: s.customNum, unit: s.customUnit });
+    const map: Record<string, string> = {
+        weekly: i18n.t('cycle.weekly'),
+        biweekly: i18n.t('cycle.biweekly'),
+        monthly: i18n.t('cycle.monthly'),
+        quarterly: i18n.t('cycle.quarterly'),
+        biannual: i18n.t('cycle.biannual'),
+        yearly: i18n.t('cycle.yearly'),
+    };
+    return map[s.cycle] ?? s.cycle;
 };
 
 // ─── NEXT CHARGE CALCULATION ──────────────
@@ -93,11 +100,16 @@ export const cycleDays = (s: Sub): number => {
 };
 
 export const daysLabel = (d: number): string => {
-    if (d <= 0) return 'Today';
-    if (d === 1) return '1 day left';
-    if (d <= 30) return `${d} days left`;
-    if (d <= 365) { const m = Math.round(d / 30); return `${m} month${m > 1 ? 's' : ''} left`; }
-    return `${Math.round(d / 365)} year left`;
+    if (d <= 0) return i18n.t('time.today');
+    if (d === 1) return i18n.t('time.dayLeft');
+    if (d <= 30) return i18n.t('time.daysLeft', { count: d });
+    if (d <= 365) {
+        const m = Math.round(d / 30);
+        return m === 1
+            ? i18n.t('time.monthLeft', { count: m })
+            : i18n.t('time.monthsLeft', { count: m });
+    }
+    return i18n.t('time.yearLeft', { count: Math.round(d / 365) });
 };
 
 // ─── INCOME + TIME COST ───────────────────
@@ -113,20 +125,20 @@ export const blended = (incs: Income[]): number => {
 export const toHrs = (mo: number, rate: number): string => {
     if (!rate) return '—';
     const h = mo / rate;
-    if (h < 1) return `${Math.round(h * 60)}min`;
+    if (h < 1) return `${Math.round(h * 60)}${i18n.t('time.min')}`;
     const hh = Math.floor(h), mm = Math.round((h - hh) * 60);
-    return mm > 0 ? `${hh}h ${mm}m` : `${hh}h`;
+    return mm > 0 ? `${hh}${i18n.t('time.h')} ${mm}${i18n.t('time.m')}` : `${hh}${i18n.t('time.h')}`;
 };
 
 export const timeTier = (cost: number, rate: number): { color: string; label: string; bg: string } => {
     if (!rate) return { color: '#6B6B6B', label: '', bg: '#F5F5F5' };
     const h = cost / rate;
-    if (h >= 16) return { color: '#FF3B30', label: 'Extreme', bg: 'rgba(255,59,48,0.08)' };
-    if (h >= 8) return { color: '#FF3B30', label: 'Very High', bg: 'rgba(255,59,48,0.08)' };
-    if (h >= 4) return { color: '#F5A623', label: 'High', bg: 'rgba(245,166,35,0.08)' };
-    if (h >= 1) return { color: '#000000', label: 'Moderate', bg: 'rgba(79,172,207,0.08)' };
-    if (h >= 0.25) return { color: '#00C805', label: 'Low', bg: 'rgba(0,200,5,0.08)' };
-    return { color: '#ABABAB', label: 'Minimal', bg: '#F5F5F5' };
+    if (h >= 16) return { color: '#FF3B30', label: i18n.t('tier.extreme'), bg: 'rgba(255,59,48,0.08)' };
+    if (h >= 8) return { color: '#FF3B30', label: i18n.t('tier.veryHigh'), bg: 'rgba(255,59,48,0.08)' };
+    if (h >= 4) return { color: '#F5A623', label: i18n.t('tier.high'), bg: 'rgba(245,166,35,0.08)' };
+    if (h >= 1) return { color: '#000000', label: i18n.t('tier.moderate'), bg: 'rgba(79,172,207,0.08)' };
+    if (h >= 0.25) return { color: '#00C805', label: i18n.t('tier.low'), bg: 'rgba(0,200,5,0.08)' };
+    return { color: '#ABABAB', label: i18n.t('tier.minimal'), bg: '#F5F5F5' };
 };
 
 // ─── BUDGET HEALTH ───────────────────────
@@ -137,12 +149,12 @@ export const monthlyIncome = (incs: Income[]): number => {
 };
 
 export const budgetHealth = (monthlySubCost: number, moIncome: number): { level: string; label: string; color: string; pct: number } => {
-    if (moIncome <= 0) return { level: 'unknown', label: 'Set income', color: '#8E8E93', pct: 0 };
+    if (moIncome <= 0) return { level: 'unknown', label: i18n.t('budget.setIncome'), color: '#8E8E93', pct: 0 };
     const pct = (monthlySubCost / moIncome) * 100;
-    if (pct < 5) return { level: 'healthy', label: 'Healthy', color: '#00C805', pct };
-    if (pct < 10) return { level: 'moderate', label: 'Moderate', color: '#F5A623', pct };
-    if (pct < 15) return { level: 'high', label: 'High', color: '#FF6B35', pct };
-    return { level: 'alert', label: 'Alert', color: '#FF3B30', pct };
+    if (pct < 5) return { level: 'healthy', label: i18n.t('budget.healthy'), color: '#00C805', pct };
+    if (pct < 10) return { level: 'moderate', label: i18n.t('budget.moderate'), color: '#F5A623', pct };
+    if (pct < 15) return { level: 'high', label: i18n.t('budget.high'), color: '#FF6B35', pct };
+    return { level: 'alert', label: i18n.t('budget.alert'), color: '#FF3B30', pct };
 };
 
 // ─── LIFETIME COST ───────────────────────

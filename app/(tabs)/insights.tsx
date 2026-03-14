@@ -12,11 +12,13 @@ import { blended, budgetHealth, fmt, lifetimeCost, monthlyIncome, monthName, sub
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function InsightsScreen() {
     const insets = useSafeAreaInsets();
+    const { t } = useTranslation();
     const { subs, incomes, categories, spendingHistory, recordSnapshot } = useStore();
     const catMap = useMemo(() => {
         const m: Record<string, Category> = {};
@@ -77,7 +79,7 @@ export default function InsightsScreen() {
         <View style={{ flex: 1, backgroundColor: C.bg }}>
             <View style={[s.header, { paddingTop: insets.top + 8 }]}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                    <Text style={s.title}>Insights</Text>
+                    <Text style={s.title}>{t('insights.title')}</Text>
                 </View>
             </View>
 
@@ -119,7 +121,7 @@ export default function InsightsScreen() {
                 {moIncome > 0 && catBreakdown.length > 0 && (
                     <Animated.View entering={FadeInDown.duration(300).delay(300)}>
                         <View style={s.perCatCard}>
-                            <Text style={s.sectionTitle}>PER-CATEGORY BREAKDOWN</Text>
+                            <Text style={s.sectionTitle}>{t('insights.categoryBreakdown')}</Text>
                             <View style={{ gap: 8, marginTop: 8 }}>
                                 {catBreakdown.map(({ categoryId, amount }) => {
                                     const cat = catMap[categoryId];
@@ -130,9 +132,9 @@ export default function InsightsScreen() {
                                             <View style={[s.perCatDot, { backgroundColor: cat?.color ?? C.t3 }]} />
                                             <Text style={s.perCatName}>{cat?.name ?? 'Other'}</Text>
                                             <Text style={s.perCatAmt}>{fmt(amount)}</Text>
-                                            <Text style={s.perCatPct}>{pctOfSubs.toFixed(0)}% subs</Text>
+                                            <Text style={s.perCatPct}>{t('insights.subsCount', { count: `${pctOfSubs.toFixed(0)}%` })}</Text>
                                             <Text style={[s.perCatPct, { color: pctOfIncome > 5 ? C.red : C.t3 }]}>
-                                                {pctOfIncome.toFixed(1)}% income
+                                                {t('insights.income', { amount: `${pctOfIncome.toFixed(1)}%` })}
                                             </Text>
                                         </View>
                                     );

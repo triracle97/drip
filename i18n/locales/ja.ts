@@ -199,6 +199,32 @@ const ja = {
   // Language
   'language.title': '言語',
   'language.auto': '自動（システム）',
+
+  // Lifetime cost
+  'lifetime.title': '累計費用',
+  'lifetime.sinceTracked': '初回記録から',
+  'lifetime.thisMonth': '今月',
+  'lifetime.since': '{{month}} から · {{count}} ヶ月',
+  'lifetime.months': '{{count}} ヶ月',
+  'lifetime.allTime': '合計：',
+
+  // Activity
+  'activity.title': 'アクティビティ',
+  'activity.noChanges': '今月の変更なし',
+  'activity.added': '追加',
+  'activity.cancelled': 'キャンセル',
+  'activity.reactivated': '再開',
+  'activity.priceChange': '{{name}} の料金 → {{cost}}',
+  'activity.cycleChange': '{{name}} の請求サイクル変更',
+
+  // Spending trend
+  'spending.title': '支出トレンド',
+  'spending.empty': '最初の月が経過すると支出トレンドが表示されます。',
+  'spending.vsLastMonth': '先月比',
+
+  // Breakdown
+  'breakdown.title': '{{month}} の内訳',
+  'breakdown.other': 'その他',
 };
 
 export default ja;

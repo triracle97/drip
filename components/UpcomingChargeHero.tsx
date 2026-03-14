@@ -3,6 +3,7 @@ import BrandLogo from '@/components/BrandLogo';
 import { C, R, SHADOW } from '@/constants/design';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   name: string;
@@ -23,6 +24,7 @@ function IconContent({ icon, useOriginalColor }: { icon: string; useOriginalColo
 }
 
 export default function UpcomingChargeHero({ name, icon, color, cost, date, daysLeft, hoursLabel, onPress }: Props) {
+  const { t } = useTranslation();
   const urgent = daysLeft <= 3;
   const isWhiteBg = color.toUpperCase() === '#FFFFFF' || color.toUpperCase() === '#FFF';
 
@@ -44,7 +46,7 @@ export default function UpcomingChargeHero({ name, icon, color, cost, date, days
           <Text style={s.hours}>{hoursLabel}</Text>
           <View style={[s.pill, { backgroundColor: urgent ? `${C.red}18` : `${color}15` }]}>
             <Text style={[s.pillText, { color: urgent ? C.red : C.t2 }]}>
-              {daysLeft <= 1 ? 'Tomorrow' : `${daysLeft} days`}
+              {daysLeft <= 1 ? t('upcoming.tomorrow') : t('upcoming.days', { count: daysLeft })}
             </Text>
           </View>
         </View>

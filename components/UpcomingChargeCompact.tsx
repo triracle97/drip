@@ -3,6 +3,7 @@ import BrandLogo from '@/components/BrandLogo';
 import { C, R, SHADOW } from '@/constants/design';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   name: string;
@@ -21,6 +22,7 @@ function IconContent({ icon, useOriginalColor }: { icon: string; useOriginalColo
 }
 
 export default function UpcomingChargeCompact({ name, icon, color, daysLeft, cost, onPress }: Props) {
+  const { t } = useTranslation();
   const isWhiteBg = color.toUpperCase() === '#FFFFFF' || color.toUpperCase() === '#FFF';
 
   return (
@@ -34,7 +36,7 @@ export default function UpcomingChargeCompact({ name, icon, color, daysLeft, cos
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={s.name} numberOfLines={1}>{name}</Text>
-          <Text style={s.meta}>{daysLeft}d · {cost}</Text>
+          <Text style={s.meta}>{t('upcoming.daysShort', { count: daysLeft })} · {cost}</Text>
         </View>
       </View>
     </AnimatedPressable>

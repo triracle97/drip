@@ -2,6 +2,7 @@ import { C } from '@/constants/design';
 import { BlurView } from 'expo-blur';
 import { Tabs } from 'expo-router';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
@@ -59,6 +60,13 @@ const TABS = [
 // ─── CUSTOM TAB BAR ────────────────────────
 function DripTabBar({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
+  const tabLabels: Record<string, string> = {
+    index: t('tabs.home'),
+    calendar: t('tabs.timeline'),
+    insights: t('tabs.insights'),
+    settings: t('tabs.settings'),
+  };
   const bg = Platform.OS === 'ios'
     ? undefined  // handled by BlurView
     : 'rgba(255,255,255,0.97)';
@@ -78,7 +86,7 @@ function DripTabBar({ state, descriptors, navigation }: any) {
           >
             <tabDef.Icon color={color} />
             <Text style={[s.label, { color, fontWeight: focused ? '600' : '500' }]}>
-              {tabDef.label}
+              {tabLabels[route.name] ?? tabDef.label}
             </Text>
           </TouchableOpacity>
         );

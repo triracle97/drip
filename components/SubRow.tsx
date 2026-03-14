@@ -3,6 +3,7 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import AnimatedPressable from './AnimatedPressable';
 import BrandLogo from './BrandLogo';
+import { useTranslation } from 'react-i18next';
 
 function IconContent({ icon, size = 22, useOriginalColor }: { icon: string; size?: number; useOriginalColor?: boolean }) {
     if (icon.startsWith('svg:')) {
@@ -33,6 +34,7 @@ export default function SubRow({
     name, icon, color, costLabel, costSub, renewLabel, dateLabel, hoursLabel,
     urgent, onPress, onLongPress, isDragging, variant = 'default', trialDaysLeft, trialCostLabel,
 }: Props) {
+    const { t } = useTranslation();
 
     // ── Trial Card ──
     if (variant === 'trial') {
@@ -50,7 +52,7 @@ export default function SubRow({
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                             <Text style={s.rowName} numberOfLines={1}>{name}</Text>
                             <View style={[s.trialBadge]}>
-                                <Text style={s.trialBadgeText}>Trial</Text>
+                                <Text style={s.trialBadgeText}>{t('subRow.trial')}</Text>
                             </View>
                         </View>
                         {trialCostLabel && <Text style={s.dateText}>{trialCostLabel}</Text>}
@@ -58,7 +60,7 @@ export default function SubRow({
                     <View style={s.rightCol}>
                         <Text style={s.rowCost}>{costLabel}</Text>
                         <View style={[s.pill, { backgroundColor: `${C.red}18` }]}>
-                            <Text style={[s.pillText, { color: C.red }]}>{trialDaysLeft}d left</Text>
+                            <Text style={[s.pillText, { color: C.red }]}>{t('subRow.daysLeft', { count: trialDaysLeft })}</Text>
                         </View>
                     </View>
                 </View>
@@ -81,7 +83,7 @@ export default function SubRow({
                     <View style={{ flex: 1 }}>
                         <Text style={[s.rowName, { textDecorationLine: 'line-through', color: C.t2 }]}>{name}</Text>
                     </View>
-                    <Text style={{ fontSize: 13, color: C.t3, fontWeight: '500' }}>was {costLabel}</Text>
+                    <Text style={{ fontSize: 13, color: C.t3, fontWeight: '500' }}>{t('subRow.wasCost', { cost: costLabel })}</Text>
                 </View>
             </AnimatedPressable>
         );

@@ -8,6 +8,7 @@ import { useSettings } from '@/store/settings';
 import { blended, curDay, fmt, moEq, toHrs } from '@/utils/calc';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     Modal,
     ScrollView,
@@ -21,13 +22,13 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
-const REMINDER_OPTIONS: [string, string][] = [
-    ['', 'Never'], ['1', '1 day before'], ['2', '2 days before'], ['3', '3 days before'], ['7', '7 days before'],
+const REMINDER_KEYS: [string, string][] = [
+    ['', 'reminder.never'], ['1', 'reminder.1day'], ['2', 'reminder.2days'], ['3', 'reminder.3days'], ['7', 'reminder.7days'],
 ];
 
-const CYCLES: [string, string][] = [
-    ['weekly', 'Every week'], ['biweekly', 'Every 2 weeks'], ['monthly', 'Every month'],
-    ['quarterly', 'Every 3 months'], ['biannual', 'Every 6 months'], ['yearly', 'Every year'], ['custom', 'Custom...'],
+const CYCLE_KEYS: [string, string][] = [
+    ['weekly', 'billing.everyWeek'], ['biweekly', 'billing.every2Weeks'], ['monthly', 'billing.everyMonth'],
+    ['quarterly', 'billing.every3Months'], ['biannual', 'billing.every6Months'], ['yearly', 'billing.everyYear'], ['custom', 'billing.custom'],
 ];
 
 interface Form {
@@ -47,9 +48,10 @@ interface Form {
     reminderDays: string;
 }
 
-function cycleLabelFull(f: Form) {
+function cycleLabelFull(f: Form, t: (key: string) => string) {
     if (f.cycle === 'custom') return `Every ${f.customNum || 2} ${f.customUnit || 'months'}`;
-    return CYCLES.find(([v]) => v === f.cycle)?.[1] ?? 'Every month';
+    const key = CYCLE_KEYS.find(([v]) => v === f.cycle)?.[1] ?? 'billing.everyMonth';
+    return t(key);
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -63,6 +65,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 export default function EditSubSheet({ id, onClose }: { id: string | null; onClose: () => void }) {
     const insets = useSafeAreaInsets();
+    const { t } = useTranslation();
     const { subs, updateSub, removeSub, categories, incomes } = useStore();
     const currency = useSettings(s => s.currency);
     const rate = blended(incomes);
@@ -171,7 +174,7 @@ export default function EditSubSheet({ id, onClose }: { id: string | null; onClo
 
             {/* Header */}
             <View style={s.headerRow}>
-                <Text style={s.title}>Edit Subscription</Text>
+                <Text style={s.title}>{t('editSub.title')}</Text>
                 <TouchableOpacity onPress={dismissAndRouteBack} style={s.closeBtn} activeOpacity={0.7}>
                     <Svg width={16} height={16} viewBox="0 0 16 16" fill="none">
                         <Path d="M4 4l8 8M12 4l-8 8" stroke={C.t3} strokeWidth={1.8} strokeLinecap="round" />
@@ -186,7 +189,7 @@ export default function EditSubSheet({ id, onClose }: { id: string | null; onClo
                 showsVerticalScrollIndicator={false}
             >
                 {/* Name */}
-                <Field label="NAME">
+                <Field label={t('addSub.name')}>
                     <TextInput
                         style={s.inp}
                         value={f.name}
@@ -197,7 +200,7 @@ export default function EditSubSheet({ id, onClose }: { id: string | null; onClo
                 </Field>
 
                 {/* Price & Billing cycle */}
-                <Field label="PRICE & BILLING CYCLE">
+                <Field label={t('addSub.priceBilling')}>
                     <View style={s.priceCycleRow}>
                         <View style={[s.dollarRow, { flex: 1 }]}>
                             <Text style={s.dollarSign}>$</Text>
@@ -211,7 +214,7 @@ export default function EditSubSheet({ id, onClose }: { id: string | null; onClo
                             />
                         </View>
                         <TouchableOpacity onPress={() => setCycleOpen(true)} style={s.cyclePill} activeOpacity={0.8}>
-                            <Text style={{ fontSize: 13, fontWeight: '600', color: C.t1 }} numberOfLines={1}>{cycleLabelFull(f)}</Text>
+                            <Text style={{ fontSize: 13, fontWeight: '600', color: C.t1 }} numberOfLines={1}>{cycleLabelFull(f, t)}</Text>
                             <Svg width={10} height={10} viewBox="0 0 16 16" fill="none">
                                 <Path d="M6 3l5 5-5 5" stroke={C.t3} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
                             </Svg>
@@ -242,14 +245,14 @@ export default function EditSubSheet({ id, onClose }: { id: string | null; onClo
                     <TouchableOpacity style={s.popupOverlay} activeOpacity={1} onPress={() => setCycleOpen(false)}>
                         <View style={s.popupCard}>
                             <Text style={s.popupTitle}>Billing Cycle</Text>
-                            {CYCLES.map(([v, l]) => (
+                            {CYCLE_KEYS.map(([v, key]) => (
                                 <TouchableOpacity
                                     key={v}
                                     onPress={() => { u('cycle', v); setCycleOpen(false); }}
                                     style={[s.popupItem, f.cycle === v && { backgroundColor: C.bgSub }]}
                                     activeOpacity={0.75}
                                 >
-                                    <Text style={{ fontSize: 15, color: f.cycle === v ? C.t1 : C.t2, fontWeight: f.cycle === v ? '600' : '500' }}>{l}</Text>
+                                    <Text style={{ fontSize: 15, color: f.cycle === v ? C.t1 : C.t2, fontWeight: f.cycle === v ? '600' : '500' }}>{t(key)}</Text>
                                     {f.cycle === v && <Text style={{ color: C.t1, fontSize: 14 }}>✓</Text>}
                                 </TouchableOpacity>
                             ))}
@@ -258,7 +261,7 @@ export default function EditSubSheet({ id, onClose }: { id: string | null; onClo
                 </Modal>
 
                 {/* Category */}
-                <Field label="CATEGORY">
+                <Field label={t('addSub.category')}>
                     <TouchableOpacity onPress={() => setCategoryOpen(true)} style={s.selectBtn} activeOpacity={0.8}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                             <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: categories.find(c => c.id === f.categoryId)?.color || C.t3 }} />
@@ -274,7 +277,7 @@ export default function EditSubSheet({ id, onClose }: { id: string | null; onClo
                 <Modal visible={categoryOpen} transparent animationType="fade" onRequestClose={() => setCategoryOpen(false)}>
                     <TouchableOpacity style={s.popupOverlay} activeOpacity={1} onPress={() => setCategoryOpen(false)}>
                         <View style={s.popupCard}>
-                            <Text style={s.popupTitle}>Category</Text>
+                            <Text style={s.popupTitle}>{t('addSub.category')}</Text>
                             {categories.map(c => (
                                 <TouchableOpacity
                                     key={c.id}
@@ -294,15 +297,15 @@ export default function EditSubSheet({ id, onClose }: { id: string | null; onClo
                 </Modal>
 
                 {/* Start date */}
-                <Field label="START DATE">
+                <Field label={t('addSub.startDate')}>
                     <Text style={[s.inp, { color: C.t1, fontSize: 14, fontWeight: '500' }]}>
-                        {f.startDate || 'Today'}
+                        {f.startDate || t('time.today')}
                     </Text>
-                    <Text style={{ fontSize: 10, color: C.t3, marginTop: 4 }}>Bills on this date every cycle</Text>
+                    <Text style={{ fontSize: 10, color: C.t3, marginTop: 4 }}>{t('addSub.billsOnDate')}</Text>
                 </Field>
 
                 {/* Icon & Color */}
-                <Field label="ICON & COLOR">
+                <Field label={t('addSub.iconColor')}>
                     <AnimatedPressable onPress={() => setShowAppearance(true)} style={s.appearanceRow}>
                         <View style={[s.iconPreview, { backgroundColor: f.color }, (f.color.toUpperCase() === '#FFFFFF' || f.color.toUpperCase() === '#FFF') && s.serviceIconShadow]}>
                             {f.icon.startsWith('svg:')
@@ -310,8 +313,8 @@ export default function EditSubSheet({ id, onClose }: { id: string | null; onClo
                                 : <Text style={{ fontSize: 22 }}>{f.icon}</Text>}
                         </View>
                         <View style={{ flex: 1 }}>
-                            <Text style={{ fontSize: 14, fontWeight: '600', color: C.t1 }}>{f.name || 'Subscription'}</Text>
-                            <Text style={{ fontSize: 12, color: C.t3, marginTop: 2 }}>Tap to change icon or color</Text>
+                            <Text style={{ fontSize: 14, fontWeight: '600', color: C.t1 }}>{f.name || t('appearance.subscription')}</Text>
+                            <Text style={{ fontSize: 12, color: C.t3, marginTop: 2 }}>{t('addSub.tapToChange')}</Text>
                         </View>
                         <Svg width={14} height={14} viewBox="0 0 16 16" fill="none">
                             <Path d="M6 3l5 5-5 5" stroke={C.t3} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
@@ -322,8 +325,8 @@ export default function EditSubSheet({ id, onClose }: { id: string | null; onClo
                 {/* Active toggle */}
                 <View style={[s.trialBox, { backgroundColor: f.active ? C.bgSub : C.redBg, borderColor: f.active ? 'rgba(0,0,0,0.04)' : C.redLine, marginBottom: 20 }]}>
                     <View style={{ flex: 1 }}>
-                        <Text style={[s.trialLabel, { color: f.active ? C.t1 : C.red }]}>Active</Text>
-                        <Text style={{ fontSize: 12, color: C.t3 }}>Toggle off to cancel</Text>
+                        <Text style={[s.trialLabel, { color: f.active ? C.t1 : C.red }]}>{t('editSub.active')}</Text>
+                        <Text style={{ fontSize: 12, color: C.t3 }}>{t('editSub.toggleCancel')}</Text>
                     </View>
                     <Switch
                         value={f.active}
@@ -336,8 +339,8 @@ export default function EditSubSheet({ id, onClose }: { id: string | null; onClo
                 {/* Trial toggle */}
                 <View style={[s.trialBox, { backgroundColor: f.isTrial ? C.redBg : C.bgSub, borderColor: f.isTrial ? C.redLine : 'transparent' }]}>
                     <View style={{ flex: 1 }}>
-                        <Text style={[s.trialLabel, { color: f.isTrial ? C.red : C.t1 }]}>Free trial</Text>
-                        <Text style={{ fontSize: 12, color: C.t3 }}>Get reminded before it charges</Text>
+                        <Text style={[s.trialLabel, { color: f.isTrial ? C.red : C.t1 }]}>{t('addSub.freeTrial')}</Text>
+                        <Text style={{ fontSize: 12, color: C.t3 }}>{t('addSub.trialReminder')}</Text>
                     </View>
                     <Switch
                         value={f.isTrial}
@@ -349,7 +352,7 @@ export default function EditSubSheet({ id, onClose }: { id: string | null; onClo
 
                 {f.isTrial && (
                     <View style={s.trialDaysRow}>
-                        <Text style={{ fontSize: 10, color: C.red, fontWeight: '600', marginBottom: 8 }}>TRIAL LENGTH</Text>
+                        <Text style={{ fontSize: 10, color: C.red, fontWeight: '600', marginBottom: 8 }}>{t('addSub.trialLength')}</Text>
                         <View style={{ flexDirection: 'row', gap: 8 }}>
                             {['7', '14', '30'].map(d => (
                                 <TouchableOpacity
@@ -365,7 +368,7 @@ export default function EditSubSheet({ id, onClose }: { id: string | null; onClo
                                 style={[s.inp, { flex: 1, textAlign: 'center', color: C.red }]}
                                 value={!['7', '14', '30'].includes(f.trialDays) ? f.trialDays : ''}
                                 onChangeText={v => u('trialDays', v)}
-                                placeholder="Custom"
+                                placeholder={t('addSub.custom')}
                                 placeholderTextColor={C.t3}
                                 keyboardType="number-pad"
                             />
@@ -375,10 +378,10 @@ export default function EditSubSheet({ id, onClose }: { id: string | null; onClo
 
                 {/* Reminder */}
                 <View style={{ marginTop: 20 }} />
-                <Field label="REMINDER">
+                <Field label={t('addSub.reminder')}>
                     <TouchableOpacity onPress={() => setReminderOpen(true)} style={s.selectBtn} activeOpacity={0.8}>
                         <Text style={{ fontSize: 14, fontWeight: '600', color: C.t1 }}>
-                            {REMINDER_OPTIONS.find(([v]) => v === f.reminderDays)?.[1] ?? 'Never'}
+                            {t(REMINDER_KEYS.find(([v]) => v === f.reminderDays)?.[1] ?? 'reminder.never')}
                         </Text>
                         <Svg width={14} height={14} viewBox="0 0 16 16" fill="none">
                             <Path d="M6 3l5 5-5 5" stroke={C.t3} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
@@ -390,15 +393,15 @@ export default function EditSubSheet({ id, onClose }: { id: string | null; onClo
                 <Modal visible={reminderOpen} transparent animationType="fade" onRequestClose={() => setReminderOpen(false)}>
                     <TouchableOpacity style={s.popupOverlay} activeOpacity={1} onPress={() => setReminderOpen(false)}>
                         <View style={s.popupCard}>
-                            <Text style={s.popupTitle}>Reminder</Text>
-                            {REMINDER_OPTIONS.map(([v, l]) => (
+                            <Text style={s.popupTitle}>{t('addSub.reminder')}</Text>
+                            {REMINDER_KEYS.map(([v, key]) => (
                                 <TouchableOpacity
                                     key={v}
                                     onPress={() => { u('reminderDays', v); setReminderOpen(false); }}
                                     style={[s.popupItem, f.reminderDays === v && { backgroundColor: C.bgSub }]}
                                     activeOpacity={0.75}
                                 >
-                                    <Text style={{ fontSize: 15, color: f.reminderDays === v ? C.t1 : C.t2, fontWeight: f.reminderDays === v ? '600' : '500' }}>{l}</Text>
+                                    <Text style={{ fontSize: 15, color: f.reminderDays === v ? C.t1 : C.t2, fontWeight: f.reminderDays === v ? '600' : '500' }}>{t(key)}</Text>
                                     {f.reminderDays === v && <Text style={{ color: C.t1, fontSize: 14 }}>✓</Text>}
                                 </TouchableOpacity>
                             ))}
@@ -432,7 +435,7 @@ export default function EditSubSheet({ id, onClose }: { id: string | null; onClo
                         style={[s.saveBtn, { flex: 2, backgroundColor: canSave ? C.black : C.bgSub, opacity: canSave ? 1 : 0.5 }]}
                     >
                         <Text style={[s.saveTxt, { color: canSave ? '#fff' : C.t3 }]}>
-                            Save changes
+                            {t('editSub.saveChanges')}
                         </Text>
                     </AnimatedPressable>
 
@@ -440,7 +443,7 @@ export default function EditSubSheet({ id, onClose }: { id: string | null; onClo
                         onPress={remove}
                         style={[s.removeBtn, { flex: 1 }]}
                     >
-                        <Text style={s.removeTxt}>Remove</Text>
+                        <Text style={s.removeTxt}>{t('editSub.remove')}</Text>
                     </AnimatedPressable>
                 </View>
             </View>

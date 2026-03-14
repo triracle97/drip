@@ -3,12 +3,14 @@ import { C, R } from '@/constants/design';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
     onPress: () => void;
 }
 
 export default function IncomeCTA({ onPress }: Props) {
+    const { t } = useTranslation();
     return (
         <AnimatedPressable onPress={onPress} style={s.container}>
             <View style={s.icon}>
@@ -16,7 +18,7 @@ export default function IncomeCTA({ onPress }: Props) {
                     <Path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke={C.green} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
                 </Svg>
             </View>
-            <Text style={s.text}>Set your income to see costs in work hours</Text>
+            <Text style={s.text}>{t('incomeCta.message')}</Text>
             <Svg width={12} height={12} viewBox="0 0 16 16" fill="none">
                 <Path d="M6 3l5 5-5 5" stroke={C.green} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
             </Svg>

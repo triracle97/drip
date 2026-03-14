@@ -9,6 +9,7 @@ import {
     View
 } from 'react-native';
 import BrandLogo from './BrandLogo';
+import { useTranslation } from 'react-i18next';
 
 const ICON_TABS = [
     { id: 'entertainment', label: 'Entertain', icons: ['🎬', '🎵', '▶️', '📺', '🎮', '🎧', '🎤', '🎶'] },
@@ -41,6 +42,7 @@ interface Props {
 }
 
 export default function AppearanceModal({ visible, icon, color, name, onChange, onClose }: Props) {
+    const { t } = useTranslation();
     const [mode, setMode] = useState<'emoji' | 'icons'>(icon.startsWith('svg:') ? 'icons' : 'emoji');
     const [activeTab, setActiveTab] = useState(mode === 'icons' ? 'svg_utilities' : 'entertainment');
     const [selIcon, setSelIcon] = useState(icon);
@@ -66,7 +68,7 @@ export default function AppearanceModal({ visible, icon, color, name, onChange, 
                 <View style={s.sheet}>
                     {/* Header */}
                     <View style={s.header}>
-                        <Text style={s.title}>Appearance</Text>
+                        <Text style={s.title}>{t('appearance.title')}</Text>
                         <TouchableOpacity style={s.closeBtn} onPress={onClose} activeOpacity={0.7}>
                             <Text style={s.closeTxt}>✕</Text>
                         </TouchableOpacity>
@@ -80,8 +82,8 @@ export default function AppearanceModal({ visible, icon, color, name, onChange, 
                                 : <Text style={{ fontSize: 20 }}>{selIcon}</Text>}
                         </View>
                         <View>
-                            <Text style={s.previewName}>{name || 'Subscription'}</Text>
-                            <Text style={s.previewSub}>Preview</Text>
+                            <Text style={s.previewName}>{name || t('appearance.subscription')}</Text>
+                            <Text style={s.previewSub}>{t('appearance.preview')}</Text>
                         </View>
                     </View>
 
@@ -93,14 +95,14 @@ export default function AppearanceModal({ visible, icon, color, name, onChange, 
                                 onPress={() => switchMode('emoji')}
                                 activeOpacity={0.7}
                             >
-                                <Text style={[s.modeTxt, mode === 'emoji' && { color: '#fff' }]}>Emoji</Text>
+                                <Text style={[s.modeTxt, mode === 'emoji' && { color: '#fff' }]}>{t('appearance.emoji')}</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={[s.modeBtn, mode === 'icons' && { backgroundColor: selColor }]}
                                 onPress={() => switchMode('icons')}
                                 activeOpacity={0.7}
                             >
-                                <Text style={[s.modeTxt, mode === 'icons' && { color: '#fff' }]}>Icons</Text>
+                                <Text style={[s.modeTxt, mode === 'icons' && { color: '#fff' }]}>{t('appearance.icons')}</Text>
                             </TouchableOpacity>
                         </View>
 
@@ -154,7 +156,7 @@ export default function AppearanceModal({ visible, icon, color, name, onChange, 
                         </View>
 
                         {/* Color swatches */}
-                        <Text style={[s.sectionLabel, { marginTop: SP[1] }]}>Color</Text>
+                        <Text style={[s.sectionLabel, { marginTop: SP[1] }]}>{t('appearance.color')}</Text>
                         <View style={s.colorGrid}>
                             {COLORS.map(c => {
                                 const sel = selColor === c;
@@ -174,7 +176,7 @@ export default function AppearanceModal({ visible, icon, color, name, onChange, 
 
                     {/* Done */}
                     <TouchableOpacity style={s.doneBtn} onPress={handleDone} activeOpacity={0.85}>
-                        <Text style={s.doneTxt}>Done</Text>
+                        <Text style={s.doneTxt}>{t('common.done')}</Text>
                     </TouchableOpacity>
                 </View>
             </View>
