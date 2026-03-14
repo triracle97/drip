@@ -52,7 +52,7 @@ const zh = {
   // Insights
   'insights.title': '分析',
   'insights.categoryBreakdown': '分类明细',
-  'insights.subsCount': '{{count}} 个订阅',
+  'insights.subsPercent': '{{pct}} 个订阅',
   'insights.income': '收入 {{amount}}',
 
   // Add subscription

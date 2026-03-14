@@ -55,8 +55,8 @@ const es = {
   // Insights
   'insights.title': 'Análisis',
   'insights.categoryBreakdown': 'DESGLOSE POR CATEGORÍA',
-  'insights.subsCount': '{{count}} subs',
-  'insights.income': '{{amount}} de ingresos',
+  'insights.subsPercent': '{{pct}} subs',
+  'insights.incomePercent': '{{pct}} de ingresos',
 
   // Add subscription
   'addSub.title': 'Añadir Suscripción',

@@ -132,9 +132,9 @@ export default function InsightsScreen() {
                                             <View style={[s.perCatDot, { backgroundColor: cat?.color ?? C.t3 }]} />
                                             <Text style={s.perCatName}>{cat?.name ?? 'Other'}</Text>
                                             <Text style={s.perCatAmt}>{fmt(amount)}</Text>
-                                            <Text style={s.perCatPct}>{t('insights.subsCount', { count: `${pctOfSubs.toFixed(0)}%` })}</Text>
+                                            <Text style={s.perCatPct}>{t('insights.subsPercent', { pct: `${pctOfSubs.toFixed(0)}%` })}</Text>
                                             <Text style={[s.perCatPct, { color: pctOfIncome > 5 ? C.red : C.t3 }]}>
-                                                {t('insights.income', { amount: `${pctOfIncome.toFixed(1)}%` })}
+                                                {t('insights.incomePercent', { pct: `${pctOfIncome.toFixed(1)}%` })}
                                             </Text>
                                         </View>
                                     );

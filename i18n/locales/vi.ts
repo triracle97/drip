@@ -52,8 +52,8 @@ const vi = {
   // Insights
   'insights.title': 'Phân tích',
   'insights.categoryBreakdown': 'PHÂN TÍCH THEO DANH MỤC',
-  'insights.subsCount': '{{count}} đăng ký',
-  'insights.income': '{{amount}} thu nhập',
+  'insights.subsPercent': '{{pct}} đăng ký',
+  'insights.incomePercent': '{{pct}} thu nhập',
 
   // Add subscription
   'addSub.title': 'Thêm Đăng Ký',

@@ -52,7 +52,7 @@ const ja = {
   // Insights
   'insights.title': 'インサイト',
   'insights.categoryBreakdown': 'カテゴリ別内訳',
-  'insights.subsCount': '{{count}} 件',
+  'insights.subsPercent': '{{pct}} 件',
   'insights.income': '収入 {{amount}}',
 
   // Add subscription
