@@ -4,7 +4,7 @@ import IncomeCTA from '@/components/IncomeCTA';
 import IncomeSheet from '@/components/IncomeSheet';
 import LifetimeCostList from '@/components/LifetimeCostList';
 import SpendingChart from '@/components/SpendingChart';
-import { C, LAYOUT } from '@/constants/design';
+import { C, LAYOUT, R } from '@/constants/design';
 import { Category, useStore } from '@/store';
 import type { SubscriptionEvent } from '@/store/repository';
 import { getAllEvents } from '@/store/repository';
@@ -76,7 +76,9 @@ export default function InsightsScreen() {
     return (
         <View style={{ flex: 1, backgroundColor: C.bg }}>
             <View style={[s.header, { paddingTop: insets.top + 8 }]}>
-                <Text style={s.title}>Insights</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <Text style={s.title}>Insights</Text>
+                </View>
             </View>
 
             <ScrollView
@@ -151,10 +153,15 @@ export default function InsightsScreen() {
 
 const s = StyleSheet.create({
     header: {
-        paddingHorizontal: LAYOUT.screenHPad, paddingBottom: 16, backgroundColor: C.bg,
+        paddingHorizontal: LAYOUT.screenHPad, paddingBottom: 16, backgroundColor: 'rgba(255,255,255,0.95)',
     },
     title: {
         fontSize: 22, fontWeight: '700', color: C.t1,
+    },
+    headerIcon: {
+        width: 36, height: 36, borderRadius: R.sm,
+        backgroundColor: C.black,
+        alignItems: 'center', justifyContent: 'center',
     },
     sectionTitle: {
         fontSize: 10, fontWeight: '600', color: C.t3, letterSpacing: 0.5,

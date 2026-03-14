@@ -84,7 +84,7 @@ export default function EditSubSheet({ id, onClose }: { id: string | null; onClo
 
     useEffect(() => {
         if (!id) {
-            sheetRef.current?.dismiss();
+            sheetRef.current?.dismiss().catch(() => { });
             return;
         }
         const activeSub = subs.find(s => s.id === id);
@@ -106,7 +106,7 @@ export default function EditSubSheet({ id, onClose }: { id: string | null; onClo
                 reminderDays: activeSub.reminderDays != null ? String(activeSub.reminderDays) : '',
             });
             const timer = setTimeout(() => {
-                sheetRef.current?.present();
+                sheetRef.current?.present().catch(() => { });
             }, 50);
             return () => clearTimeout(timer);
         }
@@ -117,7 +117,7 @@ export default function EditSubSheet({ id, onClose }: { id: string | null; onClo
     const canSave = f.name.trim() && parseFloat(f.cost) > 0;
 
     const dismissAndRouteBack = () => {
-        sheetRef.current?.dismiss();
+        sheetRef.current?.dismiss().catch(() => { });
     };
 
     const handleDismissed = () => {

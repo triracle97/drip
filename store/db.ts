@@ -110,12 +110,36 @@ async function migrate(db: SQLite.SQLiteDatabase) {
     if (!catCount || catCount.cnt === 0) {
         await db.execAsync(`
             INSERT OR IGNORE INTO categories (id, name, icon, color, sort_order, is_default) VALUES
-                ('cat_entertainment', 'Entertainment', '🎭', '#FF3B30', 0, 1),
-                ('cat_productivity', 'Productivity', '⚡', '#5B8DEF', 1, 1),
-                ('cat_health', 'Health', '💚', '#4ECB71', 2, 1),
-                ('cat_finance', 'Finance', '💰', '#F5C542', 3, 1),
-                ('cat_education', 'Education', '📚', '#B07FE0', 4, 1),
+                ('cat_entertainment', 'Entertainment', '🎭', '#577E89', 0, 1),
+                ('cat_productivity', 'Productivity', '⚡', '#E1A36F', 1, 1),
+                ('cat_health', 'Health', '💚', '#5BA4A4', 2, 1),
+                ('cat_finance', 'Finance', '💰', '#DEC484', 3, 1),
+                ('cat_education', 'Education', '📚', '#8B7BA3', 4, 1),
                 ('cat_other', 'Other', '📦', '#8E8E93', 5, 1);
         `);
+    }
+
+    // Migrate: update default category colors to muted neutral palette (v2)
+    const migrated = await db.getFirstAsync<{ value: string }>(
+        "SELECT value FROM settings WHERE key = 'cat_colors_v2'"
+    );
+    if (!migrated) {
+        const idColorMap: Record<string, string> = {
+            'cat_entertainment': '#577E89',  // Smalt blue
+            'cat_productivity': '#E1A36F',  // Harvest gold
+            'cat_health': '#5BA4A4',  // Teal
+            'cat_finance': '#DEC484',  // Calico
+            'cat_education': '#8B7BA3',  // Lavender
+            'cat_other': '#8E8E93',  // System gray
+        };
+        for (const [id, newColor] of Object.entries(idColorMap)) {
+            await db.runAsync(
+                'UPDATE categories SET color = ? WHERE id = ? AND is_default = 1',
+                newColor, id,
+            );
+        }
+        await db.runAsync(
+            "INSERT INTO settings (key, value) VALUES ('cat_colors_v2', '1') ON CONFLICT(key) DO UPDATE SET value='1'"
+        );
     }
 }

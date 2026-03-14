@@ -1,6 +1,6 @@
 import BrandLogo from '@/components/BrandLogo';
 import Card from '@/components/Card';
-import { C } from '@/constants/design';
+import { C, R } from '@/constants/design';
 import { Sub } from '@/store';
 import { fmt, toHrs } from '@/utils/calc';
 import React from 'react';
@@ -18,9 +18,9 @@ interface Props {
   rate: number;
 }
 
-function IconContent({ icon }: { icon: string }) {
+function IconContent({ icon, useOriginalColor }: { icon: string; useOriginalColor?: boolean }) {
   if (icon.startsWith('svg:')) {
-    return <BrandLogo name={icon.slice(4)} size={18} useOriginalColor />;
+    return <BrandLogo name={icon.slice(4)} size={18} color={useOriginalColor ? undefined : '#FFFFFF'} useOriginalColor={useOriginalColor} />;
   }
   return <Text style={{ fontSize: 14 }}>{icon}</Text>;
 }
@@ -47,14 +47,15 @@ export default function LifetimeCostList({ entries, rate }: Props) {
       <View style={{ gap: 10, marginTop: 10 }}>
         {entries.map(({ sub, totalCost, monthsActive, startTimestamp }) => {
           const isWhiteBg = sub.color.toUpperCase() === '#FFFFFF' || sub.color.toUpperCase() === '#FFF';
-          const iconBg = isWhiteBg ? '#F5F5F5' : `${sub.color}15`;
           const hoursLabel = toHrs(totalCost, rate);
           const isHigh = totalCost > 0 && rate > 0 && totalCost / rate > 40;
 
           return (
             <View key={sub.id} style={s.row}>
-              <View style={[s.iconCircle, { backgroundColor: iconBg }, isWhiteBg && s.iconBorder]}>
-                <IconContent icon={sub.icon} />
+              <View style={isWhiteBg && s.iconShadow}>
+                <View style={[s.iconCircle, { backgroundColor: sub.color }]}>
+                  <IconContent icon={sub.icon} useOriginalColor={isWhiteBg} />
+                </View>
               </View>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={s.name} numberOfLines={1}>{sub.name}</Text>
@@ -95,10 +96,15 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 12,
   },
   iconCircle: {
-    width: 40, height: 40, borderRadius: 12,
+    width: 40, height: 40, borderRadius: R.sm,
     alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    overflow: 'hidden',
   },
-  iconBorder: { borderWidth: 1, borderColor: 'rgba(0,0,0,0.06)' },
+  iconShadow: {
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15, shadowRadius: 6, elevation: 3,
+    borderRadius: R.sm,
+  },
   name: { fontSize: 13, fontWeight: '700', color: C.t1 },
   duration: { fontSize: 11, color: C.t3 },
   rightCol: { alignItems: 'flex-end' },

@@ -65,18 +65,57 @@ export default function TimelineScreen() {
     const heroCharge = upcoming[0] ?? null;
     const otherCharges = upcoming.slice(1);
 
-    // Month totals
-    const activeSubs = subs.filter(s => s.active && !s.isTrial);
-    const totalMo = activeSubs.reduce((sum, s) => sum + subMo(s), 0);
+    // For past months: filter subs that existed and were active in that month
+    const subsForMonth = useMemo(() => {
+        if (isCurrentMonth) return null; // use live data path instead
+        const monthEnd = new Date(calYear, calMonth + 1, 0, 23, 59, 59).getTime();
+        const monthStart = new Date(calYear, calMonth, 1).getTime();
+        return subs.filter(s => {
+            // Sub must have been created before end of selected month
+            if (s.startDate) {
+                const start = new Date(s.startDate).getTime();
+                if (start > monthEnd) return false;
+            }
+            // Include if active or trial (it existed during this month)
+            // For cancelled subs: they might have been active that month
+            // but we can't know exactly without events, so include active + trials
+            return true;
+        });
+    }, [subs, isCurrentMonth, calMonth, calYear]);
 
-    // Category breakdown for summary
-    const catBreakdown = useMemo(() => {
+    // Month totals — use spending history for past months, live data for current month
+    const { totalMo, catBreakdown, activeCount } = useMemo(() => {
+        if (isCurrentMonth) {
+            // Current month: compute from live subscriptions
+            const active = subs.filter(s => s.active && !s.isTrial);
+            const total = active.reduce((sum, s) => sum + subMo(s), 0);
+            const bd: Record<string, number> = {};
+            active.forEach(s => { bd[s.categoryId] = (bd[s.categoryId] || 0) + subMo(s); });
+            const breakdown = Object.entries(bd)
+                .map(([categoryId, amount]) => ({ categoryId, amount }))
+                .sort((a, b) => b.amount - a.amount);
+            return { totalMo: total, catBreakdown: breakdown, activeCount: active.length };
+        }
+        // Past month: pull from spending history snapshot first
+        const snap = spendingHistory.find(s => s.month === calMonth && s.year === calYear);
+        if (snap) {
+            const breakdown = Object.entries(snap.categoryBreakdown)
+                .map(([categoryId, amount]) => ({ categoryId, amount }))
+                .sort((a, b) => b.amount - a.amount);
+            return { totalMo: snap.totalMonthlyCost, catBreakdown: breakdown, activeCount: snap.subscriptionCount };
+        }
+        // No snapshot — compute from subs filtered by startDate
+        const filtered = (subsForMonth ?? []).filter(s => !s.isTrial);
+        // For subs that are currently inactive, we still don't know if they were active
+        // during this month, so include all that existed (were started before month end)
+        const total = filtered.reduce((sum, s) => sum + subMo(s), 0);
         const bd: Record<string, number> = {};
-        activeSubs.forEach(s => { bd[s.categoryId] = (bd[s.categoryId] || 0) + subMo(s); });
-        return Object.entries(bd)
+        filtered.forEach(s => { bd[s.categoryId] = (bd[s.categoryId] || 0) + subMo(s); });
+        const breakdown = Object.entries(bd)
             .map(([categoryId, amount]) => ({ categoryId, amount }))
             .sort((a, b) => b.amount - a.amount);
-    }, [activeSubs]);
+        return { totalMo: total, catBreakdown: breakdown, activeCount: filtered.length };
+    }, [subs, isCurrentMonth, spendingHistory, calMonth, calYear, subsForMonth]);
 
     // Previous month total from spending history
     const prevMonthTotal = useMemo(() => {
@@ -112,7 +151,9 @@ export default function TimelineScreen() {
     return (
         <View style={{ flex: 1, backgroundColor: C.bg }}>
             <View style={[s.header, { paddingTop: insets.top + 8 }]}>
-                <Text style={s.title}>Timeline</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <Text style={s.title}>Timeline</Text>
+                </View>
             </View>
 
             <ScrollView
@@ -184,7 +225,7 @@ export default function TimelineScreen() {
                         breakdown={catBreakdown}
                         catMap={catMap}
                         totalMo={totalMo}
-                        activeCount={activeSubs.length}
+                        activeCount={activeCount}
                         prevMonthTotal={prevMonthTotal}
                         prevMonthLabel={prevMonthLabel}
                     />
@@ -205,10 +246,15 @@ export default function TimelineScreen() {
 
 const s = StyleSheet.create({
     header: {
-        paddingHorizontal: LAYOUT.screenHPad, paddingBottom: 16, backgroundColor: C.bg,
+        paddingHorizontal: LAYOUT.screenHPad, paddingBottom: 16, backgroundColor: 'rgba(255,255,255,0.95)',
     },
     title: {
         fontSize: 22, fontWeight: '700', color: C.t1,
+    },
+    headerIcon: {
+        width: 36, height: 36, borderRadius: R.sm,
+        backgroundColor: C.black,
+        alignItems: 'center', justifyContent: 'center',
     },
     sectionLabel: {
         fontSize: 10, fontWeight: '600', color: C.t3, letterSpacing: 0.5,

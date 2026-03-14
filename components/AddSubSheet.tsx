@@ -118,7 +118,7 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
     }, []);
 
     const dismiss = useCallback(() => {
-        sheetRef.current?.dismiss();
+        sheetRef.current?.dismiss().catch(() => { });
     }, []);
 
     const catMap = useMemo(() => {

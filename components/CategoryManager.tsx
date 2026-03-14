@@ -15,10 +15,24 @@ import {
 import Svg, { Path } from 'react-native-svg';
 
 const PRESET_COLORS = [
-    '#FF3B30', '#FF6B35', '#F5A623', '#F5C542',
-    '#4ECB71', '#00C805', '#3693F5', '#5B8DEF',
-    '#B07FE0', '#A259FF', '#FF69B4', '#8E8E93',
-    '#24292e', '#000000',
+    '#577E89',  // Smalt blue
+    '#5BA4A4',  // Teal
+    '#7BA38F',  // Sage green
+    '#8A9A5B',  // Olive
+    '#E1A36F',  // Harvest gold
+    '#DEC484',  // Calico
+    '#C4A882',  // Warm sand
+    '#C07F5A',  // Terracotta
+    '#B8907A',  // Dusty rose
+    '#C98B8B',  // Muted coral
+    '#8B7BA3',  // Lavender
+    '#A3889B',  // Mauve
+    '#E2D8A5',  // Hampton
+    '#A6887B',  // Mocha
+    '#8E8E93',  // System gray
+    '#636366',  // Medium gray
+    '#3A3A3C',  // Charcoal
+    '#1C1C1E',  // Near-black
 ];
 
 const PRESET_ICONS = [

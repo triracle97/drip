@@ -10,10 +10,9 @@ import React, { useEffect, useRef } from 'react';
 import {
     StyleSheet,
     Text,
-    TouchableOpacity,
     View
 } from 'react-native';
-import Svg, { Circle, Path, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, Text as SvgText } from 'react-native-svg';
 
 interface Props {
     sub: Sub | null;
@@ -31,11 +30,11 @@ export default function TrialSheet({ sub: t, onClose }: Props) {
     useEffect(() => {
         if (t) {
             const timer = setTimeout(() => {
-                sheetRef.current?.present();
+                sheetRef.current?.present().catch(() => { });
             }, 50);
             return () => clearTimeout(timer);
         } else {
-            sheetRef.current?.dismiss();
+            sheetRef.current?.dismiss().catch(() => { });
         }
     }, [t]);
 
@@ -47,7 +46,7 @@ export default function TrialSheet({ sub: t, onClose }: Props) {
     const handleDecide = (decision: 'kept' | 'cancelled') => {
         if (!t) return;
         decideTrial(t.id, decision);
-        sheetRef.current?.dismiss();
+        sheetRef.current?.dismiss().catch(() => { });
     };
 
     const handleDismissed = () => {

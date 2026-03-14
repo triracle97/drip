@@ -49,7 +49,7 @@ const IncomeSheet = forwardRef<TrueSheet>(function IncomeSheet(_props, ref) {
     }, [existing]);
 
     const dismiss = useCallback(() => {
-        sheetRef.current?.dismiss();
+        sheetRef.current?.dismiss().catch(() => { });
     }, []);
 
     const canSave = parseFloat(amount) > 0;

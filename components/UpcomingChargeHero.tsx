@@ -15,9 +15,9 @@ interface Props {
   onPress: () => void;
 }
 
-function IconContent({ icon, color }: { icon: string; color: string }) {
+function IconContent({ icon, useOriginalColor }: { icon: string; useOriginalColor?: boolean }) {
   if (icon.startsWith('svg:')) {
-    return <BrandLogo name={icon.slice(4)} size={22} useOriginalColor />;
+    return <BrandLogo name={icon.slice(4)} size={22} color={useOriginalColor ? undefined : '#FFFFFF'} useOriginalColor={useOriginalColor} />;
   }
   return <Text style={{ fontSize: 18 }}>{icon}</Text>;
 }
@@ -25,14 +25,15 @@ function IconContent({ icon, color }: { icon: string; color: string }) {
 export default function UpcomingChargeHero({ name, icon, color, cost, date, daysLeft, hoursLabel, onPress }: Props) {
   const urgent = daysLeft <= 3;
   const isWhiteBg = color.toUpperCase() === '#FFFFFF' || color.toUpperCase() === '#FFF';
-  const iconBg = isWhiteBg ? '#F5F5F5' : `${color}15`;
 
   return (
     <AnimatedPressable onPress={onPress} style={s.card}>
       <View style={[s.stripe, { backgroundColor: isWhiteBg ? C.line : color }]} />
       <View style={s.inner}>
-        <View style={[s.iconCircle, { backgroundColor: iconBg }, isWhiteBg && s.iconBorder]}>
-          <IconContent icon={icon} color={color} />
+        <View style={isWhiteBg && s.iconShadow}>
+          <View style={[s.iconCircle, { backgroundColor: color }]}>
+            <IconContent icon={icon} useOriginalColor={isWhiteBg} />
+          </View>
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={s.name} numberOfLines={1}>{name}</Text>
@@ -70,10 +71,15 @@ const s = StyleSheet.create({
     paddingVertical: 12, paddingHorizontal: 16,
   },
   iconCircle: {
-    width: 48, height: 48, borderRadius: 14,
+    width: 44, height: 44, borderRadius: R.sm,
     alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    overflow: 'hidden',
   },
-  iconBorder: { borderWidth: 1, borderColor: 'rgba(0,0,0,0.06)' },
+  iconShadow: {
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15, shadowRadius: 6, elevation: 3,
+    borderRadius: R.sm,
+  },
   name: { fontSize: 15, fontWeight: '700', color: C.t1 },
   date: { fontSize: 13, color: C.t3, marginTop: 2 },
   rightCol: { alignItems: 'flex-end', gap: 4 },
