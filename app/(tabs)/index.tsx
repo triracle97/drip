@@ -89,8 +89,9 @@ export default function HomeScreen() {
 
   const displaySubs = useMemo(() => {
     const list = filterCat ? active.filter(s => s.categoryId === filterCat) : active;
-    return [...list].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
-  }, [active, filterCat]);
+    const trials = filterCat ? activeTrials.filter(s => s.categoryId === filterCat) : activeTrials;
+    return [...trials, ...list].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  }, [active, activeTrials, filterCat]);
 
   const isYr = viewPeriod === 'yr';
 
@@ -102,6 +103,29 @@ export default function HomeScreen() {
   }, [subs, reorderSubs]);
 
   const renderItem = useCallback(({ item: s_, drag, isActive: isDragging }: RenderItemParams<Sub>) => {
+    // Trial card
+    if (s_.isTrial && s_.trialDecision === 'pending' && s_.trialEndDay > curDay) {
+      const mc = subMo(s_);
+      const daysLeft = s_.trialEndDay - curDay;
+      const displayCost = isYr ? mc * 12 : mc;
+      return (
+        <ScaleDecorator>
+          <SubRow
+            name={s_.name}
+            icon={s_.icon}
+            color={s_.color}
+            costLabel={fmt(0)}
+            variant="trial"
+            trialDaysLeft={daysLeft}
+            trialCostLabel={`Then ${fmt(displayCost)}/${isYr ? 'yr' : 'mo'}`}
+            onPress={() => setTrialSheet(s_)}
+            onLongPress={drag}
+            isDragging={isDragging}
+          />
+        </ScaleDecorator>
+      );
+    }
+    // Regular card
     const mc = subMo(s_);
     const displayCost = isYr ? mc * 12 : mc;
     const remain = nextChargeIn(s_);
@@ -166,31 +190,16 @@ export default function HomeScreen() {
       </Animated.View>
 
       {/* Subscription List Header */}
-      <View style={{ marginBottom: 12, marginTop: 12 }}>
-        <Text style={s.subCount}>{displaySubs.length} subscriptions</Text>
-        <Text style={s.dragHint}>Long press to drag and reorder</Text>
+      <View style={{ marginBottom: 12, marginTop: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
+        <Text style={s.subCount}>
+          {displaySubs.length} subscription{displaySubs.length !== 1 ? 's' : ''}
+          {activeTrials.length > 0 && (
+            <Text style={s.trialCount}> · {activeTrials.length} trial{activeTrials.length !== 1 ? 's' : ''}</Text>
+          )}
+        </Text>
+        {displaySubs.length > 0 && <Text style={s.dragHint}>Hold to reorder</Text>}
       </View>
 
-      {/* Active trial rows */}
-      {activeTrials.map((s_) => {
-        const mc = subMo(s_);
-        const daysLeft = s_.trialEndDay - curDay;
-        const displayCost = isYr ? mc * 12 : mc;
-        return (
-          <Animated.View key={s_.id} entering={FadeInDown.duration(300).delay(50)}>
-            <SubRow
-              name={s_.name}
-              icon={s_.icon}
-              color={s_.color}
-              costLabel={fmt(0)}
-              variant="trial"
-              trialDaysLeft={daysLeft}
-              trialCostLabel={`Then ${fmt(displayCost)}/${isYr ? 'yr' : 'mo'}`}
-              onPress={() => setTrialSheet(s_)}
-            />
-          </Animated.View>
-        );
-      })}
     </>
   ), [displayTotal, active.length, incomes.length, rate, pctIncome, displaySubs.length, isYr, activeTrials]);
 
@@ -315,6 +324,9 @@ const s = StyleSheet.create({
   },
   subCount: {
     fontSize: 15, fontWeight: '700', color: C.t1,
+  },
+  trialCount: {
+    fontSize: 15, fontWeight: '600', color: C.t2,
   },
   dragHint: {
     fontSize: 11, fontWeight: '400', color: C.t3, marginTop: 2,

@@ -4,9 +4,9 @@ import { StyleSheet, Text, View } from 'react-native';
 import AnimatedPressable from './AnimatedPressable';
 import BrandLogo from './BrandLogo';
 
-function IconContent({ icon, size = 22, color, useOriginalColor }: { icon: string; size?: number; color?: string; useOriginalColor?: boolean }) {
+function IconContent({ icon, size = 22, useOriginalColor }: { icon: string; size?: number; useOriginalColor?: boolean }) {
     if (icon.startsWith('svg:')) {
-        return <BrandLogo name={icon.slice(4)} size={size} color={useOriginalColor ? undefined : color} useOriginalColor={useOriginalColor} />;
+        return <BrandLogo name={icon.slice(4)} size={size} color={useOriginalColor ? undefined : '#FFFFFF'} useOriginalColor={useOriginalColor} />;
     }
     return <Text style={{ fontSize: size }}>{icon}</Text>;
 }
@@ -36,12 +36,15 @@ export default function SubRow({
 
     // ── Trial Card ──
     if (variant === 'trial') {
+        const isWhiteBg = color.toUpperCase() === '#FFFFFF' || color.toUpperCase() === '#FFF';
         return (
-            <AnimatedPressable onPress={onPress} style={s.card}>
-                <View style={[s.stripe, { backgroundColor: C.red }]} />
+            <AnimatedPressable onPress={onPress} onLongPress={onLongPress} style={[s.card, isDragging && s.cardDragging]}>
+                <View style={[s.stripe, { backgroundColor: isWhiteBg ? C.line : color }]} />
                 <View style={s.cardInner}>
-                    <View style={[s.iconCircle, { backgroundColor: `${color}18` }]}>
-                        <IconContent icon={icon} size={22} color={color} useOriginalColor />
+                    <View style={isWhiteBg && s.iconShadow}>
+                        <View style={[s.iconCircle, { backgroundColor: color }]}>
+                            <IconContent icon={icon} size={22} useOriginalColor={isWhiteBg} />
+                        </View>
                     </View>
                     <View style={{ flex: 1, minWidth: 0 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -65,12 +68,15 @@ export default function SubRow({
 
     // ── Inactive Card ──
     if (variant === 'inactive') {
+        const isWhiteBg = color.toUpperCase() === '#FFFFFF' || color.toUpperCase() === '#FFF';
         return (
             <AnimatedPressable onPress={onPress} style={[s.card, { opacity: 0.5 }]}>
                 <View style={[s.stripe, { backgroundColor: `${color}66` }]} />
                 <View style={s.cardInner}>
-                    <View style={[s.iconCircle, { backgroundColor: `${color}12` }]}>
-                        <IconContent icon={icon} size={22} color={`${color}88`} useOriginalColor />
+                    <View style={isWhiteBg && s.iconShadow}>
+                        <View style={[s.iconCircle, { backgroundColor: color }]}>
+                            <IconContent icon={icon} size={22} useOriginalColor={isWhiteBg} />
+                        </View>
                     </View>
                     <View style={{ flex: 1 }}>
                         <Text style={[s.rowName, { textDecorationLine: 'line-through', color: C.t2 }]}>{name}</Text>
@@ -85,15 +91,16 @@ export default function SubRow({
     const isWhiteBg = color.toUpperCase() === '#FFFFFF' || color.toUpperCase() === '#FFF';
     const urgentPillBg = `${C.red}18`;
     const normalPillBg = isWhiteBg ? `${C.t3}15` : `${color}15`;
-    const iconBg = isWhiteBg ? '#F5F5F5' : `${color}15`;
 
     return (
         <AnimatedPressable onPress={onPress} onLongPress={onLongPress} style={[s.card, isDragging && s.cardDragging]}>
             <View style={[s.stripe, { backgroundColor: isWhiteBg ? C.line : color }]} />
             <View style={s.cardInner}>
-                {/* Rounded icon with tinted background */}
-                <View style={[s.iconCircle, { backgroundColor: iconBg }, isWhiteBg && s.iconCircleBorder]}>
-                    <IconContent icon={icon} size={22} color={isWhiteBg ? undefined : color} useOriginalColor={isWhiteBg} />
+                {/* Rounded icon with solid color background */}
+                <View style={isWhiteBg && s.iconShadow}>
+                    <View style={[s.iconCircle, { backgroundColor: color }]}>
+                        <IconContent icon={icon} size={22} useOriginalColor={isWhiteBg} />
+                    </View>
                 </View>
 
                 {/* Name + date */}
@@ -133,6 +140,7 @@ const s = StyleSheet.create({
         borderColor: 'rgba(0,0,0,0.08)',
         opacity: 0.95,
     },
+
     stripe: {
         position: 'absolute',
         left: 0,
@@ -150,16 +158,21 @@ const s = StyleSheet.create({
         paddingHorizontal: 16,
     },
     iconCircle: {
-        width: 48,
-        height: 48,
-        borderRadius: 14,
+        width: 44,
+        height: 44,
+        borderRadius: R.sm,
         alignItems: 'center',
         justifyContent: 'center',
+        overflow: 'hidden',
         flexShrink: 0,
     },
-    iconCircleBorder: {
-        borderWidth: 1,
-        borderColor: 'rgba(0,0,0,0.06)',
+    iconShadow: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 6,
+        elevation: 3,
+        borderRadius: R.sm,
     },
     rightCol: {
         alignItems: 'flex-end',
