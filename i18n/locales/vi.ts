@@ -214,8 +214,8 @@ const vi = {
   'activity.added': 'Đã thêm',
   'activity.cancelled': 'Đã hủy',
   'activity.reactivated': 'Đã kích hoạt lại',
-  'activity.priceChange': 'Giá {{name}} → {{cost}}',
-  'activity.cycleChange': 'Chu kỳ của {{name}} đã thay đổi',
+  'activity.priceChange': 'giá → {{cost}}',
+  'activity.cycleChange': 'chu kỳ đã thay đổi',
 
   // Spending trend
   'spending.title': 'XU HƯỚNG CHI TIÊU',

@@ -219,8 +219,8 @@ const es = {
   'activity.added': 'Añadido',
   'activity.cancelled': 'Cancelado',
   'activity.reactivated': 'Reactivado',
-  'activity.priceChange': 'Precio de {{name}} → {{cost}}',
-  'activity.cycleChange': 'Ciclo de {{name}} cambiado',
+  'activity.priceChange': 'precio → {{cost}}',
+  'activity.cycleChange': 'ciclo cambiado',
 
   // Spending trend
   'spending.title': 'TENDENCIA DE GASTO',

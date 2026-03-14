@@ -215,8 +215,8 @@ const en = {
   'activity.added': 'Added',
   'activity.cancelled': 'Cancelled',
   'activity.reactivated': 'Reactivated',
-  'activity.priceChange': '{{name}} price → {{cost}}',
-  'activity.cycleChange': '{{name}} cycle changed',
+  'activity.priceChange': 'price → {{cost}}',
+  'activity.cycleChange': 'cycle changed',
 
   // Spending chart
   'spending.title': 'SPENDING TREND',

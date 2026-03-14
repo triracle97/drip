@@ -214,8 +214,8 @@ const zh = {
   'activity.added': '已添加',
   'activity.cancelled': '已取消',
   'activity.reactivated': '已重新激活',
-  'activity.priceChange': '{{name}} 价格 → {{cost}}',
-  'activity.cycleChange': '{{name}} 账单周期已更改',
+  'activity.priceChange': '价格 → {{cost}}',
+  'activity.cycleChange': '账单周期已更改',
 
   // Spending trend
   'spending.title': '支出趋势',

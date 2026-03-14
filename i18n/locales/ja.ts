@@ -214,8 +214,8 @@ const ja = {
   'activity.added': '追加',
   'activity.cancelled': 'キャンセル',
   'activity.reactivated': '再開',
-  'activity.priceChange': '{{name}} の料金 → {{cost}}',
-  'activity.cycleChange': '{{name}} の請求サイクル変更',
+  'activity.priceChange': '料金 → {{cost}}',
+  'activity.cycleChange': '請求サイクル変更',
 
   // Spending trend
   'spending.title': '支出トレンド',

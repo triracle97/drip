@@ -40,11 +40,11 @@ export default function ActivityLog({ events, subMap }: Props) {
               <View key={evt.id} style={s.row}>
                 <View style={[s.dot, { backgroundColor: EVENT_COLORS[evt.type] ?? C.t3 }]} />
                 <Text style={s.text} numberOfLines={1}>
-                  {evt.type === 'added' && t('activity.added', { name })}
-                  {evt.type === 'cancelled' && t('activity.cancelled', { name })}
-                  {evt.type === 'reactivated' && t('activity.reactivated', { name })}
-                  {evt.type === 'price_change' && t('activity.priceChange', { name, cost: meta?.newCost })}
-                  {evt.type === 'cycle_change' && t('activity.cycleChange', { name })}
+                  {evt.type === 'added' && <>{t('activity.added')} <Text style={s.boldName}>{name}</Text></>}
+                  {evt.type === 'cancelled' && <>{t('activity.cancelled')} <Text style={s.boldName}>{name}</Text></>}
+                  {evt.type === 'reactivated' && <>{t('activity.reactivated')} <Text style={s.boldName}>{name}</Text></>}
+                  {evt.type === 'price_change' && <><Text style={s.boldName}>{name}</Text> {t('activity.priceChange', { cost: meta?.newCost })}</>}
+                  {evt.type === 'cycle_change' && <><Text style={s.boldName}>{name}</Text> {t('activity.cycleChange')}</>}
                 </Text>
                 <Text style={s.date}>{formatEventDate(evt.timestamp)}</Text>
               </View>

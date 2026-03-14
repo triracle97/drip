@@ -214,8 +214,8 @@ const ko = {
   'activity.added': '추가됨',
   'activity.cancelled': '취소됨',
   'activity.reactivated': '재활성화됨',
-  'activity.priceChange': '{{name}} 가격 → {{cost}}',
-  'activity.cycleChange': '{{name}} 청구 주기 변경',
+  'activity.priceChange': '가격 → {{cost}}',
+  'activity.cycleChange': '청구 주기 변경',
 
   // Spending trend
   'spending.title': '지출 추세',
