@@ -77,8 +77,11 @@ export default function OnboardingSheet() {
   }, [hasOnboarded]);
 
   const completeOnboarding = () => {
-    setHasOnboarded(true);
-    sheetRef.current?.dismiss().catch(() => {});
+    sheetRef.current?.dismiss().then(() => {
+      setHasOnboarded(true);
+    }).catch(() => {
+      setHasOnboarded(true);
+    });
   };
 
   const handleIncomeSubmit = () => {
