@@ -7,13 +7,25 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_RC_API_KEY": "YOUR_RC_API_KEY_HERE",
+        "EXPO_PUBLIC_AMPLITUDE_API_KEY": "YOUR_AMPLITUDE_API_KEY_HERE"
+      }
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_RC_API_KEY": "YOUR_RC_API_KEY_HERE",
+        "EXPO_PUBLIC_AMPLITUDE_API_KEY": "YOUR_AMPLITUDE_API_KEY_HERE"
+      }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_RC_API_KEY": "YOUR_RC_API_KEY_HERE",
+        "EXPO_PUBLIC_AMPLITUDE_API_KEY": "YOUR_AMPLITUDE_API_KEY_HERE"
+      }
     }
   },
   "submit": {

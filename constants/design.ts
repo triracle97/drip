@@ -25,11 +25,11 @@ export const C = {
     gold: '#F5A623',
     warningBg: 'rgba(245,166,35,0.08)',
     catTint: {
-        entertainment: 'rgba(255,59,48,0.04)',
-        productivity: 'rgba(91,141,239,0.04)',
-        health: 'rgba(52,199,89,0.04)',
-        finance: 'rgba(245,197,66,0.04)',
-        education: 'rgba(176,127,224,0.04)',
+        entertainment: 'rgba(87,126,137,0.04)',
+        productivity: 'rgba(225,163,111,0.04)',
+        health: 'rgba(91,164,164,0.04)',
+        finance: 'rgba(222,196,132,0.04)',
+        education: 'rgba(139,123,163,0.04)',
         other: 'rgba(142,142,147,0.04)',
     },
 } as const;

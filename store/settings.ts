@@ -1,19 +1,21 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DEFAULT_CURRENCY_CODE } from '@/constants/currencies';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
 
 interface SettingsState {
     currency: string;
     notificationsEnabled: boolean;
     notificationTime: string;
     language: string;
+    isPro: boolean;
     _hydrated: boolean;
 
     setCurrency: (code: string) => void;
     setNotificationsEnabled: (enabled: boolean) => void;
     setNotificationTime: (time: string) => void;
     setLanguage: (lang: string) => void;
+    setIsPro: (val: boolean) => void;
 }
 
 export const useSettings = create<SettingsState>()(
@@ -23,12 +25,14 @@ export const useSettings = create<SettingsState>()(
             notificationsEnabled: false,
             notificationTime: '08:00',
             language: 'auto',
+            isPro: false,
             _hydrated: false,
 
             setCurrency: (code) => set({ currency: code }),
             setNotificationsEnabled: (enabled) => set({ notificationsEnabled: enabled }),
             setNotificationTime: (time) => set({ notificationTime: time }),
             setLanguage: (lang) => set({ language: lang }),
+            setIsPro: (val) => set({ isPro: val }),
         }),
         {
             name: 'drip-settings',
