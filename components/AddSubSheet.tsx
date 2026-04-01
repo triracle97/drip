@@ -2,6 +2,9 @@ import AnimatedPressable from "@/components/AnimatedPressable";
 import AppearanceModal from "@/components/AppearanceModal";
 import BrandLogo from "@/components/BrandLogo";
 import Card from "@/components/Card";
+import ProBadge from "@/components/ProBadge";
+import ProSheet from "@/components/ProSheet";
+import type { ProFeatureKey } from "@/components/ProSheet";
 import { C, R } from "@/constants/design";
 import { Sub, useStore } from "@/store";
 import { useSettings } from "@/store/settings";
@@ -148,12 +151,14 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
   const { t } = useTranslation();
   const { addSub, incomes, categories } = useStore();
   const currency = useSettings((s) => s.currency);
+  const isPro = useSettings((s) => s.isPro);
   const rate = blended(incomes);
 
   const [popularSubs, setPopularSubs] = useState<PopularSub[]>([]);
   const [query, setQuery] = useState("");
   const [phase, setPhase] = useState<"pick" | "form">("pick");
   const [f, setF] = useState<Form>({ ...DEFAULT_FORM });
+  const [proFeature, setProFeature] = useState<ProFeatureKey | null>(null);
   const [cycleOpen, setCycleOpen] = useState(false);
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [reminderOpen, setReminderOpen] = useState(false);
@@ -745,9 +750,12 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
           ]}
         >
           <View style={{ flex: 1 }}>
-            <Text style={[s.trialLabel, { color: f.isTrial ? C.red : C.t1 }]}>
-              {t("addSub.freeTrial")}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Text style={[s.trialLabel, { color: f.isTrial ? C.red : C.t1 }]}>
+                {t("addSub.freeTrial")}
+              </Text>
+              {!isPro && <ProBadge size="sm" />}
+            </View>
             <Text style={{ fontSize: 12, color: C.t3 }}>
               {t("addSub.trialReminder")}
             </Text>
@@ -755,7 +763,13 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
           <View style={{ transform: [{ scale: 0.7 }] }}>
             <Switch
               value={f.isTrial}
-              onValueChange={(v) => u("isTrial", v)}
+              onValueChange={(v) => {
+                if (!isPro) {
+                  setProFeature('trial');
+                  return;
+                }
+                u("isTrial", v);
+              }}
               trackColor={{ false: "rgba(0,0,0,0.16)", true: C.black }}
               thumbColor="#fff"
             />
@@ -973,6 +987,7 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
   );
 
   return (
+    <>
     <TrueSheet
       ref={setRefs}
       detents={[1]}
@@ -1015,6 +1030,8 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
         {phase === "pick" ? renderPicker() : renderForm()}
       </KeyboardAvoidingView>
     </TrueSheet>
+    <ProSheet feature={proFeature} onClose={() => setProFeature(null)} />
+    </>
   );
 });
 
