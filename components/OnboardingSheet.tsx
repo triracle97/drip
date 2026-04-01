@@ -262,11 +262,11 @@ export default function OnboardingSheet() {
   );
 }
 
-const { width } = Dimensions.get('window');
+const { width, height: screenHeight } = Dimensions.get('window');
 
 const s = StyleSheet.create({
   container: {
-    flex: 1,
+    height: screenHeight,
     backgroundColor: C.bg,
     paddingHorizontal: 24,
   },
