@@ -3,11 +3,15 @@ import CategoryBreakdownList from '@/components/CategoryBreakdownList';
 import IncomeCTA from '@/components/IncomeCTA';
 import IncomeSheet from '@/components/IncomeSheet';
 import LifetimeCostList from '@/components/LifetimeCostList';
+import ProBlurOverlay from '@/components/ProBlurOverlay';
+import ProSheet from '@/components/ProSheet';
+import type { ProFeatureKey } from '@/components/ProSheet';
 import SpendingChart from '@/components/SpendingChart';
 import { C, LAYOUT, R } from '@/constants/design';
 import { Category, useStore } from '@/store';
 import type { SubscriptionEvent } from '@/store/repository';
 import { getAllEvents } from '@/store/repository';
+import { useSettings } from '@/store/settings';
 import { blended, budgetHealth, fmt, lifetimeCost, monthlyIncome, monthName, subMo } from '@/utils/calc';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -50,6 +54,9 @@ export default function InsightsScreen() {
             .sort((a, b) => b.amount - a.amount);
     }, [activeSubs]);
 
+    const [proFeature, setProFeature] = useState<ProFeatureKey | null>(null);
+    const isPro = useSettings(s => s.isPro);
+
     const rate = blended(incomes);
     const [allEvents, setAllEvents] = useState<SubscriptionEvent[]>([]);
 
@@ -90,19 +97,36 @@ export default function InsightsScreen() {
                 {incomes.length === 0 && <IncomeCTA onPress={() => incomeRef.current?.present()} />}
 
                 {/* Spending Trend */}
-                <Animated.View entering={FadeInDown.duration(300)}>
-                    <SpendingChart history={spendingHistory} catMap={catMap} />
-                </Animated.View>
+                {isPro ? (
+                    <Animated.View entering={FadeInDown.duration(300)}>
+                        <SpendingChart history={spendingHistory} catMap={catMap} />
+                    </Animated.View>
+                ) : (
+                    <ProBlurOverlay onPress={() => setProFeature('insights')}>
+                        <SpendingChart history={spendingHistory} catMap={catMap} />
+                    </ProBlurOverlay>
+                )}
 
                 {/* Category Breakdown */}
-                <Animated.View entering={FadeInDown.duration(300).delay(100)}>
-                    <CategoryBreakdownList
-                        breakdown={catBreakdown}
-                        catMap={catMap}
-                        totalMo={totalMo}
-                        monthLabel={currentMonthLabel}
-                    />
-                </Animated.View>
+                {isPro ? (
+                    <Animated.View entering={FadeInDown.duration(300).delay(100)}>
+                        <CategoryBreakdownList
+                            breakdown={catBreakdown}
+                            catMap={catMap}
+                            totalMo={totalMo}
+                            monthLabel={currentMonthLabel}
+                        />
+                    </Animated.View>
+                ) : (
+                    <ProBlurOverlay onPress={() => setProFeature('insights')}>
+                        <CategoryBreakdownList
+                            breakdown={catBreakdown}
+                            catMap={catMap}
+                            totalMo={totalMo}
+                            monthLabel={currentMonthLabel}
+                        />
+                    </ProBlurOverlay>
+                )}
 
                 {/* Budget Health */}
                 <Animated.View entering={FadeInDown.duration(300).delay(200)}>
@@ -118,7 +142,7 @@ export default function InsightsScreen() {
                 </Animated.View>
 
                 {/* Per-category % of income */}
-                {moIncome > 0 && catBreakdown.length > 0 && (
+                {isPro && moIncome > 0 && catBreakdown.length > 0 && (
                     <Animated.View entering={FadeInDown.duration(300).delay(300)}>
                         <View style={s.perCatCard}>
                             <Text style={s.sectionTitle}>{t('insights.categoryBreakdown')}</Text>
@@ -144,10 +168,17 @@ export default function InsightsScreen() {
                     </Animated.View>
                 )}
                 {/* Lifetime Cost */}
-                <Animated.View entering={FadeInDown.duration(300).delay(400)}>
-                    <LifetimeCostList entries={lifetimeEntries} rate={rate} />
-                </Animated.View>
+                {isPro ? (
+                    <Animated.View entering={FadeInDown.duration(300).delay(400)}>
+                        <LifetimeCostList entries={lifetimeEntries} rate={rate} />
+                    </Animated.View>
+                ) : (
+                    <ProBlurOverlay onPress={() => setProFeature('insights')}>
+                        <LifetimeCostList entries={lifetimeEntries} rate={rate} />
+                    </ProBlurOverlay>
+                )}
             </ScrollView>
+            <ProSheet feature={proFeature} onClose={() => setProFeature(null)} />
             <IncomeSheet ref={incomeRef} />
         </View>
     );
