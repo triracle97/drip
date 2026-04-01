@@ -275,12 +275,12 @@ export default function OnboardingSheet() {
       cornerRadius={0}
     >
       <GestureDetector gesture={swipeGesture}>
-        <SafeAreaView style={s.container}>
+        <View style={[s.container, { height: screenHeight, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 16 }]}>
           {step === 0 && <StepValueProp />}
           {step === 1 && <StepFeatures />}
           {step === 2 && <StepIncome />}
           {step === 3 && <StepPaywall />}
-        </SafeAreaView>
+        </View>
       </GestureDetector>
     </TrueSheet>
   );
@@ -290,7 +290,6 @@ const { width, height: screenHeight } = Dimensions.get('window');
 
 const s = StyleSheet.create({
   container: {
-    height: screenHeight,
     backgroundColor: C.bg,
     paddingHorizontal: 24,
   },
