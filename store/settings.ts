@@ -9,6 +9,7 @@ interface SettingsState {
     notificationTime: string;
     language: string;
     isPro: boolean;
+    hasOnboarded: boolean;
     _hydrated: boolean;
 
     setCurrency: (code: string) => void;
@@ -16,6 +17,7 @@ interface SettingsState {
     setNotificationTime: (time: string) => void;
     setLanguage: (lang: string) => void;
     setIsPro: (val: boolean) => void;
+    setHasOnboarded: (val: boolean) => void;
 }
 
 export const useSettings = create<SettingsState>()(
@@ -26,6 +28,7 @@ export const useSettings = create<SettingsState>()(
             notificationTime: '08:00',
             language: 'auto',
             isPro: false,
+            hasOnboarded: false,
             _hydrated: false,
 
             setCurrency: (code) => set({ currency: code }),
@@ -33,6 +36,7 @@ export const useSettings = create<SettingsState>()(
             setNotificationTime: (time) => set({ notificationTime: time }),
             setLanguage: (lang) => set({ language: lang }),
             setIsPro: (val) => set({ isPro: val }),
+            setHasOnboarded: (val) => set({ hasOnboarded: val }),
         }),
         {
             name: 'drip-settings',
@@ -45,6 +49,7 @@ export const useSettings = create<SettingsState>()(
                 notificationsEnabled: state.notificationsEnabled,
                 notificationTime: state.notificationTime,
                 language: state.language,
+                hasOnboarded: state.hasOnboarded,
             }),
         },
     ),
