@@ -258,6 +258,22 @@ const vi = {
   'pro.feature.trialTracking': 'Theo dõi dùng thử & nhắc nhở',
   'pro.feature.customCategories': 'Danh mục tùy chỉnh',
   'pro.subLimitHint': 'Thêm với Pro',
+
+  // Onboarding
+  'onboarding.headline': 'Xem đăng ký thực sự tốn bao nhiêu',
+  'onboarding.headlineAccent': '— bằng giờ làm việc của bạn',
+  'onboarding.subtitle': 'Drip chuyển đổi mỗi đăng ký thành số giờ làm việc cần thiết để chi trả.',
+  'onboarding.getStarted': 'Bắt đầu',
+  'onboarding.continue': 'Tiếp tục',
+  'onboarding.skip': 'Bỏ qua',
+  'onboarding.incomeQuestion': 'Thu nhập hàng tháng của bạn là bao nhiêu?',
+  'onboarding.incomeHint': 'Điều này giúp chúng tôi tính toán bạn làm việc bao nhiêu giờ cho mỗi đăng ký.',
+  'onboarding.feature.calendar': 'Lịch gia hạn',
+  'onboarding.feature.calendarDesc': 'Không bỏ lỡ gia hạn — xem mọi khoản phí sắp tới trong nháy mắt.',
+  'onboarding.feature.insights': 'Phân tích chi tiêu',
+  'onboarding.feature.insightsDesc': 'Theo dõi xu hướng chi tiêu và xem tiền đi đâu.',
+  'onboarding.feature.trials': 'Theo dõi dùng thử',
+  'onboarding.feature.trialsDesc': 'Quản lý dùng thử miễn phí trước khi bị tính phí.',
 };
 
 export default vi;

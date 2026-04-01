@@ -258,6 +258,22 @@ const ko = {
   'pro.feature.trialTracking': '체험판 추적 및 알림',
   'pro.feature.customCategories': '맞춤 카테고리',
   'pro.subLimitHint': 'Pro로 더 추가하기',
+
+  // Onboarding
+  'onboarding.headline': '구독의 진짜 비용을 확인하세요',
+  'onboarding.headlineAccent': '— 당신의 근무 시간으로',
+  'onboarding.subtitle': 'Drip은 모든 구독을 지불에 필요한 근무 시간으로 변환합니다.',
+  'onboarding.getStarted': '시작하기',
+  'onboarding.continue': '계속',
+  'onboarding.skip': '건너뛰기',
+  'onboarding.incomeQuestion': '월 수입이 얼마인가요?',
+  'onboarding.incomeHint': '각 구독에 몇 시간 일하는지 계산하는 데 사용됩니다.',
+  'onboarding.feature.calendar': '갱신 캘린더',
+  'onboarding.feature.calendarDesc': '갱신을 놓치지 마세요 — 다가오는 청구를 한눈에 확인.',
+  'onboarding.feature.insights': '지출 인사이트',
+  'onboarding.feature.insightsDesc': '지출 트렌드를 추적하고 돈이 어디로 가는지 확인.',
+  'onboarding.feature.trials': '체험판 추적',
+  'onboarding.feature.trialsDesc': '무료 체험판이 결제되기 전에 관리하세요.',
 };
 
 export default ko;

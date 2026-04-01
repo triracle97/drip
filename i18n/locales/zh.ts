@@ -258,6 +258,22 @@ const zh = {
   'pro.feature.trialTracking': '试用追踪与提醒',
   'pro.feature.customCategories': '自定义分类',
   'pro.subLimitHint': '升级 Pro 添加更多',
+
+  // Onboarding
+  'onboarding.headline': '看看你的订阅真正花了多少',
+  'onboarding.headlineAccent': '— 用你的工作时间衡量',
+  'onboarding.subtitle': 'Drip 将每一笔订阅转化为你需要工作的时间。',
+  'onboarding.getStarted': '开始使用',
+  'onboarding.continue': '继续',
+  'onboarding.skip': '跳过',
+  'onboarding.incomeQuestion': '你的月收入是多少？',
+  'onboarding.incomeHint': '这帮助我们计算你为每个订阅工作了多少小时。',
+  'onboarding.feature.calendar': '续费日历',
+  'onboarding.feature.calendarDesc': '不再错过续费 — 一目了然地查看每笔即将到来的费用。',
+  'onboarding.feature.insights': '消费洞察',
+  'onboarding.feature.insightsDesc': '追踪消费趋势，了解你的钱花在了哪里。',
+  'onboarding.feature.trials': '试用追踪',
+  'onboarding.feature.trialsDesc': '在免费试用开始收费前掌控它们。',
 };
 
 export default zh;

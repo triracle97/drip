@@ -258,6 +258,22 @@ const ja = {
   'pro.feature.trialTracking': 'トライアル追跡とリマインダー',
   'pro.feature.customCategories': 'カスタムカテゴリ',
   'pro.subLimitHint': 'Proでもっと追加',
+
+  // Onboarding
+  'onboarding.headline': 'サブスクの本当のコストを知ろう',
+  'onboarding.headlineAccent': '— あなたの労働時間で',
+  'onboarding.subtitle': 'Drip はすべてのサブスクを、支払いに必要な労働時間に変換します。',
+  'onboarding.getStarted': 'はじめる',
+  'onboarding.continue': '続ける',
+  'onboarding.skip': 'スキップ',
+  'onboarding.incomeQuestion': '月収はいくらですか？',
+  'onboarding.incomeHint': 'サブスクごとに何時間働いているか計算するために使います。',
+  'onboarding.feature.calendar': '更新カレンダー',
+  'onboarding.feature.calendarDesc': '更新を見逃さない — 今後の請求を一目で確認。',
+  'onboarding.feature.insights': '支出インサイト',
+  'onboarding.feature.insightsDesc': '支出トレンドを追跡し、お金の行き先を確認。',
+  'onboarding.feature.trials': 'トライアル管理',
+  'onboarding.feature.trialsDesc': '無料トライアルが課金される前に管理。',
 };
 
 export default ja;

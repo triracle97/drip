@@ -263,6 +263,22 @@ const en = {
   'pro.feature.trialTracking': 'Trial tracking & reminders',
   'pro.feature.customCategories': 'Custom categories',
   'pro.subLimitHint': 'Add more with Pro',
+
+  // Onboarding
+  'onboarding.headline': 'See what your subscriptions really cost',
+  'onboarding.headlineAccent': '— in hours of your work',
+  'onboarding.subtitle': 'Drip converts every subscription into the work hours it takes to pay for it.',
+  'onboarding.getStarted': 'Get Started',
+  'onboarding.continue': 'Continue',
+  'onboarding.skip': 'Skip',
+  'onboarding.incomeQuestion': "What's your monthly income?",
+  'onboarding.incomeHint': 'This helps us calculate how many hours you work for each subscription.',
+  'onboarding.feature.calendar': 'Renewal Calendar',
+  'onboarding.feature.calendarDesc': 'Never miss a renewal — see every upcoming charge at a glance.',
+  'onboarding.feature.insights': 'Spending Insights',
+  'onboarding.feature.insightsDesc': 'Track spending trends and see where your money goes.',
+  'onboarding.feature.trials': 'Trial Tracking',
+  'onboarding.feature.trialsDesc': 'Stay on top of free trials before they start charging.',
 };
 
 export default en;

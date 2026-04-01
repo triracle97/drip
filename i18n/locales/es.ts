@@ -263,6 +263,22 @@ const es = {
   'pro.feature.trialTracking': 'Seguimiento de pruebas y recordatorios',
   'pro.feature.customCategories': 'Categorías personalizadas',
   'pro.subLimitHint': 'Añade más con Pro',
+
+  // Onboarding
+  'onboarding.headline': 'Descubre lo que cuestan realmente tus suscripciones',
+  'onboarding.headlineAccent': '— en horas de tu trabajo',
+  'onboarding.subtitle': 'Drip convierte cada suscripción en las horas de trabajo que necesitas para pagarla.',
+  'onboarding.getStarted': 'Comenzar',
+  'onboarding.continue': 'Continuar',
+  'onboarding.skip': 'Omitir',
+  'onboarding.incomeQuestion': '¿Cuál es tu ingreso mensual?',
+  'onboarding.incomeHint': 'Esto nos ayuda a calcular cuántas horas trabajas por cada suscripción.',
+  'onboarding.feature.calendar': 'Calendario de renovaciones',
+  'onboarding.feature.calendarDesc': 'No te pierdas una renovación — ve cada cargo próximo de un vistazo.',
+  'onboarding.feature.insights': 'Análisis de gastos',
+  'onboarding.feature.insightsDesc': 'Rastrea tendencias de gastos y ve a dónde va tu dinero.',
+  'onboarding.feature.trials': 'Seguimiento de pruebas',
+  'onboarding.feature.trialsDesc': 'Controla las pruebas gratuitas antes de que empiecen a cobrar.',
 };
 
 export default es;
