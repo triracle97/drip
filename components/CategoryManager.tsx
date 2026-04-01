@@ -1,6 +1,10 @@
 import AnimatedPressable from '@/components/AnimatedPressable';
+import ProBadge from '@/components/ProBadge';
+import ProSheet from '@/components/ProSheet';
+import type { ProFeatureKey } from '@/components/ProSheet';
 import { C, R, SP } from '@/constants/design';
 import { Category, useStore } from '@/store';
+import { useSettings } from '@/store/settings';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -52,6 +56,8 @@ export default function CategoryManager({ visible, onClose }: Props) {
     const { categories, subs, addCategory, updateCategory, removeCategory, reorderCategories } = useStore();
     const [editing, setEditing] = useState<Category | null>(null);
     const [adding, setAdding] = useState(false);
+    const [proFeature, setProFeature] = useState<ProFeatureKey | null>(null);
+    const isPro = useSettings(s => s.isPro);
 
     const subCountFor = (catId: string) => subs.filter(s => s.categoryId === catId).length;
 
@@ -108,7 +114,13 @@ export default function CategoryManager({ visible, onClose }: Props) {
                                 {categories.map(cat => (
                                     <AnimatedPressable
                                         key={cat.id}
-                                        onPress={() => setEditing(cat)}
+                                        onPress={() => {
+                                            if (!isPro) {
+                                                setProFeature('categories');
+                                                return;
+                                            }
+                                            setEditing(cat);
+                                        }}
                                         style={s.catRow}
                                     >
                                         <View style={[s.catIcon, { backgroundColor: `${cat.color}18` }]}>
@@ -125,14 +137,25 @@ export default function CategoryManager({ visible, onClose }: Props) {
                                     </AnimatedPressable>
                                 ))}
 
-                                <AnimatedPressable onPress={() => setAdding(true)} style={s.addRow}>
+                                <AnimatedPressable
+                                    onPress={() => {
+                                        if (!isPro) {
+                                            setProFeature('categories');
+                                            return;
+                                        }
+                                        setAdding(true);
+                                    }}
+                                    style={s.addRow}
+                                >
                                     <Text style={s.addLabel}>{t('categories.addCategory')}</Text>
+                                    {!isPro && <ProBadge />}
                                 </AnimatedPressable>
                             </>
                         )}
                     </ScrollView>
                 </View>
             </View>
+            <ProSheet feature={proFeature} onClose={() => setProFeature(null)} />
         </Modal>
     );
 }
