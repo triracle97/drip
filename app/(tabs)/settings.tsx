@@ -3,6 +3,7 @@ import CategoryManager from '@/components/CategoryManager';
 import CurrencySheet from '@/components/CurrencySheet';
 import IncomeSheet from '@/components/IncomeSheet';
 import LanguageSheet from '@/components/LanguageSheet';
+import ProPaywall from '@/components/ProPaywall';
 import Toast from '@/components/Toast';
 import { getCurrency } from '@/constants/currencies';
 import { C, LAYOUT, R, SP } from '@/constants/design';
@@ -27,6 +28,8 @@ export default function SettingsScreen() {
     const [showCategories, setShowCategories] = useState(false);
     const [showCurrency, setShowCurrency] = useState(false);
     const [showLanguage, setShowLanguage] = useState(false);
+    const [showPaywall, setShowPaywall] = useState(false);
+    const isPro = useSettings(s => s.isPro);
     const [showTimePicker, setShowTimePicker] = useState(false);
     const { t } = useTranslation();
     const [toast, setToast] = useState<string | null>(null);
@@ -99,6 +102,39 @@ export default function SettingsScreen() {
                     <Text style={s.summaryValue}>{fmt(totalMo)}</Text>
                     <Text style={s.summarySub}>= {toHrs(totalMo, rate)} of work at {fmt(rate)}/hr blended</Text>
                 </Card>
+
+                {/* Pro Status */}
+                {isPro ? (
+                    <View style={s.row}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+                                <Path
+                                    d="M12 2l2.09 6.26L20 9.27l-4.91 3.82L16.18 20 12 16.77 7.82 20l1.09-6.91L4 9.27l5.91-1.01L12 2z"
+                                    fill={C.gold}
+                                />
+                            </Svg>
+                            <Text style={s.rowLabel}>{t('pro.unlocked')}</Text>
+                        </View>
+                    </View>
+                ) : (
+                    <TouchableOpacity onPress={() => setShowPaywall(true)} style={s.row} activeOpacity={0.75}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+                                <Path
+                                    d="M12 2l2.09 6.26L20 9.27l-4.91 3.82L16.18 20 12 16.77 7.82 20l1.09-6.91L4 9.27l5.91-1.01L12 2z"
+                                    fill={C.gold}
+                                />
+                            </Svg>
+                            <Text style={s.rowLabel}>{t('pro.upgradeToPro')}</Text>
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <Text style={[s.rowHint, { color: C.gold, fontWeight: '600' }]}>{t('pro.upgradePrice')}</Text>
+                            <Svg width={12} height={12} viewBox="0 0 16 16" fill="none">
+                                <Path d="M6 3l5 5-5 5" stroke={C.t3} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+                            </Svg>
+                        </View>
+                    </TouchableOpacity>
+                )}
 
                 <Text style={s.sectionCap}>{t('settings.incomeRate')}</Text>
                 <View key={`income-${currency}`} style={s.incomeCard}>
@@ -174,6 +210,11 @@ export default function SettingsScreen() {
             <CurrencySheet visible={showCurrency} onClose={() => setShowCurrency(false)} />
             <LanguageSheet visible={showLanguage} onClose={() => setShowLanguage(false)} />
             <Toast message={toast} />
+            <ProPaywall
+                visible={showPaywall}
+                onClose={() => setShowPaywall(false)}
+                onPurchased={() => setToast(t('pro.purchaseSuccess'))}
+            />
         </View>
     );
 }
