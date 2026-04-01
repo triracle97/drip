@@ -17,8 +17,9 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import Animated, { FadeIn, FadeOut, SlideInRight, SlideOutLeft } from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, { FadeIn, FadeOut, SlideInLeft, SlideInRight, SlideOutLeft, SlideOutRight, runOnJS } from 'react-native-reanimated';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 const TOTAL_STEPS = 4;
@@ -40,8 +41,29 @@ export default function OnboardingSheet() {
   const { currentOffering, purchasePackage, restorePurchases } = useRevenueCat();
 
   const [step, setStep] = useState(0);
+  const [direction, setDirection] = useState<'forward' | 'back'>('forward');
   const [income, setIncome] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const goForward = (nextStep: number) => {
+    setDirection('forward');
+    setStep(nextStep);
+  };
+
+  const goBack = () => {
+    if (step > 0) {
+      setDirection('back');
+      setStep(step - 1);
+    }
+  };
+
+  const swipeGesture = Gesture.Pan()
+    .activeOffsetX([50, 50])
+    .onEnd((e) => {
+      if (e.translationX > 50 && step > 0) {
+        runOnJS(goBack)();
+      }
+    });
 
   const currencySymbol = getCurrency(currency).symbol;
 
@@ -69,7 +91,7 @@ export default function OnboardingSheet() {
       isHourly: false,
       hoursPerWeek: 40,
     });
-    setStep(3);
+    goForward(3);
   };
 
   const handlePurchase = async () => {
@@ -114,7 +136,7 @@ export default function OnboardingSheet() {
       </View>
       <View style={s.bottomArea}>
         <StepDots />
-        <TouchableOpacity style={s.ctaBtn} onPress={() => setStep(1)} activeOpacity={0.8}>
+        <TouchableOpacity style={s.ctaBtn} onPress={() => goForward(1)} activeOpacity={0.8}>
           <Text style={s.ctaText}>{t('onboarding.getStarted')}</Text>
         </TouchableOpacity>
       </View>
@@ -123,7 +145,7 @@ export default function OnboardingSheet() {
 
   // ─── Step 1: Feature Showcase ───
   const StepFeatures = () => (
-    <Animated.View entering={SlideInRight.duration(300)} exiting={SlideOutLeft.duration(200)} style={s.stepContainer}>
+    <Animated.View entering={direction === 'forward' ? SlideInRight.duration(300) : SlideInLeft.duration(300)} exiting={direction === 'forward' ? SlideOutLeft.duration(200) : SlideOutRight.duration(200)} style={s.stepContainer}>
       <View style={{ flex: 1, justifyContent: 'center', paddingHorizontal: 8 }}>
         {[
           { icon: 'calendar', title: t('onboarding.feature.calendar'), desc: t('onboarding.feature.calendarDesc') },
@@ -158,7 +180,7 @@ export default function OnboardingSheet() {
       </View>
       <View style={s.bottomArea}>
         <StepDots />
-        <TouchableOpacity style={s.ctaBtn} onPress={() => setStep(2)} activeOpacity={0.8}>
+        <TouchableOpacity style={s.ctaBtn} onPress={() => goForward(2)} activeOpacity={0.8}>
           <Text style={s.ctaText}>{t('onboarding.continue')}</Text>
         </TouchableOpacity>
       </View>
@@ -167,7 +189,7 @@ export default function OnboardingSheet() {
 
   // ─── Step 2: Income Input ───
   const StepIncome = () => (
-    <Animated.View entering={SlideInRight.duration(300)} exiting={SlideOutLeft.duration(200)} style={s.stepContainer}>
+    <Animated.View entering={direction === 'forward' ? SlideInRight.duration(300) : SlideInLeft.duration(300)} exiting={direction === 'forward' ? SlideOutLeft.duration(200) : SlideOutRight.duration(200)} style={s.stepContainer}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <Text style={s.incomeTitle}>{t('onboarding.incomeQuestion')}</Text>
         <View style={s.incomeInputRow}>
@@ -200,7 +222,7 @@ export default function OnboardingSheet() {
 
   // ─── Step 3: Paywall ───
   const StepPaywall = () => (
-    <Animated.View entering={SlideInRight.duration(300)} style={s.stepContainer}>
+    <Animated.View entering={direction === 'forward' ? SlideInRight.duration(300) : SlideInLeft.duration(300)} exiting={direction === 'forward' ? SlideOutLeft.duration(200) : SlideOutRight.duration(200)} style={s.stepContainer}>
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <View style={s.appIconSmall}>
           <Svg width={32} height={32} viewBox="0 0 24 24" fill="none">
@@ -252,12 +274,14 @@ export default function OnboardingSheet() {
       grabber={false}
       cornerRadius={0}
     >
-      <View style={[s.container, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 16 }]}>
-        {step === 0 && <StepValueProp />}
-        {step === 1 && <StepFeatures />}
-        {step === 2 && <StepIncome />}
-        {step === 3 && <StepPaywall />}
-      </View>
+      <GestureDetector gesture={swipeGesture}>
+        <SafeAreaView style={s.container}>
+          {step === 0 && <StepValueProp />}
+          {step === 1 && <StepFeatures />}
+          {step === 2 && <StepIncome />}
+          {step === 3 && <StepPaywall />}
+        </SafeAreaView>
+      </GestureDetector>
     </TrueSheet>
   );
 }
