@@ -58,9 +58,9 @@ export default function ProSheet({ feature, onClose, onPurchased }: Props) {
   return (
     <TrueSheet
       ref={sheetRef}
-      sizes={['auto']}
+      detents={['auto']}
       cornerRadius={24}
-      onDismiss={onClose}
+      onDidDismiss={onClose}
       grabber={false}
     >
       <View style={s.content}>
