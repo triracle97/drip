@@ -1,3 +1,4 @@
+import OnboardingSheet from '@/components/OnboardingSheet';
 import { C } from '@/constants/design';
 import { useRevenueCat } from '@/hooks/useRevenueCat';
 import '@/i18n';
@@ -108,6 +109,7 @@ function AppContent() {
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       </Stack>
+      <OnboardingSheet />
       <StatusBar style="dark" />
     </>
   );

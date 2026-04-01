@@ -247,7 +247,7 @@ export default function OnboardingSheet() {
   return (
     <TrueSheet
       ref={sheetRef}
-      detents={['large']}
+      detents={[1]}
       dismissible={false}
       grabber={false}
       cornerRadius={0}
