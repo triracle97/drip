@@ -83,6 +83,8 @@ const es = {
   'editSub.title': 'Editar Suscripción',
   'editSub.saveChanges': 'Guardar cambios',
   'editSub.remove': 'Eliminar',
+  'editSub.confirmRemoveTitle': 'Eliminar suscripción',
+  'editSub.confirmRemoveMessage': '¿Estás seguro de que deseas eliminar {{name}}?',
   'editSub.active': 'Activo',
   'editSub.toggleCancel': 'Desactiva para cancelar',
 
@@ -164,6 +166,7 @@ const es = {
   'subRow.trial': 'Prueba',
   'subRow.daysLeft': '{{count}}d restantes',
   'subRow.wasCost': 'era {{cost}}',
+  'subRow.trialEnded': 'Prueba terminada',
 
   // Upcoming charge
   'upcoming.tomorrow': 'Mañana',

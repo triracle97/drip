@@ -12,12 +12,13 @@ import { useSettings } from '@/store/settings';
 import { getPopularSubs, PopularSub } from '@/store/supabase';
 import {
   blended,
-  curDay,
   cycleDays, daysLabel,
+  daysSinceTrialEnd,
   fmt,
   nextChargeIn,
   subMo,
-  toHrs
+  toHrs,
+  trialDaysLeft,
 } from '@/utils/calc';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -72,8 +73,8 @@ export default function HomeScreen() {
   }, [popularSubs, sheetQuery]);
 
   const rate = blended(incomes);
-  const activeTrials = subs.filter(s => s.isTrial && s.trialDecision === 'pending' && s.trialEndDay > curDay);
-  const expiredTrials = subs.filter(s => s.isTrial && s.trialEndDay <= curDay);
+  const activeTrials = subs.filter(s => s.isTrial && s.trialDecision === 'pending' && trialDaysLeft(s.trialEndDay) > 0);
+  const expiredTrials = subs.filter(s => s.isTrial && trialDaysLeft(s.trialEndDay) <= 0);
   const active = [...subs.filter(s => s.active && !s.isTrial), ...expiredTrials];
   const inactive = subs.filter(s => !s.active && !s.isTrial);
   const totalMo = active.reduce((sum, s) => sum + subMo(s), 0);
@@ -90,10 +91,17 @@ export default function HomeScreen() {
   }, [active]);
 
   const displaySubs = useMemo(() => {
-    const list = filterCat ? active.filter(s => s.categoryId === filterCat) : active;
-    const trials = filterCat ? activeTrials.filter(s => s.categoryId === filterCat) : activeTrials;
-    return [...trials, ...list].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
-  }, [active, activeTrials, filterCat]);
+    // Single unified list: active trials + active regular + expired trials
+    // This preserves sortOrder positions across trial → paid transitions
+    const all = subs.filter(s => {
+      if (s.isTrial && s.trialDecision === 'pending' && trialDaysLeft(s.trialEndDay) > 0) return true;
+      if (s.isTrial && trialDaysLeft(s.trialEndDay) <= 0) return true;
+      if (s.active && !s.isTrial) return true;
+      return false;
+    });
+    const filtered = filterCat ? all.filter(s => s.categoryId === filterCat) : all;
+    return filtered.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  }, [subs, filterCat]);
 
   const isYr = viewPeriod === 'yr';
 
@@ -106,9 +114,9 @@ export default function HomeScreen() {
 
   const renderItem = useCallback(({ item: s_, drag, isActive: isDragging }: RenderItemParams<Sub>) => {
     // Trial card
-    if (s_.isTrial && s_.trialDecision === 'pending' && s_.trialEndDay > curDay) {
+    if (s_.isTrial && s_.trialDecision === 'pending' && trialDaysLeft(s_.trialEndDay) > 0) {
       const mc = subMo(s_);
-      const daysLeft = s_.trialEndDay - curDay;
+      const daysLeft = trialDaysLeft(s_.trialEndDay);
       const displayCost = isYr ? mc * 12 : mc;
       return (
         <ScaleDecorator>
@@ -133,6 +141,7 @@ export default function HomeScreen() {
     const remain = nextChargeIn(s_);
     const total = cycleDays(s_);
     const urgent = remain <= 3;
+    const justEndedTrial = s_.isTrial && daysSinceTrialEnd(s_.trialEndDay) <= 5;
     return (
       <ScaleDecorator>
         <SubRow
@@ -144,7 +153,8 @@ export default function HomeScreen() {
           renewLabel={daysLabel(remain)}
           hoursLabel={toHrs(displayCost, rate)}
           urgent={urgent}
-          onPress={() => setEditSubId(s_.id)}
+          trialJustEnded={justEndedTrial}
+          onPress={() => justEndedTrial ? setTrialSheet(s_) : setEditSubId(s_.id)}
           onLongPress={drag}
           isDragging={isDragging}
         />

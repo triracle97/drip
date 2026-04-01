@@ -57,7 +57,9 @@ function rowToSub(r: any): Sub {
         billDay: r.bill_day,
         startDate: r.start_date ?? undefined,
         isTrial: !!r.is_trial,
-        trialEndDay: r.trial_end_day,
+        trialEndDay: typeof r.trial_end_day === 'number'
+            ? (r.trial_end_day > 0 ? (() => { const d = new Date(); d.setDate(d.getDate() + Math.max(0, r.trial_end_day - d.getDate())); return d.toISOString().split('T')[0]; })() : '')
+            : (r.trial_end_day || ''),
         trialDecision: r.trial_decision,
         color: r.color,
         customNum: r.custom_num ?? undefined,

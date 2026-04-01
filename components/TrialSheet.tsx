@@ -4,7 +4,7 @@ import Card from '@/components/Card';
 import { C, R, SP } from '@/constants/design';
 import { Sub, useStore } from '@/store';
 import { useSettings } from '@/store/settings';
-import { blended, fmt, subMo, toHrs } from '@/utils/calc';
+import { blended, fmt, subMo, toHrs, trialDaysLeft } from '@/utils/calc';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -25,8 +25,7 @@ export default function TrialSheet({ sub: t, onClose }: Props) {
     const { incomes, decideTrial } = useStore();
     const currency = useSettings(s => s.currency);
     const rate = blended(incomes);
-    const today = new Date();
-    const curDay = today.getDate();
+
     const sheetRef = useRef<TrueSheet>(null);
 
     useEffect(() => {
@@ -41,7 +40,7 @@ export default function TrialSheet({ sub: t, onClose }: Props) {
     }, [t]);
 
     const mc = t ? subMo(t) : 0;
-    const daysLeft = t ? t.trialEndDay - curDay : 0;
+    const daysLeft = t ? trialDaysLeft(t.trialEndDay) : 0;
     const pct = Math.max(0, Math.min(1, 1 - daysLeft / 14));
     const circumference = 2 * Math.PI * 16;
 

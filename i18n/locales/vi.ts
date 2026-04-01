@@ -80,6 +80,8 @@ const vi = {
   'editSub.title': 'Chỉnh Sửa Đăng Ký',
   'editSub.saveChanges': 'Lưu thay đổi',
   'editSub.remove': 'Xóa',
+  'editSub.confirmRemoveTitle': 'Xóa đăng ký',
+  'editSub.confirmRemoveMessage': 'Bạn có chắc muốn xóa {{name}}?',
   'editSub.active': 'Đang hoạt động',
   'editSub.toggleCancel': 'Tắt để hủy đăng ký',
 
@@ -159,6 +161,7 @@ const vi = {
   'subRow.trial': 'Dùng thử',
   'subRow.daysLeft': 'còn {{count}} ngày',
   'subRow.wasCost': 'cũ {{cost}}',
+  'subRow.trialEnded': 'Hết dùng thử',
 
   // Upcoming charge
   'upcoming.tomorrow': 'Ngày mai',

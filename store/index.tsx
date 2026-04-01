@@ -14,7 +14,7 @@ export interface Sub {
     billDay: number;
     startDate?: string;
     isTrial: boolean;
-    trialEndDay: number;
+    trialEndDay: string;
     trialDecision: string;
     color: string;
     customNum?: number;

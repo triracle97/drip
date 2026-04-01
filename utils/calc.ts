@@ -211,3 +211,32 @@ export const dayName = (d: number, m: number, y: number) =>
     new Date(y, m, d).toLocaleDateString('en', { weekday: 'short' }).slice(0, 2);
 export const monthName = (m: number, y: number) =>
     new Date(y, m).toLocaleDateString('en', { month: 'long', year: 'numeric' });
+
+/** Return an ISO date string (YYYY-MM-DD) that is `days` days from today. */
+export const addDaysISO = (days: number): string => {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    return d.toISOString().split('T')[0];
+};
+
+/** Compute the number of days remaining until the trial-end ISO date string.
+ *  Returns 0 if the date is in the past or the value is empty / falsy. */
+export const trialDaysLeft = (trialEndDay: string): number => {
+    if (!trialEndDay) return 0;
+    const end = new Date(trialEndDay + 'T00:00:00');
+    if (isNaN(end.getTime())) return 0;
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    return Math.max(0, Math.ceil((end.getTime() - now.getTime()) / 86400000));
+};
+
+/** How many days ago the trial ended. Returns 0 if still active, Infinity if no date. */
+export const daysSinceTrialEnd = (trialEndDay: string): number => {
+    if (!trialEndDay) return Infinity;
+    const end = new Date(trialEndDay + 'T00:00:00');
+    if (isNaN(end.getTime())) return Infinity;
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const diff = Math.floor((now.getTime() - end.getTime()) / 86400000);
+    return Math.max(0, diff);
+};

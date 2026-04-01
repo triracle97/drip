@@ -80,6 +80,8 @@ const zh = {
   'editSub.title': '编辑订阅',
   'editSub.saveChanges': '保存更改',
   'editSub.remove': '移除',
+  'editSub.confirmRemoveTitle': '移除订阅',
+  'editSub.confirmRemoveMessage': '确定要移除 {{name}} 吗？',
   'editSub.active': '激活',
   'editSub.toggleCancel': '关闭以取消订阅',
 
@@ -159,6 +161,7 @@ const zh = {
   'subRow.trial': '试用',
   'subRow.daysLeft': '剩 {{count}} 天',
   'subRow.wasCost': '原价 {{cost}}',
+  'subRow.trialEnded': '试用结束',
 
   // Upcoming charge
   'upcoming.tomorrow': '明天',

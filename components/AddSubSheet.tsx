@@ -6,7 +6,7 @@ import { C, R } from "@/constants/design";
 import { Sub, useStore } from "@/store";
 import { useSettings } from "@/store/settings";
 import { getPopularSubs, PopularSub } from "@/store/supabase";
-import { blended, curDay, fmt, moEq, toHrs } from "@/utils/calc";
+import { addDaysISO, blended, fmt, moEq, toHrs } from "@/utils/calc";
 import { TrueSheet } from "@lodev09/react-native-true-sheet";
 import React, {
     forwardRef,
@@ -231,7 +231,7 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
 
   const save = () => {
     if (!canSave) return;
-    const trialEnd = f.isTrial ? curDay + parseInt(f.trialDays) : 0;
+    const trialEnd = f.isTrial ? addDaysISO(parseInt(f.trialDays) || 0) : '';
     const bd = f.startDate
       ? new Date(f.startDate).getDate()
       : parseInt(f.billDay) || 1;

@@ -5,11 +5,12 @@ import Card from '@/components/Card';
 import { C, R } from '@/constants/design';
 import { useStore } from '@/store';
 import { useSettings } from '@/store/settings';
-import { blended, curDay, fmt, moEq, toHrs } from '@/utils/calc';
+import { addDaysISO, blended, fmt, moEq, toHrs, trialDaysLeft } from '@/utils/calc';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+    Alert,
     Modal,
     ScrollView,
     StyleSheet,
@@ -102,7 +103,7 @@ export default function EditSubSheet({ id, onClose }: { id: string | null; onClo
                 billDay: String(activeSub.billDay || '1'),
                 startDate: activeSub.startDate || new Date().toISOString().split('T')[0],
                 isTrial: activeSub.isTrial || false,
-                trialDays: String(activeSub.trialEndDay ? Math.max(0, activeSub.trialEndDay - curDay) : 14),
+                trialDays: String(activeSub.trialEndDay ? trialDaysLeft(activeSub.trialEndDay) : 14),
                 customNum: String(activeSub.customNum || 2),
                 customUnit: activeSub.customUnit || 'months',
                 active: activeSub.active ?? true,
@@ -132,7 +133,7 @@ export default function EditSubSheet({ id, onClose }: { id: string | null; onClo
         const original = subs.find(s => s.id === id);
         if (!original) return;
 
-        const trialEnd = f.isTrial ? curDay + parseInt(f.trialDays) : 0;
+        const trialEnd = f.isTrial ? addDaysISO(parseInt(f.trialDays) || 0) : '';
         const bd = f.startDate ? new Date(f.startDate).getDate() : parseInt(f.billDay) || 1;
         updateSub({
             ...original,
@@ -150,8 +151,22 @@ export default function EditSubSheet({ id, onClose }: { id: string | null; onClo
 
     const remove = () => {
         if (!id) return;
-        removeSub(id);
-        dismissAndRouteBack();
+        const sub = subs.find(s => s.id === id);
+        Alert.alert(
+            t('editSub.confirmRemoveTitle'),
+            t('editSub.confirmRemoveMessage', { name: sub?.name || '' }),
+            [
+                { text: t('common.cancel'), style: 'cancel' },
+                {
+                    text: t('editSub.remove'),
+                    style: 'destructive',
+                    onPress: () => {
+                        removeSub(id);
+                        dismissAndRouteBack();
+                    },
+                },
+            ],
+        );
     };
 
     return (

@@ -80,6 +80,8 @@ const ja = {
   'editSub.title': 'サブスクリプションを編集',
   'editSub.saveChanges': '変更を保存',
   'editSub.remove': '削除',
+  'editSub.confirmRemoveTitle': 'サブスクを削除',
+  'editSub.confirmRemoveMessage': '{{name}}を削除してもよろしいですか？',
   'editSub.active': '有効',
   'editSub.toggleCancel': 'オフにしてキャンセル',
 
@@ -159,6 +161,7 @@ const ja = {
   'subRow.trial': 'トライアル',
   'subRow.daysLeft': 'あと {{count}} 日',
   'subRow.wasCost': '旧価格 {{cost}}',
+  'subRow.trialEnded': 'お試し終了',
 
   // Upcoming charge
   'upcoming.tomorrow': '明日',

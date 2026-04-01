@@ -80,6 +80,8 @@ const ko = {
   'editSub.title': '구독 편집',
   'editSub.saveChanges': '변경 사항 저장',
   'editSub.remove': '제거',
+  'editSub.confirmRemoveTitle': '구독 제거',
+  'editSub.confirmRemoveMessage': '{{name}}을(를) 제거하시겠습니까?',
   'editSub.active': '활성',
   'editSub.toggleCancel': '끄면 구독이 취소됩니다',
 
@@ -159,6 +161,7 @@ const ko = {
   'subRow.trial': '체험',
   'subRow.daysLeft': '{{count}}일 남음',
   'subRow.wasCost': '이전 {{cost}}',
+  'subRow.trialEnded': '체험판 종료',
 
   // Upcoming charge
   'upcoming.tomorrow': '내일',
