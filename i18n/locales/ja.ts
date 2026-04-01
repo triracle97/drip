@@ -228,6 +228,36 @@ const ja = {
   // Breakdown
   'breakdown.title': '{{month}} の内訳',
   'breakdown.other': 'その他',
+
+  // Pro / Paywall
+  'pro.badge': 'PRO',
+  'pro.unlockPro': 'Drip Proを解除',
+  'pro.priceOnce': '¥600 — 買い切り',
+  'pro.ctaButton': 'Proを解除',
+  'pro.restorePurchase': '購入を復元',
+  'pro.notNow': '今はしない',
+  'pro.unlocked': 'Pro — 解除済み',
+  'pro.upgradeToPro': 'Proにアップグレード',
+  'pro.upgradePrice': '¥600',
+  'pro.purchaseSuccess': 'Drip Proへようこそ！',
+  'pro.restoreSuccess': '購入が復元されました！',
+  'pro.restoreNone': '以前の購入が見つかりません',
+  'pro.headline.subs': 'すべてのサブスクを管理',
+  'pro.desc.subs': '2つの制限を解除して、すべてのサービスを追跡しましょう。',
+  'pro.headline.insights': '支出トレンドを確認',
+  'pro.desc.insights': '完全な支出履歴、カテゴリ内訳、生涯コストを解除。',
+  'pro.headline.calendar': '更新を見逃さない',
+  'pro.desc.calendar': 'すべてのサブスクの更新タイムラインを確認。',
+  'pro.headline.trial': 'トライアルを管理',
+  'pro.desc.trial': '無料トライアルを追跡し、課金前にリマインダーを受け取る。',
+  'pro.headline.categories': 'カテゴリをカスタマイズ',
+  'pro.desc.categories': 'カテゴリのアイコン、色、順序をカスタマイズ。',
+  'pro.feature.unlimitedSubs': '無制限のサブスク',
+  'pro.feature.fullInsights': '完全な支出分析とトレンド',
+  'pro.feature.fullCalendar': '完全な更新カレンダー',
+  'pro.feature.trialTracking': 'トライアル追跡とリマインダー',
+  'pro.feature.customCategories': 'カスタムカテゴリ',
+  'pro.subLimitHint': 'Proでもっと追加',
 };
 
 export default ja;

@@ -233,6 +233,36 @@ const es = {
   // Breakdown
   'breakdown.title': 'DESGLOSE DE {{month}}',
   'breakdown.other': 'Otro',
+
+  // Pro / Paywall
+  'pro.badge': 'PRO',
+  'pro.unlockPro': 'Desbloquear Drip Pro',
+  'pro.priceOnce': '$4 — Compra única',
+  'pro.ctaButton': 'Desbloquear Pro',
+  'pro.restorePurchase': 'Restaurar compra',
+  'pro.notNow': 'Ahora no',
+  'pro.unlocked': 'Pro — Desbloqueado',
+  'pro.upgradeToPro': 'Mejorar a Pro',
+  'pro.upgradePrice': '$4',
+  'pro.purchaseSuccess': '¡Bienvenido a Drip Pro!',
+  'pro.restoreSuccess': '¡Compra restaurada!',
+  'pro.restoreNone': 'No se encontró ninguna compra anterior',
+  'pro.headline.subs': 'Rastrea todas tus suscripciones',
+  'pro.desc.subs': 'Elimina el límite de 2 suscripciones y rastrea cada servicio que pagas.',
+  'pro.headline.insights': 'Ve tus tendencias de gastos',
+  'pro.desc.insights': 'Desbloquea el historial completo de gastos, desglose por categoría y costos de por vida.',
+  'pro.headline.calendar': 'No te pierdas una renovación',
+  'pro.desc.calendar': 'Ve tu línea de tiempo completa de renovaciones.',
+  'pro.headline.trial': 'Controla tus pruebas',
+  'pro.desc.trial': 'Rastrea pruebas gratuitas y recibe recordatorios antes de que empiecen a cobrar.',
+  'pro.headline.categories': 'Personaliza tus categorías',
+  'pro.desc.categories': 'Personaliza iconos, colores y orden de categorías.',
+  'pro.feature.unlimitedSubs': 'Suscripciones ilimitadas',
+  'pro.feature.fullInsights': 'Análisis y tendencias completas',
+  'pro.feature.fullCalendar': 'Calendario completo de renovaciones',
+  'pro.feature.trialTracking': 'Seguimiento de pruebas y recordatorios',
+  'pro.feature.customCategories': 'Categorías personalizadas',
+  'pro.subLimitHint': 'Añade más con Pro',
 };
 
 export default es;

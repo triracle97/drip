@@ -228,6 +228,36 @@ const ko = {
   // Breakdown
   'breakdown.title': '{{month}} 분석',
   'breakdown.other': '기타',
+
+  // Pro / Paywall
+  'pro.badge': 'PRO',
+  'pro.unlockPro': 'Drip Pro 잠금 해제',
+  'pro.priceOnce': '₩5,900 — 일회성 구매',
+  'pro.ctaButton': 'Pro 잠금 해제',
+  'pro.restorePurchase': '구매 복원',
+  'pro.notNow': '나중에',
+  'pro.unlocked': 'Pro — 잠금 해제됨',
+  'pro.upgradeToPro': 'Pro로 업그레이드',
+  'pro.upgradePrice': '₩5,900',
+  'pro.purchaseSuccess': 'Drip Pro에 오신 것을 환영합니다!',
+  'pro.restoreSuccess': '구매가 복원되었습니다!',
+  'pro.restoreNone': '이전 구매를 찾을 수 없습니다',
+  'pro.headline.subs': '모든 구독을 추적하세요',
+  'pro.desc.subs': '2개 구독 제한을 해제하고 모든 서비스를 추적하세요.',
+  'pro.headline.insights': '지출 트렌드 확인',
+  'pro.desc.insights': '전체 지출 내역, 카테고리 분석, 평생 비용을 잠금 해제하세요.',
+  'pro.headline.calendar': '갱신을 놓치지 마세요',
+  'pro.desc.calendar': '모든 구독의 전체 갱신 일정을 확인하세요.',
+  'pro.headline.trial': '체험판을 관리하세요',
+  'pro.desc.trial': '무료 체험판을 추적하고 결제 전에 알림을 받으세요.',
+  'pro.headline.categories': '나만의 카테고리',
+  'pro.desc.categories': '카테고리 아이콘, 색상, 순서를 맞춤 설정하세요.',
+  'pro.feature.unlimitedSubs': '무제한 구독',
+  'pro.feature.fullInsights': '전체 지출 분석 및 트렌드',
+  'pro.feature.fullCalendar': '전체 갱신 캘린더',
+  'pro.feature.trialTracking': '체험판 추적 및 알림',
+  'pro.feature.customCategories': '맞춤 카테고리',
+  'pro.subLimitHint': 'Pro로 더 추가하기',
 };
 
 export default ko;

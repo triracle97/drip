@@ -228,6 +228,36 @@ const zh = {
   // Breakdown
   'breakdown.title': '{{month}} 明细',
   'breakdown.other': '其他',
+
+  // Pro / Paywall
+  'pro.badge': 'PRO',
+  'pro.unlockPro': '解锁 Drip Pro',
+  'pro.priceOnce': '¥28 — 一次性购买',
+  'pro.ctaButton': '解锁 Pro',
+  'pro.restorePurchase': '恢复购买',
+  'pro.notNow': '暂时不用',
+  'pro.unlocked': 'Pro — 已解锁',
+  'pro.upgradeToPro': '升级到 Pro',
+  'pro.upgradePrice': '¥28',
+  'pro.purchaseSuccess': '欢迎使用 Drip Pro！',
+  'pro.restoreSuccess': '购买已恢复！',
+  'pro.restoreNone': '未找到之前的购买记录',
+  'pro.headline.subs': '追踪所有订阅',
+  'pro.desc.subs': '解除2个订阅的限制，追踪你支付的每项服务。',
+  'pro.headline.insights': '查看消费趋势',
+  'pro.desc.insights': '解锁完整的消费历史、分类明细和终生费用。',
+  'pro.headline.calendar': '不再错过续费',
+  'pro.desc.calendar': '查看所有订阅的完整续费时间线。',
+  'pro.headline.trial': '掌控试用期',
+  'pro.desc.trial': '追踪免费试用，在开始收费前收到提醒。',
+  'pro.headline.categories': '自定义分类',
+  'pro.desc.categories': '自定义分类图标、颜色和顺序。',
+  'pro.feature.unlimitedSubs': '无限订阅',
+  'pro.feature.fullInsights': '完整消费洞察与趋势',
+  'pro.feature.fullCalendar': '完整续费日历',
+  'pro.feature.trialTracking': '试用追踪与提醒',
+  'pro.feature.customCategories': '自定义分类',
+  'pro.subLimitHint': '升级 Pro 添加更多',
 };
 
 export default zh;

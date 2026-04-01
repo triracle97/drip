@@ -228,6 +228,36 @@ const vi = {
   // Breakdown
   'breakdown.title': 'PHÂN TÍCH {{month}}',
   'breakdown.other': 'Khác',
+
+  // Pro / Paywall
+  'pro.badge': 'PRO',
+  'pro.unlockPro': 'Mở khóa Drip Pro',
+  'pro.priceOnce': '$4 — Mua một lần',
+  'pro.ctaButton': 'Mở khóa Pro',
+  'pro.restorePurchase': 'Khôi phục mua hàng',
+  'pro.notNow': 'Để sau',
+  'pro.unlocked': 'Pro — Đã mở khóa',
+  'pro.upgradeToPro': 'Nâng cấp lên Pro',
+  'pro.upgradePrice': '$4',
+  'pro.purchaseSuccess': 'Chào mừng đến Drip Pro!',
+  'pro.restoreSuccess': 'Đã khôi phục mua hàng!',
+  'pro.restoreNone': 'Không tìm thấy giao dịch trước đó',
+  'pro.headline.subs': 'Theo dõi tất cả đăng ký',
+  'pro.desc.subs': 'Xóa giới hạn 2 đăng ký và theo dõi mọi dịch vụ bạn đang trả.',
+  'pro.headline.insights': 'Xem xu hướng chi tiêu',
+  'pro.desc.insights': 'Mở khóa lịch sử chi tiêu, phân tích danh mục và chi phí trọn đời.',
+  'pro.headline.calendar': 'Không bỏ lỡ gia hạn',
+  'pro.desc.calendar': 'Xem toàn bộ lịch gia hạn của tất cả đăng ký.',
+  'pro.headline.trial': 'Quản lý dùng thử',
+  'pro.desc.trial': 'Theo dõi dùng thử miễn phí và nhận nhắc nhở trước khi bị tính phí.',
+  'pro.headline.categories': 'Tùy chỉnh danh mục',
+  'pro.desc.categories': 'Tùy chỉnh biểu tượng, màu sắc và thứ tự danh mục.',
+  'pro.feature.unlimitedSubs': 'Đăng ký không giới hạn',
+  'pro.feature.fullInsights': 'Phân tích chi tiêu đầy đủ',
+  'pro.feature.fullCalendar': 'Lịch gia hạn đầy đủ',
+  'pro.feature.trialTracking': 'Theo dõi dùng thử & nhắc nhở',
+  'pro.feature.customCategories': 'Danh mục tùy chỉnh',
+  'pro.subLimitHint': 'Thêm với Pro',
 };
 
 export default vi;

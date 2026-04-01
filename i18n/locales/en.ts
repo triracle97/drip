@@ -233,6 +233,36 @@ const en = {
   // Language
   'language.title': 'Language',
   'language.auto': 'Auto (System)',
+
+  // Pro / Paywall
+  'pro.badge': 'PRO',
+  'pro.unlockPro': 'Unlock Drip Pro',
+  'pro.priceOnce': '$4 — One-time purchase',
+  'pro.ctaButton': 'Unlock Pro',
+  'pro.restorePurchase': 'Restore Purchase',
+  'pro.notNow': 'Not now',
+  'pro.unlocked': 'Pro — Unlocked',
+  'pro.upgradeToPro': 'Upgrade to Pro',
+  'pro.upgradePrice': '$4',
+  'pro.purchaseSuccess': 'Welcome to Drip Pro!',
+  'pro.restoreSuccess': 'Purchase restored!',
+  'pro.restoreNone': 'No previous purchase found',
+  'pro.headline.subs': 'Track All Your Subscriptions',
+  'pro.desc.subs': 'Remove the 2-subscription limit and track every service you pay for.',
+  'pro.headline.insights': 'See Your Spending Trends',
+  'pro.desc.insights': 'Unlock full spending history, category breakdown, and lifetime costs.',
+  'pro.headline.calendar': 'Never Miss a Renewal',
+  'pro.desc.calendar': 'See your complete renewal timeline across all subscriptions.',
+  'pro.headline.trial': 'Stay On Top of Trials',
+  'pro.desc.trial': 'Track free trials and get reminded before they start charging.',
+  'pro.headline.categories': 'Make Categories Yours',
+  'pro.desc.categories': 'Customize category icons, colors, and order to match your workflow.',
+  'pro.feature.unlimitedSubs': 'Unlimited subscriptions',
+  'pro.feature.fullInsights': 'Full spending insights & trends',
+  'pro.feature.fullCalendar': 'Complete renewal calendar',
+  'pro.feature.trialTracking': 'Trial tracking & reminders',
+  'pro.feature.customCategories': 'Custom categories',
+  'pro.subLimitHint': 'Add more with Pro',
 };
 
 export default en;
