@@ -3,6 +3,9 @@ import AnimatedPressable from '@/components/AnimatedPressable';
 import Card from '@/components/Card';
 import EditSubSheet from '@/components/EditSubSheet';
 import IncomeSheet from '@/components/IncomeSheet';
+import ProBadge from '@/components/ProBadge';
+import ProSheet from '@/components/ProSheet';
+import type { ProFeatureKey } from '@/components/ProSheet';
 import SubRow from '@/components/SubRow';
 import Toast from '@/components/Toast';
 import TrialSheet from '@/components/TrialSheet';
@@ -55,6 +58,8 @@ export default function HomeScreen() {
   const [trialSheet, setTrialSheet] = useState<Sub | null>(null);
   const [editSubId, setEditSubId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [proFeature, setProFeature] = useState<ProFeatureKey | null>(null);
+  const isPro = useSettings(s => s.isPro);
   const addSheetRef = useRef<TrueSheet>(null);
   const incomeRef = useRef<TrueSheet>(null);
 
@@ -217,6 +222,25 @@ export default function HomeScreen() {
 
   const ListFooter = useMemo(() => (
     <>
+      {!isPro && subs.filter(s => s.active || s.isTrial).length >= 2 && (
+        <TouchableOpacity
+          onPress={() => setProFeature('subs')}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            paddingVertical: 16,
+            marginTop: 8,
+            borderRadius: 16,
+            backgroundColor: 'rgba(245,166,35,0.08)',
+          }}
+          activeOpacity={0.7}
+        >
+          <ProBadge size="sm" />
+          <Text style={{ fontSize: 13, fontWeight: '500', color: '#F5A623' }}>{t('pro.subLimitHint')}</Text>
+        </TouchableOpacity>
+      )}
       {inactive.length > 0 && (
         <View style={{ marginTop: 24 }}>
           <Text style={[s.sectionCap, { marginBottom: 8 }]}>{t('home.cancelled')}</Text>
@@ -234,7 +258,7 @@ export default function HomeScreen() {
         </View>
       )}
     </>
-  ), [inactive, isYr]);
+  ), [inactive, isYr, isPro, subs]);
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
@@ -247,7 +271,16 @@ export default function HomeScreen() {
           </Svg>
           <Text style={s.wordmark}>Drip</Text>
         </View>
-        <AnimatedPressable onPress={() => addSheetRef.current?.present()} style={s.addBtn}>
+        <AnimatedPressable
+          onPress={() => {
+            if (!isPro && subs.filter(s => s.active || s.isTrial).length >= 2) {
+              setProFeature('subs');
+            } else {
+              addSheetRef.current?.present();
+            }
+          }}
+          style={s.addBtn}
+        >
           <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
             <Path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth={2.2} strokeLinecap="round" />
           </Svg>
@@ -274,6 +307,7 @@ export default function HomeScreen() {
 
       <Toast message={toast} />
       <IncomeSheet ref={incomeRef} />
+      <ProSheet feature={proFeature} onClose={() => setProFeature(null)} />
     </View>
   );
 }
