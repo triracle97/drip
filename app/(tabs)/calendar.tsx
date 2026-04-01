@@ -4,12 +4,16 @@ import EditSubSheet from '@/components/EditSubSheet';
 import IncomeCTA from '@/components/IncomeCTA';
 import IncomeSheet from '@/components/IncomeSheet';
 import MonthSummaryCard from '@/components/MonthSummaryCard';
+import ProBlurOverlay from '@/components/ProBlurOverlay';
+import ProSheet from '@/components/ProSheet';
+import type { ProFeatureKey } from '@/components/ProSheet';
 import TrialSheet from '@/components/TrialSheet';
 import UpcomingChargeCompact from '@/components/UpcomingChargeCompact';
 import UpcomingChargeHero from '@/components/UpcomingChargeHero';
 import { C, LAYOUT, R } from '@/constants/design';
 import { Sub, useStore } from '@/store';
 import type { SubscriptionEvent } from '@/store/repository';
+import { useSettings } from '@/store/settings';
 import { getEventsByMonth } from '@/store/repository';
 import { blended, curMonth, curYear, fmt, monthName, nextChargeIn, subMo, toHrs } from '@/utils/calc';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
@@ -46,6 +50,8 @@ export default function TimelineScreen() {
     const [editSubId, setEditSubId] = useState<string | null>(null);
     const incomeRef = useRef<TrueSheet>(null);
     const [monthEvents, setMonthEvents] = useState<SubscriptionEvent[]>([]);
+    const [proFeature, setProFeature] = useState<ProFeatureKey | null>(null);
+    const isPro = useSettings(s => s.isPro);
 
     const isCurrentMonth = calMonth === curMonth && calYear === curYear;
 
@@ -203,52 +209,74 @@ export default function TimelineScreen() {
                             hoursLabel={toHrs(subMo(heroCharge.sub), rate)}
                             onPress={() => handleSubPress(heroCharge.sub)}
                         />
-                        {otherCharges.length > 0 && otherCharges.length <= 2 && (
-                            <View style={s.compactInlineRow}>
-                                {otherCharges.map(({ sub, daysLeft }) => (
-                                    <View key={sub.id} style={{ flex: 1 }}>
-                                        <UpcomingChargeCompact
-                                            name={sub.name}
-                                            icon={sub.icon}
-                                            color={sub.color}
-                                            daysLeft={daysLeft}
-                                            cost={fmt(sub.cost)}
-                                            onPress={() => handleSubPress(sub)}
-                                        />
-                                    </View>
-                                ))}
-                            </View>
-                        )}
-                        {otherCharges.length > 2 && (
-                            <ScrollView
-                                horizontal
-                                showsHorizontalScrollIndicator={false}
-                                contentContainerStyle={s.compactScroll}
-                                style={s.compactScrollOuter}
-                            >
-                                {(() => {
-                                    // Group charges into pairs (columns of 2)
-                                    const pairs: { sub: typeof otherCharges[0]['sub']; daysLeft: number }[][] = [];
-                                    for (let i = 0; i < otherCharges.length; i += 2) {
-                                        pairs.push(otherCharges.slice(i, i + 2));
-                                    }
-                                    return pairs.map((pair, idx) => (
-                                        <View key={idx} style={s.compactColumn}>
-                                            {pair.map(({ sub, daysLeft }) => (
+                        {otherCharges.length > 0 && (
+                            isPro ? (
+                                <>
+                                    {otherCharges.length <= 2 && (
+                                        <View style={s.compactInlineRow}>
+                                            {otherCharges.map(({ sub, daysLeft }) => (
+                                                <View key={sub.id} style={{ flex: 1 }}>
+                                                    <UpcomingChargeCompact
+                                                        name={sub.name}
+                                                        icon={sub.icon}
+                                                        color={sub.color}
+                                                        daysLeft={daysLeft}
+                                                        cost={fmt(sub.cost)}
+                                                        onPress={() => handleSubPress(sub)}
+                                                    />
+                                                </View>
+                                            ))}
+                                        </View>
+                                    )}
+                                    {otherCharges.length > 2 && (
+                                        <ScrollView
+                                            horizontal
+                                            showsHorizontalScrollIndicator={false}
+                                            contentContainerStyle={s.compactScroll}
+                                            style={s.compactScrollOuter}
+                                        >
+                                            {(() => {
+                                                const pairs: { sub: typeof otherCharges[0]['sub']; daysLeft: number }[][] = [];
+                                                for (let i = 0; i < otherCharges.length; i += 2) {
+                                                    pairs.push(otherCharges.slice(i, i + 2));
+                                                }
+                                                return pairs.map((pair, idx) => (
+                                                    <View key={idx} style={s.compactColumn}>
+                                                        {pair.map(({ sub, daysLeft }) => (
+                                                            <UpcomingChargeCompact
+                                                                key={sub.id}
+                                                                name={sub.name}
+                                                                icon={sub.icon}
+                                                                color={sub.color}
+                                                                daysLeft={daysLeft}
+                                                                cost={fmt(sub.cost)}
+                                                                onPress={() => handleSubPress(sub)}
+                                                            />
+                                                        ))}
+                                                    </View>
+                                                ));
+                                            })()}
+                                        </ScrollView>
+                                    )}
+                                </>
+                            ) : (
+                                <ProBlurOverlay onPress={() => setProFeature('calendar')}>
+                                    <View style={s.compactInlineRow}>
+                                        {otherCharges.slice(0, 2).map(({ sub, daysLeft }) => (
+                                            <View key={sub.id} style={{ flex: 1 }}>
                                                 <UpcomingChargeCompact
-                                                    key={sub.id}
                                                     name={sub.name}
                                                     icon={sub.icon}
                                                     color={sub.color}
                                                     daysLeft={daysLeft}
                                                     cost={fmt(sub.cost)}
-                                                    onPress={() => handleSubPress(sub)}
+                                                    onPress={() => {}}
                                                 />
-                                            ))}
-                                        </View>
-                                    ));
-                                })()}
-                            </ScrollView>
+                                            </View>
+                                        ))}
+                                    </View>
+                                </ProBlurOverlay>
+                            )
                         )}
                     </Animated.View>
                 )}
@@ -259,23 +287,45 @@ export default function TimelineScreen() {
                 )}
 
                 {/* Month Summary */}
-                <Animated.View entering={FadeInDown.duration(300).delay(isCurrentMonth && heroCharge ? 200 : 100)}>
-                    <MonthSummaryCard
-                        breakdown={catBreakdown}
-                        catMap={catMap}
-                        totalMo={totalMo}
-                        activeCount={activeCount}
-                        prevMonthTotal={prevMonthTotal}
-                        prevMonthLabel={prevMonthLabel}
-                    />
-                </Animated.View>
+                {isPro ? (
+                    <Animated.View entering={FadeInDown.duration(300).delay(isCurrentMonth && heroCharge ? 200 : 100)}>
+                        <MonthSummaryCard
+                            breakdown={catBreakdown}
+                            catMap={catMap}
+                            totalMo={totalMo}
+                            activeCount={activeCount}
+                            prevMonthTotal={prevMonthTotal}
+                            prevMonthLabel={prevMonthLabel}
+                        />
+                    </Animated.View>
+                ) : (
+                    <ProBlurOverlay onPress={() => setProFeature('calendar')}>
+                        <MonthSummaryCard
+                            breakdown={catBreakdown}
+                            catMap={catMap}
+                            totalMo={totalMo}
+                            activeCount={activeCount}
+                            prevMonthTotal={prevMonthTotal}
+                            prevMonthLabel={prevMonthLabel}
+                        />
+                    </ProBlurOverlay>
+                )}
 
                 {/* Activity Log */}
-                <Animated.View entering={FadeInDown.duration(300).delay(isCurrentMonth && heroCharge ? 300 : 200)} style={{ marginTop: 8 }}>
-                    <ActivityLog events={monthEvents} subMap={subMap} />
-                </Animated.View>
+                {isPro ? (
+                    <Animated.View entering={FadeInDown.duration(300).delay(isCurrentMonth && heroCharge ? 300 : 200)} style={{ marginTop: 8 }}>
+                        <ActivityLog events={monthEvents} subMap={subMap} />
+                    </Animated.View>
+                ) : (
+                    <View style={{ marginTop: 8 }}>
+                        <ProBlurOverlay onPress={() => setProFeature('calendar')}>
+                            <ActivityLog events={monthEvents} subMap={subMap} />
+                        </ProBlurOverlay>
+                    </View>
+                )}
             </ScrollView>
 
+            <ProSheet feature={proFeature} onClose={() => setProFeature(null)} />
             <TrialSheet sub={trialSheet} onClose={() => setTrialSheet(null)} />
             <EditSubSheet id={editSubId} onClose={() => setEditSubId(null)} />
             <IncomeSheet ref={incomeRef} />
