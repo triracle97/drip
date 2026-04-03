@@ -1,26 +1,25 @@
-import { C } from '@/constants/design';
-import { useRevenueCat } from '@/hooks/useRevenueCat';
-import { TrueSheet } from '@lodev09/react-native-true-sheet';
-import React, { useEffect, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { C } from "@/constants/design";
+import { useRevenueCat } from "@/hooks/useRevenueCat";
+import { useSettings } from "@/store/settings";
+import { TrueSheet } from "@lodev09/react-native-true-sheet";
+import LottieView from "lottie-react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-} from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withRepeat,
-  withTiming,
-  withSequence,
-  Easing,
-} from 'react-native-reanimated';
-import Svg, { Path, Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
+} from "react-native";
 
-export type ProFeatureKey = 'subs' | 'insights' | 'calendar' | 'trial' | 'categories' | 'customSub';
+export type ProFeatureKey =
+  | "subs"
+  | "insights"
+  | "calendar"
+  | "trial"
+  | "categories"
+  | "customSub";
 
 interface Props {
   feature: ProFeatureKey | null;
@@ -32,7 +31,9 @@ interface Props {
 
 export default function ProSheet({ feature, onClose, onPurchased }: Props) {
   const { t } = useTranslation();
-  const { currentOffering, purchasePackage, restorePurchases } = useRevenueCat();
+  const { setIsPro, setShowCongrats } = useSettings();
+  const { currentOffering, purchasePackage, restorePurchases } =
+    useRevenueCat();
   const sheetRef = useRef<TrueSheet>(null);
   const [loading, setLoading] = useState(false);
 
@@ -49,11 +50,21 @@ export default function ProSheet({ feature, onClose, onPurchased }: Props) {
 
   const handlePurchase = async () => {
     const pack = currentOffering?.availablePackages[0];
-    if (!pack) return;
+    if (!pack) {
+      if (__DEV__) {
+        setIsPro(true);
+        setShowCongrats(true);
+        sheetRef.current?.dismiss().catch(() => {});
+        onPurchased?.();
+      }
+      return;
+    }
     setLoading(true);
     const success = await purchasePackage(pack);
     setLoading(false);
     if (success) {
+      setIsPro(true);
+      setShowCongrats(true);
       sheetRef.current?.dismiss().catch(() => {});
       onPurchased?.();
     }
@@ -68,18 +79,25 @@ export default function ProSheet({ feature, onClose, onPurchased }: Props) {
   return (
     <TrueSheet
       ref={sheetRef}
-      detents={['auto']}
+      detents={["auto"]}
       cornerRadius={32}
       onDidDismiss={onClose}
       grabber={false}
     >
       <View style={s.content}>
+        <View style={s.animationContainer}>
+          <LottieView
+            style={{ width: "100%", height: "100%" }}
+            source={require("@/assets/animation/drop.json")}
+            autoPlay={true}
+            loop={true}
+          />
+        </View>
+
         <Text style={s.headline}>
-          {feature ? t(`pro.headline.${feature}`) : ''}
+          {feature ? t(`pro.headline.${feature}`) : ""}
         </Text>
-        <Text style={s.desc}>
-          {feature ? t(`pro.desc.${feature}`) : ''}
-        </Text>
+        <Text style={s.desc}>{feature ? t(`pro.desc.${feature}`) : ""}</Text>
 
         <TouchableOpacity
           style={s.ctaBtn}
@@ -90,7 +108,11 @@ export default function ProSheet({ feature, onClose, onPurchased }: Props) {
           {loading ? (
             <ActivityIndicator color="#fff" size="small" />
           ) : (
-            <Text style={s.ctaText}>{t('pro.priceOnce')}</Text>
+            <Text style={s.ctaText}>
+              {t("pro.priceOnce", {
+                price: (currentOffering?.availablePackages[0]?.product.priceString ?? "$4").replace("US$", "$"),
+              })}
+            </Text>
           )}
         </TouchableOpacity>
 
@@ -100,7 +122,7 @@ export default function ProSheet({ feature, onClose, onPurchased }: Props) {
           activeOpacity={0.7}
           disabled={loading}
         >
-          <Text style={s.restoreText}>{t('pro.restorePurchase')}</Text>
+          <Text style={s.restoreText}>{t("pro.restorePurchase")}</Text>
         </TouchableOpacity>
       </View>
     </TrueSheet>
@@ -110,43 +132,48 @@ export default function ProSheet({ feature, onClose, onPurchased }: Props) {
 const s = StyleSheet.create({
   content: {
     padding: 24,
-    paddingTop: 40,
+    paddingTop: 16,
     paddingBottom: 48,
-    alignItems: 'center',
+    alignItems: "center",
+  },
+  animationContainer: {
+    width: 120,
+    height: 120,
+    marginBottom: 8,
   },
   headline: {
     fontSize: 28,
-    fontWeight: '800',
+    fontWeight: "800",
     color: C.t1,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 12,
     letterSpacing: -0.5,
   },
   desc: {
     fontSize: 16,
     color: C.t2,
-    textAlign: 'center',
+    textAlign: "center",
     lineHeight: 24,
     marginBottom: 36,
     paddingHorizontal: 8,
   },
   ctaBtn: {
-    backgroundColor: '#177b9c',
+    backgroundColor: "#177b9c",
     borderRadius: 100,
     paddingVertical: 18,
     paddingHorizontal: 32,
-    width: '100%',
-    alignItems: 'center',
-    shadowColor: '#177b9c',
+    width: "100%",
+    alignItems: "center",
+    shadowColor: "#177b9c",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
     elevation: 4,
   },
   ctaText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#fff',
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#fff",
     letterSpacing: 0.3,
   },
   restoreBtn: {
@@ -155,7 +182,7 @@ const s = StyleSheet.create({
   },
   restoreText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     color: C.t3,
   },
 });

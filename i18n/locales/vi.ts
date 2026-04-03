@@ -48,6 +48,9 @@ const vi = {
   'calendar.title': 'Dòng thời gian',
   'calendar.nextUp': 'SẮP TỚI',
   'calendar.daysLeft_other': 'còn {{count}} ngày',
+  'calendar.proTitle': 'Mở khóa tính năng Pro',
+  'calendar.proDesc': 'Xem tất cả chi phí sắp tới, tóm tắt hàng tháng và toàn bộ hoạt động đăng ký.',
+  'calendar.upgrade': 'Nâng cấp Pro',
 
   // Insights
   'insights.title': 'Phân tích',
@@ -232,7 +235,7 @@ const vi = {
   // Pro / Paywall
   'pro.badge': 'PRO',
   'pro.unlockPro': 'Mở khóa Drip Pro',
-  'pro.priceOnce': '$4 — Mua một lần',
+  'pro.priceOnce': 'Mở khóa với {{price}}',
   'pro.ctaButton': 'Mở khóa Pro',
   'pro.restorePurchase': 'Khôi phục mua hàng',
   'pro.notNow': 'Để sau',

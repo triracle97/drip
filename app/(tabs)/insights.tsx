@@ -3,7 +3,6 @@ import CategoryBreakdownList from '@/components/CategoryBreakdownList';
 import IncomeCTA from '@/components/IncomeCTA';
 import IncomeSheet from '@/components/IncomeSheet';
 import LifetimeCostList from '@/components/LifetimeCostList';
-import ProBlurOverlay from '@/components/ProBlurOverlay';
 import ProSheet from '@/components/ProSheet';
 import type { ProFeatureKey } from '@/components/ProSheet';
 import SpendingChart from '@/components/SpendingChart';
@@ -15,10 +14,11 @@ import { useSettings } from '@/store/settings';
 import { blended, budgetHealth, fmt, lifetimeCost, monthlyIncome, monthName, subMo } from '@/utils/calc';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Lock } from 'lucide-react-native';
 
 export default function InsightsScreen() {
     const insets = useSafeAreaInsets();
@@ -36,12 +36,10 @@ export default function InsightsScreen() {
     const health = budgetHealth(totalMo, moIncome);
     const incomeRef = useRef<TrueSheet>(null);
 
-    // Record snapshot on mount
+    // Record snapshot when active subs change (immediate calculation)
     useEffect(() => {
-        if (activeSubs.length > 0) {
-            recordSnapshot();
-        }
-    }, []);
+        recordSnapshot();
+    }, [subs, recordSnapshot]);
 
     // Category breakdown for current month
     const catBreakdown = useMemo(() => {
@@ -97,85 +95,79 @@ export default function InsightsScreen() {
                 {incomes.length === 0 && <IncomeCTA onPress={() => incomeRef.current?.present()} />}
 
                 {/* Spending Trend */}
-                {isPro ? (
-                    <Animated.View entering={FadeInDown.duration(300)}>
-                        <SpendingChart history={spendingHistory} catMap={catMap} />
-                    </Animated.View>
-                ) : (
-                    <ProBlurOverlay onPress={() => setProFeature('insights')}>
-                        <SpendingChart history={spendingHistory} catMap={catMap} />
-                    </ProBlurOverlay>
-                )}
-
-                {/* Category Breakdown */}
-                {isPro ? (
-                    <Animated.View entering={FadeInDown.duration(300).delay(100)}>
-                        <CategoryBreakdownList
-                            breakdown={catBreakdown}
-                            catMap={catMap}
-                            totalMo={totalMo}
-                            monthLabel={currentMonthLabel}
-                        />
-                    </Animated.View>
-                ) : (
-                    <ProBlurOverlay onPress={() => setProFeature('insights')}>
-                        <CategoryBreakdownList
-                            breakdown={catBreakdown}
-                            catMap={catMap}
-                            totalMo={totalMo}
-                            monthLabel={currentMonthLabel}
-                        />
-                    </ProBlurOverlay>
-                )}
-
-                {/* Budget Health */}
-                <Animated.View entering={FadeInDown.duration(300).delay(200)}>
-                    <BudgetHealthCard
-                        slices={catBreakdown}
-                        catMap={catMap}
-                        totalMo={totalMo}
-                        moIncome={moIncome}
-                        healthLabel={health.label}
-                        healthColor={health.color}
-                        healthPct={health.pct}
-                    />
+                <Animated.View entering={FadeInDown.duration(300)}>
+                    <SpendingChart history={spendingHistory} catMap={catMap} />
                 </Animated.View>
 
-                {/* Per-category % of income */}
-                {isPro && moIncome > 0 && catBreakdown.length > 0 && (
-                    <Animated.View entering={FadeInDown.duration(300).delay(300)}>
-                        <View style={s.perCatCard}>
-                            <Text style={s.sectionTitle}>{t('insights.categoryBreakdown')}</Text>
-                            <View style={{ gap: 8, marginTop: 8 }}>
-                                {catBreakdown.map(({ categoryId, amount }) => {
-                                    const cat = catMap[categoryId];
-                                    const pctOfSubs = totalMo > 0 ? (amount / totalMo) * 100 : 0;
-                                    const pctOfIncome = (amount / moIncome) * 100;
-                                    return (
-                                        <View key={categoryId} style={s.perCatRow}>
-                                            <View style={[s.perCatDot, { backgroundColor: cat?.color ?? C.t3 }]} />
-                                            <Text style={s.perCatName}>{cat?.name ?? 'Other'}</Text>
-                                            <Text style={s.perCatAmt}>{fmt(amount)}</Text>
-                                            <Text style={s.perCatPct}>{t('insights.subsPercent', { pct: `${pctOfSubs.toFixed(0)}%` })}</Text>
-                                            <Text style={[s.perCatPct, { color: pctOfIncome > 5 ? C.red : C.t3 }]}>
-                                                {t('insights.incomePercent', { pct: `${pctOfIncome.toFixed(1)}%` })}
-                                            </Text>
-                                        </View>
-                                    );
-                                })}
-                            </View>
-                        </View>
-                    </Animated.View>
-                )}
-                {/* Lifetime Cost */}
                 {isPro ? (
-                    <Animated.View entering={FadeInDown.duration(300).delay(400)}>
-                        <LifetimeCostList entries={lifetimeEntries} rate={rate} />
-                    </Animated.View>
+                    <>
+                        {/* Category Breakdown */}
+                        <Animated.View entering={FadeInDown.duration(300).delay(100)}>
+                            <CategoryBreakdownList
+                                breakdown={catBreakdown}
+                                catMap={catMap}
+                                totalMo={totalMo}
+                                monthLabel={currentMonthLabel}
+                            />
+                        </Animated.View>
+
+                        {/* Budget Health */}
+                        <Animated.View entering={FadeInDown.duration(300).delay(200)}>
+                            <BudgetHealthCard
+                                slices={catBreakdown}
+                                catMap={catMap}
+                                totalMo={totalMo}
+                                moIncome={moIncome}
+                                healthLabel={health.label}
+                                healthColor={health.color}
+                                healthPct={health.pct}
+                            />
+                        </Animated.View>
+
+                        {/* Per-category % of income */}
+                        {moIncome > 0 && catBreakdown.length > 0 && (
+                            <Animated.View entering={FadeInDown.duration(300).delay(300)}>
+                                <View style={s.perCatCard}>
+                                    <Text style={s.sectionTitle}>{t('insights.categoryBreakdown')}</Text>
+                                    <View style={{ gap: 8, marginTop: 8 }}>
+                                        {catBreakdown.map(({ categoryId, amount }) => {
+                                            const cat = catMap[categoryId];
+                                            const pctOfSubs = totalMo > 0 ? (amount / totalMo) * 100 : 0;
+                                            const pctOfIncome = (amount / moIncome) * 100;
+                                            return (
+                                                <View key={categoryId} style={s.perCatRow}>
+                                                    <View style={[s.perCatDot, { backgroundColor: cat?.color ?? C.t3 }]} />
+                                                    <Text style={s.perCatName}>{cat?.name ?? 'Other'}</Text>
+                                                    <Text style={s.perCatAmt}>{fmt(amount)}</Text>
+                                                    <Text style={s.perCatPct}>{t('insights.subsPercent', { pct: `${pctOfSubs.toFixed(0)}%` })}</Text>
+                                                    <Text style={[s.perCatPct, { color: pctOfIncome > 5 ? C.red : C.t3 }]}>
+                                                        {t('insights.incomePercent', { pct: `${pctOfIncome.toFixed(1)}%` })}
+                                                    </Text>
+                                                </View>
+                                            );
+                                        })}
+                                    </View>
+                                </View>
+                            </Animated.View>
+                        )}
+                        {/* Lifetime Cost */}
+                        <Animated.View entering={FadeInDown.duration(300).delay(400)}>
+                            <LifetimeCostList entries={lifetimeEntries} rate={rate} />
+                        </Animated.View>
+                    </>
                 ) : (
-                    <ProBlurOverlay onPress={() => setProFeature('insights')}>
-                        <LifetimeCostList entries={lifetimeEntries} rate={rate} />
-                    </ProBlurOverlay>
+                    <Animated.View entering={FadeInDown.duration(300).delay(100)}>
+                        <TouchableOpacity onPress={() => setProFeature('insights')} activeOpacity={0.9} style={s.singlePaywallBox}>
+                            <View style={s.singlePaywallIconBg}>
+                                <Lock size={26} color={C.gold} strokeWidth={2.5} />
+                            </View>
+                            <Text style={s.singlePaywallTitle}>{t('calendar.proTitle') || 'Unlock Pro Insights'}</Text>
+                            <Text style={s.singlePaywallText}>{t('calendar.proDesc') || 'See categorical breakdowns, budget health, lifetime costs, and detailed analytics.'}</Text>
+                            <View style={s.singlePaywallBtn}>
+                                <Text style={s.singlePaywallBtnText}>{t('calendar.upgrade') || 'Get Pro'}</Text>
+                            </View>
+                        </TouchableOpacity>
+                    </Animated.View>
                 )}
             </ScrollView>
             <ProSheet feature={proFeature} onClose={() => setProFeature(null)} />
@@ -216,5 +208,30 @@ const s = StyleSheet.create({
     },
     perCatDot: {
         width: 8, height: 8, borderRadius: 4,
+    },
+    singlePaywallBox: {
+        backgroundColor: C.surfaceElevated,
+        borderRadius: R.md,
+        padding: 24,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(0,0,0,0.04)',
+        marginTop: 4,
+    },
+    singlePaywallIconBg: {
+        width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(255,215,0,0.15)',
+        alignItems: 'center', justifyContent: 'center', marginBottom: 16,
+    },
+    singlePaywallTitle: {
+        fontSize: 18, fontWeight: '700', color: C.t1, marginBottom: 8, textAlign: 'center',
+    },
+    singlePaywallText: {
+        fontSize: 14, color: C.t2, textAlign: 'center', marginBottom: 24, lineHeight: 20,
+    },
+    singlePaywallBtn: {
+        backgroundColor: C.black, paddingVertical: 14, paddingHorizontal: 24, borderRadius: R.md, width: '100%', alignItems: 'center',
+    },
+    singlePaywallBtnText: {
+        color: '#FFF', fontWeight: '600', fontSize: 15,
     },
 });

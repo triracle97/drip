@@ -2,40 +2,40 @@ import AnimatedPressable from "@/components/AnimatedPressable";
 import AppearanceModal from "@/components/AppearanceModal";
 import BrandLogo from "@/components/BrandLogo";
 import Card from "@/components/Card";
-import ProBadge from "@/components/ProBadge";
-import ProSheet from "@/components/ProSheet";
+import CategoryModal from "@/components/CategoryModal";
 import type { ProFeatureKey } from "@/components/ProSheet";
+import ProSheet from "@/components/ProSheet";
 import { C, R } from "@/constants/design";
 import { Sub, useStore } from "@/store";
 import { useSettings } from "@/store/settings";
 import { getPopularSubs, PopularSub } from "@/store/supabase";
 import { addDaysISO, blended, fmt, moEq, toHrs } from "@/utils/calc";
 import { TrueSheet } from "@lodev09/react-native-true-sheet";
+import { Lock } from "lucide-react-native";
 import React, {
-    forwardRef,
-    useCallback,
-    useMemo,
-    useRef,
-    useState,
+  forwardRef,
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
 } from "react";
 import { useTranslation } from "react-i18next";
 import {
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Switch,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Animated, {
-    FadeInLeft,
-    FadeInRight,
-    FadeOutLeft,
-    FadeOutRight,
+  FadeInLeft,
+  FadeInRight,
+  FadeOutLeft,
+  FadeOutRight,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
@@ -161,6 +161,7 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
   const [proFeature, setProFeature] = useState<ProFeatureKey | null>(null);
   const [cycleOpen, setCycleOpen] = useState(false);
   const [categoryOpen, setCategoryOpen] = useState(false);
+
   const [reminderOpen, setReminderOpen] = useState(false);
   const [showAppearance, setShowAppearance] = useState(false);
 
@@ -244,7 +245,7 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
 
   const save = () => {
     if (!canSave) return;
-    const trialEnd = f.isTrial ? addDaysISO(parseInt(f.trialDays) || 0) : '';
+    const trialEnd = f.isTrial ? addDaysISO(parseInt(f.trialDays) || 0) : "";
     const bd = f.startDate
       ? new Date(f.startDate).getDate()
       : parseInt(f.billDay) || 1;
@@ -538,49 +539,46 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
         </Field>
 
         {/* Billing cycle popup */}
-        <Modal
-          visible={cycleOpen}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setCycleOpen(false)}
-        >
-          <TouchableOpacity
-            style={s.popupOverlay}
-            activeOpacity={1}
-            onPress={() => setCycleOpen(false)}
-          >
-            <View style={s.popupCard}>
-              <Text style={s.popupTitle}>Billing Cycle</Text>
-              {CYCLE_KEYS.map(([v, key]) => (
-                <TouchableOpacity
-                  key={v}
-                  onPress={() => {
-                    u("cycle", v);
-                    setCycleOpen(false);
-                  }}
-                  style={[
-                    s.popupItem,
-                    f.cycle === v && { backgroundColor: C.bgSub },
-                  ]}
-                  activeOpacity={0.75}
-                >
-                  <Text
-                    style={{
-                      fontSize: 15,
-                      color: f.cycle === v ? C.t1 : C.t2,
-                      fontWeight: f.cycle === v ? "600" : "500",
+        {cycleOpen && (
+          <View style={[StyleSheet.absoluteFill, { zIndex: 999 }]}>
+            <TouchableOpacity
+              style={s.popupOverlay}
+              activeOpacity={1}
+              onPress={() => setCycleOpen(false)}
+            >
+              <View style={s.popupCard}>
+                <Text style={s.popupTitle}>Billing Cycle</Text>
+                {CYCLE_KEYS.map(([v, key]) => (
+                  <TouchableOpacity
+                    key={v}
+                    onPress={() => {
+                      u("cycle", v);
+                      setCycleOpen(false);
                     }}
+                    style={[
+                      s.popupItem,
+                      f.cycle === v && { backgroundColor: C.bgSub },
+                    ]}
+                    activeOpacity={0.75}
                   >
-                    {t(key)}
-                  </Text>
-                  {f.cycle === v && (
-                    <Text style={{ color: C.t1, fontSize: 14 }}>✓</Text>
-                  )}
-                </TouchableOpacity>
-              ))}
-            </View>
-          </TouchableOpacity>
-        </Modal>
+                    <Text
+                      style={{
+                        fontSize: 15,
+                        color: f.cycle === v ? C.t1 : C.t2,
+                        fontWeight: f.cycle === v ? "600" : "500",
+                      }}
+                    >
+                      {t(key)}
+                    </Text>
+                    {f.cycle === v && (
+                      <Text style={{ color: C.t1, fontSize: 14 }}>✓</Text>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Category */}
         <Field label={t("addSub.category")}>
@@ -618,67 +616,16 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
             </Svg>
           </TouchableOpacity>
         </Field>
-
-        {/* Category popup */}
-        <Modal
+        {/* Category modal */}
+        <CategoryModal
           visible={categoryOpen}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setCategoryOpen(false)}
-        >
-          <TouchableOpacity
-            style={s.popupOverlay}
-            activeOpacity={1}
-            onPress={() => setCategoryOpen(false)}
-          >
-            <View style={s.popupCard}>
-              <Text style={s.popupTitle}>{t("addSub.category")}</Text>
-              {categories.map((c) => (
-                <TouchableOpacity
-                  key={c.id}
-                  onPress={() => {
-                    u("categoryId", c.id);
-                    setCategoryOpen(false);
-                  }}
-                  style={[
-                    s.popupItem,
-                    f.categoryId === c.id && { backgroundColor: C.bgSub },
-                  ]}
-                  activeOpacity={0.75}
-                >
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 10,
-                    }}
-                  >
-                    <View
-                      style={{
-                        width: 14,
-                        height: 14,
-                        borderRadius: 7,
-                        backgroundColor: c.color,
-                      }}
-                    />
-                    <Text
-                      style={{
-                        fontSize: 15,
-                        color: f.categoryId === c.id ? C.t1 : C.t2,
-                        fontWeight: f.categoryId === c.id ? "600" : "500",
-                      }}
-                    >
-                      {c.name}
-                    </Text>
-                  </View>
-                  {f.categoryId === c.id && (
-                    <Text style={{ color: C.t1, fontSize: 14 }}>✓</Text>
-                  )}
-                </TouchableOpacity>
-              ))}
-            </View>
-          </TouchableOpacity>
-        </Modal>
+          selectedId={f.categoryId}
+          onSelect={(id) => {
+            u("categoryId", id);
+            setCategoryOpen(false);
+          }}
+          onClose={() => setCategoryOpen(false)}
+        />
 
         {/* Start date */}
         <Field label={t("addSub.startDate")}>
@@ -758,11 +705,13 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
           ]}
         >
           <View style={{ flex: 1 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+            >
               <Text style={[s.trialLabel, { color: f.isTrial ? C.red : C.t1 }]}>
                 {t("addSub.freeTrial")}
               </Text>
-              {!isPro && <ProBadge size="sm" />}
+              {!isPro && <Lock size={12} color={C.gold} strokeWidth={2.5} />}
             </View>
             <Text style={{ fontSize: 12, color: C.t3 }}>
               {t("addSub.trialReminder")}
@@ -773,7 +722,7 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
               value={f.isTrial}
               onValueChange={(v) => {
                 if (!isPro) {
-                  setProFeature('trial');
+                  setProFeature("trial");
                   return;
                 }
                 u("isTrial", v);
@@ -872,49 +821,46 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
         </Field>
 
         {/* Reminder popup */}
-        <Modal
-          visible={reminderOpen}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setReminderOpen(false)}
-        >
-          <TouchableOpacity
-            style={s.popupOverlay}
-            activeOpacity={1}
-            onPress={() => setReminderOpen(false)}
-          >
-            <View style={s.popupCard}>
-              <Text style={s.popupTitle}>{t("addSub.reminder")}</Text>
-              {REMINDER_KEYS.map(([v, key]) => (
-                <TouchableOpacity
-                  key={v}
-                  onPress={() => {
-                    u("reminderDays", v);
-                    setReminderOpen(false);
-                  }}
-                  style={[
-                    s.popupItem,
-                    f.reminderDays === v && { backgroundColor: C.bgSub },
-                  ]}
-                  activeOpacity={0.75}
-                >
-                  <Text
-                    style={{
-                      fontSize: 15,
-                      color: f.reminderDays === v ? C.t1 : C.t2,
-                      fontWeight: f.reminderDays === v ? "600" : "500",
+        {reminderOpen && (
+          <View style={[StyleSheet.absoluteFill, { zIndex: 999 }]}>
+            <TouchableOpacity
+              style={s.popupOverlay}
+              activeOpacity={1}
+              onPress={() => setReminderOpen(false)}
+            >
+              <View style={s.popupCard}>
+                <Text style={s.popupTitle}>{t("addSub.reminder")}</Text>
+                {REMINDER_KEYS.map(([v, key]) => (
+                  <TouchableOpacity
+                    key={v}
+                    onPress={() => {
+                      u("reminderDays", v);
+                      setReminderOpen(false);
                     }}
+                    style={[
+                      s.popupItem,
+                      f.reminderDays === v && { backgroundColor: C.bgSub },
+                    ]}
+                    activeOpacity={0.75}
                   >
-                    {t(key)}
-                  </Text>
-                  {f.reminderDays === v && (
-                    <Text style={{ color: C.t1, fontSize: 14 }}>✓</Text>
-                  )}
-                </TouchableOpacity>
-              ))}
-            </View>
-          </TouchableOpacity>
-        </Modal>
+                    <Text
+                      style={{
+                        fontSize: 15,
+                        color: f.reminderDays === v ? C.t1 : C.t2,
+                        fontWeight: f.reminderDays === v ? "600" : "500",
+                      }}
+                    >
+                      {t(key)}
+                    </Text>
+                    {f.reminderDays === v && (
+                      <Text style={{ color: C.t1, fontSize: 14 }}>✓</Text>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Work preview */}
         {parseFloat(f.cost) > 0 && (
@@ -996,49 +942,50 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
 
   return (
     <>
-    <TrueSheet
-      ref={setRefs}
-      detents={[1]}
-      grabber={false}
-      cornerRadius={24}
-      dismissible={false}
-      dimmed={true}
-      dimmedDetentIndex={0}
-      scrollable
-      backgroundColor={C.bg}
-      onWillPresent={handlePresent}
-      onDidDismiss={() => {
-        setPhase("pick");
-        setQuery("");
-        setF({ ...DEFAULT_FORM });
-        setCycleOpen(false);
-        setCategoryOpen(false);
-        setReminderOpen(false);
-        setShowAppearance(false);
-      }}
-    >
-      {/* Custom grabber */}
-      <View style={{ alignItems: "center", justifyContent: "center" }}>
-        <View
-          style={{
-            backgroundColor: "rgba(0,0,0,0.2)",
-            width: 40,
-            height: 4,
-            borderRadius: 99,
-            marginTop: 8,
-            marginBottom: 4,
-          }}
-        />
-      </View>
-
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={{ flex: 1 }}
+      <TrueSheet
+        ref={setRefs}
+        detents={[1]}
+        grabber={false}
+        cornerRadius={24}
+        dismissible={false}
+        dimmed={true}
+        dimmedDetentIndex={0}
+        scrollable
+        backgroundColor={C.bg}
+        onWillPresent={handlePresent}
+        onDidDismiss={() => {
+          setPhase("pick");
+          setQuery("");
+          setF({ ...DEFAULT_FORM });
+          setCycleOpen(false);
+          setCategoryOpen(false);
+          setReminderOpen(false);
+          setShowAppearance(false);
+        }}
       >
-        {phase === "pick" ? renderPicker() : renderForm()}
-      </KeyboardAvoidingView>
-    </TrueSheet>
-    <ProSheet feature={proFeature} onClose={() => setProFeature(null)} />
+        {/* Custom grabber */}
+        <View style={{ alignItems: "center", justifyContent: "center" }}>
+          <View
+            style={{
+              backgroundColor: "rgba(0,0,0,0.2)",
+              width: 40,
+              height: 4,
+              borderRadius: 99,
+              marginTop: 8,
+              marginBottom: 4,
+            }}
+          />
+        </View>
+
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={{ flex: 1 }}
+        >
+          {phase === "pick" ? renderPicker() : renderForm()}
+        </KeyboardAvoidingView>
+      </TrueSheet>
+
+      <ProSheet feature={proFeature} onClose={() => setProFeature(null)} />
     </>
   );
 });

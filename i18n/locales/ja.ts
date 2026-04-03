@@ -48,6 +48,9 @@ const ja = {
   'calendar.title': 'タイムライン',
   'calendar.nextUp': '次の更新',
   'calendar.daysLeft_other': 'あと {{count}} 日',
+  'calendar.proTitle': 'Proインサイトをロック解除',
+  'calendar.proDesc': '今後のすべての請求、月ごとの概要、および完全なサブスクリプション活動を確認できます。',
+  'calendar.upgrade': 'Proを入手',
 
   // Insights
   'insights.title': 'インサイト',
@@ -232,7 +235,7 @@ const ja = {
   // Pro / Paywall
   'pro.badge': 'PRO',
   'pro.unlockPro': 'Drip Proを解除',
-  'pro.priceOnce': '¥600 — 買い切り',
+  'pro.priceOnce': '{{price}} で解除',
   'pro.ctaButton': 'Proを解除',
   'pro.restorePurchase': '購入を復元',
   'pro.notNow': '今はしない',

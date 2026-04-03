@@ -1,5 +1,6 @@
 import { C, R } from '@/constants/design';
 import { useRevenueCat } from '@/hooks/useRevenueCat';
+import { useSettings } from '@/store/settings';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -11,7 +12,8 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Circle, Path } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
+import LottieView from 'lottie-react-native';
 
 interface Props {
   visible: boolean;
@@ -30,16 +32,27 @@ const FEATURES = [
 export default function ProPaywall({ visible, onClose, onPurchased }: Props) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const { setIsPro, setShowCongrats } = useSettings();
   const { currentOffering, purchasePackage, restorePurchases } = useRevenueCat();
   const [loading, setLoading] = useState(false);
 
   const handlePurchase = async () => {
     const pack = currentOffering?.availablePackages[0];
-    if (!pack) return;
+    if (!pack) {
+      if (__DEV__) {
+        setIsPro(true);
+        setShowCongrats(true);
+        onPurchased?.();
+        onClose();
+      }
+      return;
+    }
     setLoading(true);
     const success = await purchasePackage(pack);
     setLoading(false);
     if (success) {
+      setIsPro(true);
+      setShowCongrats(true);
       onPurchased?.();
       onClose();
     }
@@ -59,13 +72,15 @@ export default function ProPaywall({ visible, onClose, onPurchased }: Props) {
           <Text style={s.closeText}>{t('pro.notNow')}</Text>
         </TouchableOpacity>
 
-        {/* App icon */}
+        {/* Lottie Animation */}
         <View style={s.iconContainer}>
-          <View style={s.appIcon}>
-            <Svg width={40} height={40} viewBox="0 0 24 24" fill="none">
-              <Path d="M12 2.5C12 2.5 5 10.5 5 15a7 7 0 1014 0c0-4.5-7-12.5-7-12.5z" fill="#177b9c" />
-              <Circle cx="9" cy="15" r="2.5" fill="#3a9cbc" />
-            </Svg>
+          <View style={s.animationContainer}>
+            <LottieView
+              style={{ width: '100%', height: '100%' }}
+              source={require('@/assets/animation/drop.json')}
+              autoPlay={true}
+              loop={true}
+            />
           </View>
         </View>
 
@@ -92,9 +107,6 @@ export default function ProPaywall({ visible, onClose, onPurchased }: Props) {
           ))}
         </View>
 
-        {/* Price */}
-        <Text style={s.price}>{t('pro.priceOnce')}</Text>
-
         {/* CTA */}
         <TouchableOpacity
           style={s.ctaBtn}
@@ -105,7 +117,11 @@ export default function ProPaywall({ visible, onClose, onPurchased }: Props) {
           {loading ? (
             <ActivityIndicator color="#fff" size="small" />
           ) : (
-            <Text style={s.ctaText}>{t('pro.ctaButton')}</Text>
+            <Text style={s.ctaText}>
+              {t("pro.priceOnce", {
+                price: (currentOffering?.availablePackages[0]?.product.priceString ?? "$4").replace("US$", "$"),
+              })}
+            </Text>
           )}
         </TouchableOpacity>
 
@@ -143,30 +159,24 @@ const s = StyleSheet.create({
     fontWeight: '500',
   },
   iconContainer: {
-    marginBottom: 24,
+    marginBottom: 8,
   },
-  appIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 20,
-    backgroundColor: C.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: C.line,
+  animationContainer: {
+    width: 120,
+    height: 120,
   },
   headline: {
     fontSize: 28,
     fontWeight: '800',
     color: C.t1,
     textAlign: 'center',
-    marginBottom: 32,
+    marginBottom: 24,
     letterSpacing: -0.5,
   },
   featureList: {
     width: '100%',
-    gap: 16,
-    marginBottom: 32,
+    gap: 14,
+    marginBottom: 36,
   },
   featureRow: {
     flexDirection: 'row',
@@ -177,7 +187,7 @@ const s = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: C.green,
+    backgroundColor: C.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -186,30 +196,32 @@ const s = StyleSheet.create({
     fontWeight: '500',
     color: C.t1,
   },
-  price: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: C.t2,
-    marginBottom: 16,
-  },
   ctaBtn: {
-    backgroundColor: C.black,
-    borderRadius: R.md,
+    backgroundColor: C.primary,
+    borderRadius: 100,
     paddingVertical: 18,
+    paddingHorizontal: 32,
     width: '100%',
     alignItems: 'center',
+    shadowColor: C.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 4,
   },
   ctaText: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '700',
     color: '#fff',
+    letterSpacing: 0.3,
   },
   restoreBtn: {
-    marginTop: 14,
-    paddingVertical: 8,
+    marginTop: 20,
+    paddingVertical: 12,
   },
   restoreText: {
-    fontSize: 13,
+    fontSize: 14,
+    fontWeight: '600',
     color: C.t3,
   },
 });

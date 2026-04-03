@@ -1,67 +1,108 @@
-import { C, R, SP } from '@/constants/design';
-import { getCurrency } from '@/constants/currencies';
-import { useRevenueCat } from '@/hooks/useRevenueCat';
-import { useStore } from '@/store';
-import { useSettings } from '@/store/settings';
-import { TrueSheet } from '@lodev09/react-native-true-sheet';
-import React, { useEffect, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { getCurrency } from "@/constants/currencies";
+import { C, R } from "@/constants/design";
+import { useRevenueCat } from "@/hooks/useRevenueCat";
+import { useStore } from "@/store";
+import { useSettings } from "@/store/settings";
+import { TrueSheet } from "@lodev09/react-native-true-sheet";
+import LottieView from "lottie-react-native";
+import {
+  CalendarDays,
+  ChevronDown,
+  Clock,
+  TrendingUp,
+} from "lucide-react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Dimensions,
-  KeyboardAvoidingView,
-  Platform,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
-} from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { FadeIn, FadeOut, SlideInLeft, SlideInRight, SlideOutLeft, SlideOutRight, runOnJS } from 'react-native-reanimated';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Circle, Path } from 'react-native-svg';
+  View
+} from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, {
+  FadeIn,
+  FadeOut,
+  SlideInLeft,
+  SlideInRight,
+  SlideOutLeft,
+  SlideOutRight,
+  runOnJS,
+  useAnimatedKeyboard,
+  useAnimatedStyle,
+  withTiming,
+} from "react-native-reanimated";
+import {
+  useSafeAreaInsets
+} from "react-native-safe-area-context";
+import Svg, { Circle, Path } from "react-native-svg";
+import CurrencySheet from "./CurrencySheet";
 
 const TOTAL_STEPS = 4;
 
 const PRO_FEATURES = [
-  'pro.feature.unlimitedSubs',
-  'pro.feature.fullInsights',
-  'pro.feature.fullCalendar',
-  'pro.feature.trialTracking',
-  'pro.feature.customCategories',
+  "pro.feature.unlimitedSubs",
+  "pro.feature.fullInsights",
+  "pro.feature.fullCalendar",
+  "pro.feature.trialTracking",
+  "pro.feature.customCategories",
 ] as const;
+
+// ─── Stable External Subcomponents ───
+const Dot = ({ isActive }: { isActive: boolean }) => {
+  const style = useAnimatedStyle(() => ({
+    width: withTiming(isActive ? 24 : 8, { duration: 300 }),
+    backgroundColor: withTiming(isActive ? C.black : C.line, { duration: 300 }),
+  }));
+  return <Animated.View style={[s.dot, style]} />;
+};
 
 export default function OnboardingSheet() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const sheetRef = useRef<TrueSheet>(null);
   const { addIncome } = useStore();
-  const { hasOnboarded, setHasOnboarded, currency } = useSettings();
-  const { currentOffering, purchasePackage, restorePurchases } = useRevenueCat();
+  const { hasOnboarded, setHasOnboarded, currency, setIsPro, setShowCongrats } = useSettings();
+  const { currentOffering, purchasePackage, restorePurchases } =
+    useRevenueCat();
 
   const [step, setStep] = useState(0);
-  const [direction, setDirection] = useState<'forward' | 'back'>('forward');
-  const [income, setIncome] = useState('');
+  const [direction, setDirection] = useState<"forward" | "back">("forward");
+  const [income, setIncome] = useState("");
   const [loading, setLoading] = useState(false);
+  const [currencyVisible, setCurrencyVisible] = useState(false);
+
+  const keyboard = useAnimatedKeyboard();
 
   const goForward = (nextStep: number) => {
-    setDirection('forward');
+    setDirection("forward");
     setStep(nextStep);
   };
 
   const goBack = () => {
     if (step > 0) {
-      setDirection('back');
+      setDirection("back");
       setStep(step - 1);
     }
   };
 
   const swipeGesture = Gesture.Pan()
-    .activeOffsetX([50, 50])
+    .activeOffsetX([-50, 50])
     .onEnd((e) => {
       if (e.translationX > 50 && step > 0) {
         runOnJS(goBack)();
+      } else if (e.translationX < -50 && step < TOTAL_STEPS - 1) {
+        if (step === 2) {
+          // Only allow swipe forward on income step if valid
+          if (parseFloat(income) > 0) {
+            runOnJS(handleIncomeSubmit)();
+          }
+        } else {
+          runOnJS(goForward)(step + 1);
+        }
       }
     });
 
@@ -77,11 +118,14 @@ export default function OnboardingSheet() {
   }, [hasOnboarded]);
 
   const completeOnboarding = () => {
-    sheetRef.current?.dismiss().then(() => {
-      setHasOnboarded(true);
-    }).catch(() => {
-      setHasOnboarded(true);
-    });
+    sheetRef.current
+      ?.dismiss()
+      .then(() => {
+        setHasOnboarded(true);
+      })
+      .catch(() => {
+        setHasOnboarded(true);
+      });
   };
 
   const handleIncomeSubmit = () => {
@@ -89,7 +133,7 @@ export default function OnboardingSheet() {
     if (!val || val <= 0) return;
     addIncome({
       id: `i${Date.now()}`,
-      label: 'Salary',
+      label: "Salary",
       amount: val * 12,
       isHourly: false,
       hoursPerWeek: 40,
@@ -99,11 +143,21 @@ export default function OnboardingSheet() {
 
   const handlePurchase = async () => {
     const pack = currentOffering?.availablePackages[0];
-    if (!pack) return;
+    if (!pack) {
+      // Fallback for Simulator testing if no packages are loaded
+      if (__DEV__) {
+        setIsPro(true);
+        setShowCongrats(true);
+        completeOnboarding();
+      }
+      return;
+    }
     setLoading(true);
     const success = await purchasePackage(pack);
     setLoading(false);
     if (success) {
+      setIsPro(true);
+      setShowCongrats(true);
       completeOnboarding();
     }
   };
@@ -115,88 +169,210 @@ export default function OnboardingSheet() {
   };
 
   // ─── Step Dots ───
-  const StepDots = () => (
+  const renderStepDots = () => (
     <View style={s.dots}>
       {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
-        <View key={i} style={[s.dot, i === step && s.dotActive]} />
+        <Dot key={i} isActive={i === step} />
       ))}
     </View>
   );
 
-  // ─── Step 0: Value Prop ───
-  const StepValueProp = () => (
-    <Animated.View entering={FadeIn.duration(300)} style={s.stepContainer}>
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <View style={s.appIcon}>
-          <Svg width={48} height={48} viewBox="0 0 24 24" fill="none">
-            <Path d="M12 2.5C12 2.5 5 10.5 5 15a7 7 0 1014 0c0-4.5-7-12.5-7-12.5z" fill="#177b9c" />
-            <Circle cx="9" cy="15" r="2.5" fill="#3a9cbc" />
-          </Svg>
-        </View>
-        <Text style={s.headline}>{t('onboarding.headline')}</Text>
-        <Text style={s.headlineAccent}>{t('onboarding.headlineAccent')}</Text>
-        <Text style={s.subtitle}>{t('onboarding.subtitle')}</Text>
-      </View>
-      <View style={s.bottomArea}>
-        <StepDots />
-        <TouchableOpacity style={s.ctaBtn} onPress={() => goForward(1)} activeOpacity={0.8}>
-          <Text style={s.ctaText}>{t('onboarding.getStarted')}</Text>
+  // ─── Shared Bottom Area ───
+  const renderBottomArea = () => (
+    <View style={s.bottomArea}>
+      {renderStepDots()}
+      {step === 0 && (
+        <TouchableOpacity
+          style={s.ctaBtn}
+          onPress={() => goForward(1)}
+          activeOpacity={0.8}
+        >
+          <Text style={s.ctaText}>{t("onboarding.getStarted")}</Text>
         </TouchableOpacity>
+      )}
+      {step === 1 && (
+        <TouchableOpacity
+          style={s.ctaBtn}
+          onPress={() => goForward(2)}
+          activeOpacity={0.8}
+        >
+          <Text style={s.ctaText}>{t("onboarding.continue")}</Text>
+        </TouchableOpacity>
+      )}
+      {step === 2 && (
+        <TouchableOpacity
+          style={[
+            s.ctaBtn,
+            (!income || parseFloat(income) <= 0) && s.ctaBtnDisabled,
+          ]}
+          onPress={handleIncomeSubmit}
+          activeOpacity={0.8}
+          disabled={!income || parseFloat(income) <= 0}
+        >
+          <Text style={s.ctaText}>{t("onboarding.continue")}</Text>
+        </TouchableOpacity>
+      )}
+      {step === 3 && (
+        <>
+          <TouchableOpacity
+            style={[s.ctaBtn, s.paywallCtaBtn]}
+            onPress={handlePurchase}
+            activeOpacity={0.8}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <Text style={[s.ctaText, s.paywallCtaText]}>
+                {t("pro.priceOnce", {
+                  price: (currentOffering?.availablePackages[0]?.product.priceString ?? "$4").replace("US$", "$"),
+                })}
+              </Text>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={s.restoreBtn}
+            onPress={handleRestore}
+            activeOpacity={0.7}
+            disabled={loading}
+          >
+            <Text style={s.restoreText}>{t("pro.restorePurchase")}</Text>
+          </TouchableOpacity>
+        </>
+      )}
+    </View>
+  );
+
+  // ─── Step 0: Value Prop ───
+  const renderStepValueProp = () => (
+    <Animated.View
+      entering={FadeIn.duration(300)}
+      exiting={FadeOut.duration(200)}
+      style={s.stepContainer}
+    >
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <View style={s.onboardingAnimationContainer}>
+          <LottieView
+            style={{ width: "100%", height: "100%" }}
+            source={require("@/assets/animation/drop.json")}
+            autoPlay={true}
+            loop={true}
+          />
+        </View>
+
+        <Text style={s.headline}>Subscriptions,</Text>
+        <Text style={s.headlineAccent}>Mastered.</Text>
+        <Text style={s.subtitle}>
+          See the exact cost of your subscriptions in real work-hours, track
+          renewals, and never overpay again.
+        </Text>
       </View>
     </Animated.View>
   );
 
   // ─── Step 1: Feature Showcase ───
-  const StepFeatures = () => (
-    <Animated.View entering={direction === 'forward' ? SlideInRight.duration(300) : SlideInLeft.duration(300)} exiting={direction === 'forward' ? SlideOutLeft.duration(200) : SlideOutRight.duration(200)} style={s.stepContainer}>
-      <View style={{ flex: 1, justifyContent: 'center', paddingHorizontal: 8 }}>
-        {[
-          { icon: 'calendar', title: t('onboarding.feature.calendar'), desc: t('onboarding.feature.calendarDesc') },
-          { icon: 'insights', title: t('onboarding.feature.insights'), desc: t('onboarding.feature.insightsDesc') },
-          { icon: 'trials', title: t('onboarding.feature.trials'), desc: t('onboarding.feature.trialsDesc') },
-        ].map((f, i) => (
-          <View key={i} style={s.featureItem}>
-            <View style={s.featureIcon}>
-              {f.icon === 'calendar' && (
-                <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
-                  <Path d="M19 4H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2zM16 2v4M8 2v4M3 10h18" stroke={C.accent} strokeWidth={1.8} strokeLinecap="round" />
-                </Svg>
-              )}
-              {f.icon === 'insights' && (
-                <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
-                  <Path d="M18 20V10M12 20V4M6 20v-6" stroke={C.accent} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
-                </Svg>
-              )}
-              {f.icon === 'trials' && (
-                <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
-                  <Circle cx="12" cy="12" r="10" stroke={C.accent} strokeWidth={1.8} />
-                  <Path d="M12 6v6l4 2" stroke={C.accent} strokeWidth={1.8} strokeLinecap="round" />
-                </Svg>
-              )}
+  const renderStepFeatures = () => (
+    <Animated.View
+      entering={
+        direction === "forward"
+          ? SlideInRight.duration(300)
+          : SlideInLeft.duration(300)
+      }
+      exiting={
+        direction === "forward"
+          ? SlideOutLeft.duration(200)
+          : SlideOutRight.duration(200)
+      }
+      style={s.stepContainer}
+    >
+      <View style={{ flex: 1, justifyContent: "center", paddingHorizontal: 8 }}>
+        <View style={s.featuresHeaderIcon}>
+          <Svg width={40} height={40} viewBox="0 0 24 24" fill="none">
+            <Path
+              d="M12 2.5C12 2.5 5 10.5 5 15a7 7 0 1014 0c0-4.5-7-12.5-7-12.5z"
+              fill={C.primary}
+            />
+            <Circle cx="9" cy="15" r="2.5" fill={C.primarySub} />
+          </Svg>
+        </View>
+
+        <Text style={s.featuresHeadline}>Never overpay again.</Text>
+        <Text style={s.featuresSubtitle}>
+          Drip brings absolute clarity to your recurring expenses.
+        </Text>
+
+        <View style={{ marginTop: 36 }}>
+          {[
+            {
+              id: "calendar",
+              title: t("onboarding.feature.calendar"),
+              desc: t("onboarding.feature.calendarDesc"),
+            },
+            {
+              id: "insights",
+              title: t("onboarding.feature.insights"),
+              desc: t("onboarding.feature.insightsDesc"),
+            },
+            {
+              id: "trials",
+              title: t("onboarding.feature.trials"),
+              desc: t("onboarding.feature.trialsDesc"),
+            },
+          ].map((f, i) => (
+            <View key={i} style={s.featureItem}>
+              <View style={s.featureIcon}>
+                {f.id === "calendar" && (
+                  <CalendarDays color={C.primary} size={22} strokeWidth={2} />
+                )}
+                {f.id === "insights" && (
+                  <TrendingUp color={C.primary} size={22} strokeWidth={2} />
+                )}
+                {f.id === "trials" && (
+                  <Clock color={C.primary} size={22} strokeWidth={2} />
+                )}
+              </View>
+              <View style={{ flex: 1, justifyContent: "center" }}>
+                <Text style={s.featureTitle}>{f.title}</Text>
+                <Text style={s.featureDesc}>{f.desc}</Text>
+              </View>
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={s.featureTitle}>{f.title}</Text>
-              <Text style={s.featureDesc}>{f.desc}</Text>
-            </View>
-          </View>
-        ))}
-      </View>
-      <View style={s.bottomArea}>
-        <StepDots />
-        <TouchableOpacity style={s.ctaBtn} onPress={() => goForward(2)} activeOpacity={0.8}>
-          <Text style={s.ctaText}>{t('onboarding.continue')}</Text>
-        </TouchableOpacity>
+          ))}
+        </View>
       </View>
     </Animated.View>
   );
 
   // ─── Step 2: Income Input ───
-  const StepIncome = () => (
-    <Animated.View entering={direction === 'forward' ? SlideInRight.duration(300) : SlideInLeft.duration(300)} exiting={direction === 'forward' ? SlideOutLeft.duration(200) : SlideOutRight.duration(200)} style={s.stepContainer}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <Text style={s.incomeTitle}>{t('onboarding.incomeQuestion')}</Text>
+  const renderStepIncome = () => (
+    <Animated.View
+      entering={
+        direction === "forward"
+          ? SlideInRight.duration(300)
+          : SlideInLeft.duration(300)
+      }
+      exiting={
+        direction === "forward"
+          ? SlideOutLeft.duration(200)
+          : SlideOutRight.duration(200)
+      }
+      style={s.stepContainer}
+    >
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <Text style={s.featuresHeadline}>Your Monthly Income?</Text>
+        <Text style={s.featuresSubtitle}>
+          We need this to calculate your subscriptions' true cost in working
+          hours.
+        </Text>
+
         <View style={s.incomeInputRow}>
-          <Text style={s.currencySymbol}>{currencySymbol}</Text>
+          <TouchableOpacity
+            onPress={() => setCurrencyVisible(true)}
+            style={s.currencySelector}
+            activeOpacity={0.7}
+          >
+            <Text style={s.currencySymbol}>{currencySymbol}</Text>
+            <ChevronDown color={C.t3} size={20} strokeWidth={2.5} />
+          </TouchableOpacity>
           <TextInput
             style={s.incomeInput}
             value={income}
@@ -207,67 +383,62 @@ export default function OnboardingSheet() {
             autoFocus
           />
         </View>
-        <Text style={s.incomeHint}>{t('onboarding.incomeHint')}</Text>
-      </KeyboardAvoidingView>
-      <View style={s.bottomArea}>
-        <StepDots />
-        <TouchableOpacity
-          style={[s.ctaBtn, (!income || parseFloat(income) <= 0) && s.ctaBtnDisabled]}
-          onPress={handleIncomeSubmit}
-          activeOpacity={0.8}
-          disabled={!income || parseFloat(income) <= 0}
-        >
-          <Text style={s.ctaText}>{t('onboarding.continue')}</Text>
-        </TouchableOpacity>
       </View>
     </Animated.View>
   );
 
   // ─── Step 3: Paywall ───
-  const StepPaywall = () => (
-    <Animated.View entering={direction === 'forward' ? SlideInRight.duration(300) : SlideInLeft.duration(300)} exiting={direction === 'forward' ? SlideOutLeft.duration(200) : SlideOutRight.duration(200)} style={s.stepContainer}>
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <View style={s.appIconSmall}>
-          <Svg width={32} height={32} viewBox="0 0 24 24" fill="none">
-            <Path d="M12 2.5C12 2.5 5 10.5 5 15a7 7 0 1014 0c0-4.5-7-12.5-7-12.5z" fill="#177b9c" />
-            <Circle cx="9" cy="15" r="2.5" fill="#3a9cbc" />
-          </Svg>
+  const renderStepPaywall = () => (
+    <Animated.View
+      entering={
+        direction === "forward"
+          ? SlideInRight.duration(300)
+          : SlideInLeft.duration(300)
+      }
+      exiting={
+        direction === "forward"
+          ? SlideOutLeft.duration(200)
+          : SlideOutRight.duration(200)
+      }
+      style={s.stepContainer}
+    >
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <View style={s.onboardingAnimationContainer}>
+          <LottieView
+            style={{ width: "100%", height: "100%" }}
+            source={require("@/assets/animation/drop.json")}
+            autoPlay={true}
+            loop={true}
+          />
         </View>
-        <Text style={s.paywallHeadline}>{t('pro.unlockPro')}</Text>
+        <Text style={s.paywallHeadline}>{t("pro.unlockPro")}</Text>
         <View style={s.paywallFeatures}>
           {PRO_FEATURES.map((key) => (
             <View key={key} style={s.paywallFeatureRow}>
               <View style={s.checkCircle}>
                 <Svg width={12} height={12} viewBox="0 0 24 24" fill="none">
-                  <Path d="M20 6L9 17l-5-5" stroke="#fff" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
+                  <Path
+                    d="M20 6L9 17l-5-5"
+                    stroke="#fff"
+                    strokeWidth={3}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
                 </Svg>
               </View>
               <Text style={s.paywallFeatureText}>{t(key)}</Text>
             </View>
           ))}
         </View>
-        <Text style={s.paywallPrice}>{t('pro.priceOnce')}</Text>
-      </View>
-      <View style={s.bottomArea}>
-        <StepDots />
-        <TouchableOpacity style={s.ctaBtn} onPress={handlePurchase} activeOpacity={0.8} disabled={loading}>
-          {loading ? (
-            <ActivityIndicator color="#fff" size="small" />
-          ) : (
-            <Text style={s.ctaText}>{t('pro.ctaButton')}</Text>
-          )}
-        </TouchableOpacity>
-        <TouchableOpacity style={s.restoreBtn} onPress={handleRestore} activeOpacity={0.7} disabled={loading}>
-          <Text style={s.restoreText}>{t('pro.restorePurchase')}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={s.skipBtn} onPress={completeOnboarding} activeOpacity={0.7}>
-          <Text style={s.skipText}>{t('onboarding.skip')}</Text>
-        </TouchableOpacity>
       </View>
     </Animated.View>
   );
 
-  if (hasOnboarded) return null;
+  // if (hasOnboarded) return null;
+
+  const animatedContainerStyle = useAnimatedStyle(() => ({
+    paddingBottom: insets.bottom + 56 + keyboard.height.value,
+  }));
 
   return (
     <TrueSheet
@@ -278,18 +449,42 @@ export default function OnboardingSheet() {
       cornerRadius={0}
     >
       <GestureDetector gesture={swipeGesture}>
-        <View style={[s.container, { height: screenHeight, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 16 }]}>
-          {step === 0 && <StepValueProp />}
-          {step === 1 && <StepFeatures />}
-          {step === 2 && <StepIncome />}
-          {step === 3 && <StepPaywall />}
-        </View>
+        <Animated.View
+          style={[
+            s.container,
+            { height: screenHeight, paddingTop: insets.top + 16 },
+            animatedContainerStyle,
+          ]}
+        >
+          <View style={{ flex: 1, position: "relative" }}>
+            {step === 0 && renderStepValueProp()}
+            {step === 1 && renderStepFeatures()}
+            {step === 2 && renderStepIncome()}
+            {step === 3 && renderStepPaywall()}
+          </View>
+
+          {(step === 2 || step === 3) && (
+            <TouchableOpacity
+              style={[s.absoluteSkipBtn, { top: insets.top + 12 }]}
+              onPress={step === 2 ? () => goForward(3) : completeOnboarding}
+              activeOpacity={0.7}
+            >
+              <Text style={s.absoluteSkipText}>{t("onboarding.skip")}</Text>
+            </TouchableOpacity>
+          )}
+
+          {renderBottomArea()}
+        </Animated.View>
       </GestureDetector>
+      <CurrencySheet
+        visible={currencyVisible}
+        onClose={() => setCurrencyVisible(false)}
+      />
     </TrueSheet>
   );
 }
 
-const { width, height: screenHeight } = Dimensions.get('window');
+const { width, height: screenHeight } = Dimensions.get("window");
 
 const s = StyleSheet.create({
   container: {
@@ -297,7 +492,9 @@ const s = StyleSheet.create({
     paddingHorizontal: 24,
   },
   stepContainer: {
-    flex: 1,
+    position: "absolute",
+    width: "100%",
+    height: "100%",
   },
   bottomArea: {
     paddingBottom: 8,
@@ -306,8 +503,8 @@ const s = StyleSheet.create({
 
   // Step dots
   dots: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
     gap: 8,
     marginBottom: 4,
   },
@@ -327,42 +524,49 @@ const s = StyleSheet.create({
     backgroundColor: C.black,
     borderRadius: R.md,
     paddingVertical: 18,
-    alignItems: 'center',
+    alignItems: "center",
   },
   ctaBtnDisabled: {
     opacity: 0.3,
   },
   ctaText: {
     fontSize: 17,
-    fontWeight: '700',
-    color: '#fff',
+    fontWeight: "700",
+    color: "#fff",
+  },
+  paywallCtaBtn: {
+    backgroundColor: C.primary,
+    borderRadius: 100,
+    shadowColor: C.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  paywallCtaText: {
+    fontSize: 16,
+    letterSpacing: 0.3,
   },
 
   // Step 0 — Value Prop
-  appIcon: {
-    width: 88,
-    height: 88,
-    borderRadius: 22,
-    backgroundColor: C.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: C.line,
-    marginBottom: 32,
+  onboardingAnimationContainer: {
+    width: 140,
+    height: 140,
+    marginBottom: 24,
   },
   headline: {
     fontSize: 28,
-    fontWeight: '800',
+    fontWeight: "800",
     color: C.t1,
-    textAlign: 'center',
+    textAlign: "center",
     letterSpacing: -0.5,
     lineHeight: 34,
   },
   headlineAccent: {
     fontSize: 28,
-    fontWeight: '800',
-    color: C.accent,
-    textAlign: 'center',
+    fontWeight: "800",
+    color: C.primary,
+    textAlign: "center",
     letterSpacing: -0.5,
     lineHeight: 34,
     marginBottom: 16,
@@ -370,31 +574,50 @@ const s = StyleSheet.create({
   subtitle: {
     fontSize: 15,
     color: C.t2,
-    textAlign: 'center',
+    textAlign: "center",
     lineHeight: 22,
-    paddingHorizontal: 16,
+    paddingHorizontal: 24,
   },
 
   // Step 1 — Features
+  featuresHeaderIcon: {
+    marginBottom: 20,
+    alignItems: "center",
+  },
+  featuresHeadline: {
+    fontSize: 26,
+    fontWeight: "800",
+    color: C.t1,
+    letterSpacing: -0.5,
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  featuresSubtitle: {
+    fontSize: 15,
+    color: C.t2,
+    lineHeight: 22,
+    textAlign: "center",
+    paddingHorizontal: 16,
+  },
   featureItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     gap: 16,
-    marginBottom: 28,
+    marginBottom: 26,
   },
   featureIcon: {
-    width: 48,
-    height: 48,
+    width: 46,
+    height: 46,
     borderRadius: 14,
-    backgroundColor: C.greenBg,
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "rgba(23,123,156,0.12)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   featureTitle: {
     fontSize: 17,
-    fontWeight: '700',
+    fontWeight: "700",
     color: C.t1,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   featureDesc: {
     fontSize: 14,
@@ -403,102 +626,86 @@ const s = StyleSheet.create({
   },
 
   // Step 2 — Income
-  incomeTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: C.t1,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
   incomeInputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 40,
+    marginBottom: 40,
+  },
+  currencySelector: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: C.surface,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
     gap: 4,
-    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: C.line,
   },
   currencySymbol: {
-    fontSize: 36,
-    fontWeight: '700',
-    color: C.t3,
+    fontSize: 24,
+    fontWeight: "700",
+    color: C.t2,
   },
   incomeInput: {
-    fontSize: 36,
-    fontWeight: '700',
+    fontSize: 48,
+    fontWeight: "800",
     color: C.t1,
-    minWidth: 120,
-    textAlign: 'center',
-  },
-  incomeHint: {
-    fontSize: 13,
-    color: C.t3,
-    textAlign: 'center',
-    lineHeight: 18,
-    paddingHorizontal: 24,
+    minWidth: 140,
+    textAlign: "center",
   },
 
   // Step 3 — Paywall
-  appIconSmall: {
-    width: 64,
-    height: 64,
-    borderRadius: 16,
-    backgroundColor: C.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: C.line,
-    marginBottom: 20,
-  },
   paywallHeadline: {
-    fontSize: 24,
-    fontWeight: '800',
+    fontSize: 28,
+    fontWeight: "800",
     color: C.t1,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 24,
     letterSpacing: -0.5,
   },
   paywallFeatures: {
-    width: '100%',
+    width: "100%",
     gap: 14,
-    marginBottom: 24,
+    marginBottom: 36,
   },
   paywallFeatureRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
   },
   checkCircle: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: C.green,
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: C.primary,
+    alignItems: "center",
+    justifyContent: "center",
   },
   paywallFeatureText: {
-    fontSize: 15,
-    fontWeight: '500',
+    fontSize: 16,
+    fontWeight: "500",
     color: C.t1,
   },
-  paywallPrice: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: C.t2,
-  },
   restoreBtn: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: 4,
   },
   restoreText: {
     fontSize: 13,
     color: C.t3,
   },
-  skipBtn: {
-    alignItems: 'center',
-    paddingVertical: 4,
+  absoluteSkipBtn: {
+    position: "absolute",
+    right: 20,
+    zIndex: 10,
+    padding: 8,
   },
-  skipText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: C.t2,
+  absoluteSkipText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: C.t3,
   },
 });

@@ -48,6 +48,9 @@ const ko = {
   'calendar.title': '타임라인',
   'calendar.nextUp': '다음 갱신',
   'calendar.daysLeft_other': '{{count}}일 남음',
+  'calendar.proTitle': 'Pro 인사이트 잠금 해제',
+  'calendar.proDesc': '모든 예정된 청구, 월별 요약 및 전체 구독 활동을 확인하세요.',
+  'calendar.upgrade': 'Pro 시작하기',
 
   // Insights
   'insights.title': '인사이트',
@@ -232,7 +235,7 @@ const ko = {
   // Pro / Paywall
   'pro.badge': 'PRO',
   'pro.unlockPro': 'Drip Pro 잠금 해제',
-  'pro.priceOnce': '₩5,900 — 일회성 구매',
+  'pro.priceOnce': '{{price}} (으)로 잠금 해제',
   'pro.ctaButton': 'Pro 잠금 해제',
   'pro.restorePurchase': '구매 복원',
   'pro.notNow': '나중에',
@@ -244,6 +247,8 @@ const ko = {
   'pro.restoreNone': '이전 구매를 찾을 수 없습니다',
   'pro.headline.subs': '모든 구독을 추적하세요',
   'pro.desc.subs': '2개 구독 제한을 해제하고 모든 서비스를 추적하세요.',
+  'pro.headline.customSub': '맞춤 구독',
+  'pro.desc.customSub': '목록에 없는 맞춤 구독을 생성하려면 Pro로 업그레이드하세요.',
   'pro.headline.insights': '지출 트렌드 확인',
   'pro.desc.insights': '전체 지출 내역, 카테고리 분석, 평생 비용을 잠금 해제하세요.',
   'pro.headline.calendar': '갱신을 놓치지 마세요',

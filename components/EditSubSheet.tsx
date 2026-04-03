@@ -2,6 +2,7 @@ import AnimatedPressable from '@/components/AnimatedPressable';
 import AppearanceModal from '@/components/AppearanceModal';
 import BrandLogo from '@/components/BrandLogo';
 import Card from '@/components/Card';
+import CategoryModal from '@/components/CategoryModal';
 import { C, R } from '@/constants/design';
 import { useStore } from '@/store';
 import { useSettings } from '@/store/settings';
@@ -289,27 +290,15 @@ export default function EditSubSheet({ id, onClose }: { id: string | null; onClo
                 </Field>
 
                 {/* Category popup */}
-                <Modal visible={categoryOpen} transparent animationType="fade" onRequestClose={() => setCategoryOpen(false)}>
-                    <TouchableOpacity style={s.popupOverlay} activeOpacity={1} onPress={() => setCategoryOpen(false)}>
-                        <View style={s.popupCard}>
-                            <Text style={s.popupTitle}>{t('addSub.category')}</Text>
-                            {categories.map(c => (
-                                <TouchableOpacity
-                                    key={c.id}
-                                    onPress={() => { u('categoryId', c.id); setCategoryOpen(false); }}
-                                    style={[s.popupItem, f.categoryId === c.id && { backgroundColor: C.bgSub }]}
-                                    activeOpacity={0.75}
-                                >
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                                        <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: c.color }} />
-                                        <Text style={{ fontSize: 15, color: f.categoryId === c.id ? C.t1 : C.t2, fontWeight: f.categoryId === c.id ? '600' : '500' }}>{c.name}</Text>
-                                    </View>
-                                    {f.categoryId === c.id && <Text style={{ color: C.t1, fontSize: 14 }}>✓</Text>}
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-                    </TouchableOpacity>
-                </Modal>
+                <CategoryModal
+                    visible={categoryOpen}
+                    onClose={() => setCategoryOpen(false)}
+                    selectedId={f.categoryId}
+                    onSelect={(id) => {
+                        u("categoryId", id);
+                        setCategoryOpen(false);
+                    }}
+                />
 
                 {/* Start date */}
                 <Field label={t('addSub.startDate')}>

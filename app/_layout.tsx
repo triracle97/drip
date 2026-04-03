@@ -1,3 +1,4 @@
+import CongratsModal from '@/components/CongratsModal';
 import OnboardingSheet from '@/components/OnboardingSheet';
 import { C } from '@/constants/design';
 import { useRevenueCat } from '@/hooks/useRevenueCat';
@@ -110,6 +111,7 @@ function AppContent() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       </Stack>
       <OnboardingSheet />
+      <CongratsModal />
       <StatusBar style="dark" />
     </>
   );

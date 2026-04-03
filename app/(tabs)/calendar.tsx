@@ -4,7 +4,6 @@ import EditSubSheet from '@/components/EditSubSheet';
 import IncomeCTA from '@/components/IncomeCTA';
 import IncomeSheet from '@/components/IncomeSheet';
 import MonthSummaryCard from '@/components/MonthSummaryCard';
-import ProBlurOverlay from '@/components/ProBlurOverlay';
 import ProSheet from '@/components/ProSheet';
 import type { ProFeatureKey } from '@/components/ProSheet';
 import TrialSheet from '@/components/TrialSheet';
@@ -18,11 +17,13 @@ import { getEventsByMonth } from '@/store/repository';
 import { blended, curMonth, curYear, fmt, monthName, nextChargeIn, subMo, toHrs } from '@/utils/calc';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Dimensions, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, ScrollView, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
+import { Lock } from 'lucide-react-native';
+import { BlurView } from 'expo-blur';
 
 import type { Category } from '@/store';
 
@@ -209,60 +210,11 @@ export default function TimelineScreen() {
                             hoursLabel={toHrs(subMo(heroCharge.sub), rate)}
                             onPress={() => handleSubPress(heroCharge.sub)}
                         />
-                        {otherCharges.length > 0 && (
-                            isPro ? (
-                                <>
-                                    {otherCharges.length <= 2 && (
-                                        <View style={s.compactInlineRow}>
-                                            {otherCharges.map(({ sub, daysLeft }) => (
-                                                <View key={sub.id} style={{ flex: 1 }}>
-                                                    <UpcomingChargeCompact
-                                                        name={sub.name}
-                                                        icon={sub.icon}
-                                                        color={sub.color}
-                                                        daysLeft={daysLeft}
-                                                        cost={fmt(sub.cost)}
-                                                        onPress={() => handleSubPress(sub)}
-                                                    />
-                                                </View>
-                                            ))}
-                                        </View>
-                                    )}
-                                    {otherCharges.length > 2 && (
-                                        <ScrollView
-                                            horizontal
-                                            showsHorizontalScrollIndicator={false}
-                                            contentContainerStyle={s.compactScroll}
-                                            style={s.compactScrollOuter}
-                                        >
-                                            {(() => {
-                                                const pairs: { sub: typeof otherCharges[0]['sub']; daysLeft: number }[][] = [];
-                                                for (let i = 0; i < otherCharges.length; i += 2) {
-                                                    pairs.push(otherCharges.slice(i, i + 2));
-                                                }
-                                                return pairs.map((pair, idx) => (
-                                                    <View key={idx} style={s.compactColumn}>
-                                                        {pair.map(({ sub, daysLeft }) => (
-                                                            <UpcomingChargeCompact
-                                                                key={sub.id}
-                                                                name={sub.name}
-                                                                icon={sub.icon}
-                                                                color={sub.color}
-                                                                daysLeft={daysLeft}
-                                                                cost={fmt(sub.cost)}
-                                                                onPress={() => handleSubPress(sub)}
-                                                            />
-                                                        ))}
-                                                    </View>
-                                                ));
-                                            })()}
-                                        </ScrollView>
-                                    )}
-                                </>
-                            ) : (
-                                <ProBlurOverlay onPress={() => setProFeature('calendar')}>
+                        {otherCharges.length > 0 && isPro && (
+                            <>
+                                {otherCharges.length <= 2 && (
                                     <View style={s.compactInlineRow}>
-                                        {otherCharges.slice(0, 2).map(({ sub, daysLeft }) => (
+                                        {otherCharges.map(({ sub, daysLeft }) => (
                                             <View key={sub.id} style={{ flex: 1 }}>
                                                 <UpcomingChargeCompact
                                                     name={sub.name}
@@ -270,13 +222,43 @@ export default function TimelineScreen() {
                                                     color={sub.color}
                                                     daysLeft={daysLeft}
                                                     cost={fmt(sub.cost)}
-                                                    onPress={() => {}}
+                                                    onPress={() => handleSubPress(sub)}
                                                 />
                                             </View>
                                         ))}
                                     </View>
-                                </ProBlurOverlay>
-                            )
+                                )}
+                                {otherCharges.length > 2 && (
+                                    <ScrollView
+                                        horizontal
+                                        showsHorizontalScrollIndicator={false}
+                                        contentContainerStyle={s.compactScroll}
+                                        style={s.compactScrollOuter}
+                                    >
+                                        {(() => {
+                                            const pairs: { sub: typeof otherCharges[0]['sub']; daysLeft: number }[][] = [];
+                                            for (let i = 0; i < otherCharges.length; i += 2) {
+                                                pairs.push(otherCharges.slice(i, i + 2));
+                                            }
+                                            return pairs.map((pair, idx) => (
+                                                <View key={idx} style={s.compactColumn}>
+                                                    {pair.map(({ sub, daysLeft }) => (
+                                                        <UpcomingChargeCompact
+                                                            key={sub.id}
+                                                            name={sub.name}
+                                                            icon={sub.icon}
+                                                            color={sub.color}
+                                                            daysLeft={daysLeft}
+                                                            cost={fmt(sub.cost)}
+                                                            onPress={() => handleSubPress(sub)}
+                                                        />
+                                                    ))}
+                                                </View>
+                                            ));
+                                        })()}
+                                    </ScrollView>
+                                )}
+                            </>
                         )}
                     </Animated.View>
                 )}
@@ -286,42 +268,36 @@ export default function TimelineScreen() {
                     <View style={s.divider} />
                 )}
 
-                {/* Month Summary */}
+                {/* Pro Sections or Paywall */}
                 {isPro ? (
-                    <Animated.View entering={FadeInDown.duration(300).delay(isCurrentMonth && heroCharge ? 200 : 100)}>
-                        <MonthSummaryCard
-                            breakdown={catBreakdown}
-                            catMap={catMap}
-                            totalMo={totalMo}
-                            activeCount={activeCount}
-                            prevMonthTotal={prevMonthTotal}
-                            prevMonthLabel={prevMonthLabel}
-                        />
-                    </Animated.View>
-                ) : (
-                    <ProBlurOverlay onPress={() => setProFeature('calendar')}>
-                        <MonthSummaryCard
-                            breakdown={catBreakdown}
-                            catMap={catMap}
-                            totalMo={totalMo}
-                            activeCount={activeCount}
-                            prevMonthTotal={prevMonthTotal}
-                            prevMonthLabel={prevMonthLabel}
-                        />
-                    </ProBlurOverlay>
-                )}
-
-                {/* Activity Log */}
-                {isPro ? (
-                    <Animated.View entering={FadeInDown.duration(300).delay(isCurrentMonth && heroCharge ? 300 : 200)} style={{ marginTop: 8 }}>
-                        <ActivityLog events={monthEvents} subMap={subMap} />
-                    </Animated.View>
-                ) : (
-                    <View style={{ marginTop: 8 }}>
-                        <ProBlurOverlay onPress={() => setProFeature('calendar')}>
+                    <>
+                        <Animated.View entering={FadeInDown.duration(300).delay(isCurrentMonth && heroCharge ? 200 : 100)}>
+                            <MonthSummaryCard
+                                breakdown={catBreakdown}
+                                catMap={catMap}
+                                totalMo={totalMo}
+                                activeCount={activeCount}
+                                prevMonthTotal={prevMonthTotal}
+                                prevMonthLabel={prevMonthLabel}
+                            />
+                        </Animated.View>
+                        <Animated.View entering={FadeInDown.duration(300).delay(isCurrentMonth && heroCharge ? 300 : 200)} style={{ marginTop: 8 }}>
                             <ActivityLog events={monthEvents} subMap={subMap} />
-                        </ProBlurOverlay>
-                    </View>
+                        </Animated.View>
+                    </>
+                ) : (
+                    <Animated.View entering={FadeInDown.duration(300).delay(200)}>
+                        <TouchableOpacity onPress={() => setProFeature('calendar')} activeOpacity={0.9} style={s.singlePaywallBox}>
+                            <View style={s.singlePaywallIconBg}>
+                                <Lock size={26} color={C.gold} strokeWidth={2.5} />
+                            </View>
+                            <Text style={s.singlePaywallTitle}>{t('calendar.proTitle') || 'Unlock Pro Insights'}</Text>
+                            <Text style={s.singlePaywallText}>{t('calendar.proDesc') || 'See all upcoming charges, month-over-month summaries, and complete subscription activity.'}</Text>
+                            <View style={s.singlePaywallBtn}>
+                                <Text style={s.singlePaywallBtnText}>{t('calendar.upgrade') || 'Get Pro'}</Text>
+                            </View>
+                        </TouchableOpacity>
+                    </Animated.View>
                 )}
             </ScrollView>
 
@@ -381,5 +357,30 @@ const s = StyleSheet.create({
     },
     monthMeta: {
         fontSize: 12, color: C.t1, marginTop: 2,
+    },
+    singlePaywallBox: {
+        backgroundColor: C.surfaceElevated,
+        borderRadius: R.md,
+        padding: 24,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(0,0,0,0.04)',
+        marginTop: 4,
+    },
+    singlePaywallIconBg: {
+        width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(255,215,0,0.15)',
+        alignItems: 'center', justifyContent: 'center', marginBottom: 16,
+    },
+    singlePaywallTitle: {
+        fontSize: 18, fontWeight: '700', color: C.t1, marginBottom: 8, textAlign: 'center',
+    },
+    singlePaywallText: {
+        fontSize: 14, color: C.t2, textAlign: 'center', marginBottom: 24, lineHeight: 20,
+    },
+    singlePaywallBtn: {
+        backgroundColor: C.black, paddingVertical: 14, paddingHorizontal: 24, borderRadius: R.md, width: '100%', alignItems: 'center',
+    },
+    singlePaywallBtnText: {
+        color: '#FFF', fontWeight: '600', fontSize: 15,
     },
 });

@@ -51,6 +51,9 @@ const es = {
   'calendar.nextUp': 'PRÓXIMO',
   'calendar.daysLeft_one': '{{count}} día restante',
   'calendar.daysLeft_other': '{{count}} días restantes',
+  'calendar.proTitle': 'Desbloquear Insights Pro',
+  'calendar.proDesc': 'Ve todos los cobros próximos, resúmenes mensuales y actividad completa.',
+  'calendar.upgrade': 'Obtener Pro',
 
   // Insights
   'insights.title': 'Análisis',
@@ -237,7 +240,7 @@ const es = {
   // Pro / Paywall
   'pro.badge': 'PRO',
   'pro.unlockPro': 'Desbloquear Drip Pro',
-  'pro.priceOnce': '$4 — Compra única',
+  'pro.priceOnce': 'Desbloquear por {{price}}',
   'pro.ctaButton': 'Desbloquear Pro',
   'pro.restorePurchase': 'Restaurar compra',
   'pro.notNow': 'Ahora no',
@@ -249,6 +252,8 @@ const es = {
   'pro.restoreNone': 'No se encontró ninguna compra anterior',
   'pro.headline.subs': 'Rastrea todas tus suscripciones',
   'pro.desc.subs': 'Elimina el límite de 2 suscripciones y rastrea cada servicio que pagas.',
+  'pro.headline.customSub': 'Suscripciones Personalizadas',
+  'pro.desc.customSub': 'Mejora a Pro para crear suscripciones a medida que no están en nuestra lista.',
   'pro.headline.insights': 'Ve tus tendencias de gastos',
   'pro.desc.insights': 'Desbloquea el historial completo de gastos, desglose por categoría y costos de por vida.',
   'pro.headline.calendar': 'No te pierdas una renovación',

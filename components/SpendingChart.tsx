@@ -6,6 +6,7 @@ import { fmt } from '@/utils/calc';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Lock } from 'lucide-react-native';
 
 interface Props {
     history: SpendingSnapshot[];
@@ -15,6 +16,7 @@ interface Props {
 export default function SpendingChart({ history, catMap }: Props) {
     const { t } = useTranslation();
     const currency = useSettings(s => s.currency);
+    const isPro = useSettings(s => s.isPro);
     // Show last 6 months, most recent on the right
     const recent = history.slice(0, 6).reverse();
 
@@ -57,19 +59,27 @@ export default function SpendingChart({ history, catMap }: Props) {
                 {recent.map((snap, i) => {
                     const pct = snap.totalMonthlyCost / maxCost;
                     const isLast = i === recent.length - 1;
+                    const isHistoric = !isLast && !isPro;
+                    
                     return (
                         <View key={`${snap.year}-${snap.month}`} style={s.barCol}>
-                            <View style={s.barTrack}>
+                            <View style={[s.barTrack, isHistoric && { opacity: 0.4 }]}>
                                 <View style={[s.bar, {
                                     height: `${Math.max(4, pct * 100)}%`,
                                     backgroundColor: barColor(snap),
-                                    opacity: isLast ? 1 : 0.5,
+                                    opacity: isLast ? 1 : 0.6,
                                 }]} />
                             </View>
                             <Text style={[s.barLabel, isLast && { fontWeight: '700', color: C.t1 }]}>
                                 {MONTHS[snap.month]}
                             </Text>
-                            <Text style={s.barAmt}>{fmt(snap.totalMonthlyCost)}</Text>
+                            {isHistoric ? (
+                                <View style={{ marginTop: 2, height: 11, justifyContent: 'center' }}>
+                                    <Lock size={10} color={C.gold} strokeWidth={3} />
+                                </View>
+                            ) : (
+                                <Text style={s.barAmt}>{fmt(snap.totalMonthlyCost)}</Text>
+                            )}
                         </View>
                     );
                 })}

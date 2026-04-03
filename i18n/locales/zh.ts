@@ -48,6 +48,9 @@ const zh = {
   'calendar.title': '时间轴',
   'calendar.nextUp': '即将到来',
   'calendar.daysLeft_other': '剩余 {{count}} 天',
+  'calendar.proTitle': '解锁 Pro 洞察',
+  'calendar.proDesc': '查看所有即将到来的扣费、月度汇总及完整的订阅活动。',
+  'calendar.upgrade': '获取 Pro',
 
   // Insights
   'insights.title': '分析',
@@ -232,7 +235,7 @@ const zh = {
   // Pro / Paywall
   'pro.badge': 'PRO',
   'pro.unlockPro': '解锁 Drip Pro',
-  'pro.priceOnce': '¥28 — 一次性购买',
+  'pro.priceOnce': '{{price}} 解锁',
   'pro.ctaButton': '解锁 Pro',
   'pro.restorePurchase': '恢复购买',
   'pro.notNow': '暂时不用',

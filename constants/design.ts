@@ -10,6 +10,8 @@ export const C = {
     surface: '#FAFAFA',
     surfaceElevated: '#FFFFFF',
     black: '#000000',
+    primary: '#177b9c',
+    primarySub: '#3a9cbc',
     t1: '#000000',
     t2: '#6B6B6B',
     t3: '#ABABAB',
