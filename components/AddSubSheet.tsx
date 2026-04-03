@@ -149,7 +149,7 @@ function Field({
 const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
-  const { addSub, incomes, categories } = useStore();
+  const { addSub, incomes, categories, subs } = useStore();
   const currency = useSettings((s) => s.currency);
   const isPro = useSettings((s) => s.isPro);
   const rate = blended(incomes);
@@ -213,6 +213,10 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
   }, [popularSubs, query]);
 
   const pickBrand = (q: PopularSub) => {
+    if (!isPro && subs.filter((s) => s.active || s.isTrial).length >= 2) {
+      setProFeature("subs");
+      return;
+    }
     setF({
       ...DEFAULT_FORM,
       name: q.name,
@@ -225,6 +229,10 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
   };
 
   const pickCustom = () => {
+    if (!isPro) {
+      setProFeature("customSub");
+      return;
+    }
     setF({ ...DEFAULT_FORM });
     setPhase("form");
   };

@@ -1,288 +1,363 @@
-import AddSubSheet from '@/components/AddSubSheet';
-import AnimatedPressable from '@/components/AnimatedPressable';
-import Card from '@/components/Card';
-import EditSubSheet from '@/components/EditSubSheet';
-import IncomeSheet from '@/components/IncomeSheet';
-import ProBadge from '@/components/ProBadge';
-import ProSheet from '@/components/ProSheet';
-import type { ProFeatureKey } from '@/components/ProSheet';
-import SubRow from '@/components/SubRow';
-import Toast from '@/components/Toast';
-import TrialSheet from '@/components/TrialSheet';
-import { C, LAYOUT, R, SP, TS } from '@/constants/design';
-import { Sub, useStore } from '@/store';
-import { useSettings } from '@/store/settings';
-import { getPopularSubs, PopularSub } from '@/store/supabase';
+import AddSubSheet from "@/components/AddSubSheet";
+import AnimatedPressable from "@/components/AnimatedPressable";
+import Card from "@/components/Card";
+import EditSubSheet from "@/components/EditSubSheet";
+import IncomeSheet from "@/components/IncomeSheet";
+import type { ProFeatureKey } from "@/components/ProSheet";
+import ProSheet from "@/components/ProSheet";
+import SubRow from "@/components/SubRow";
+import Toast from "@/components/Toast";
+import TrialSheet from "@/components/TrialSheet";
+import { C, LAYOUT, R, SP, TS } from "@/constants/design";
+import { Sub, useStore } from "@/store";
+import { useSettings } from "@/store/settings";
+import { getPopularSubs, PopularSub } from "@/store/supabase";
 import {
   blended,
-  cycleDays, daysLabel,
+  cycleDays,
+  daysLabel,
   daysSinceTrialEnd,
   fmt,
   nextChargeIn,
   subMo,
   toHrs,
   trialDaysLeft,
-} from '@/utils/calc';
-import { TrueSheet } from '@lodev09/react-native-true-sheet';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
-} from 'react-native';
-import { useTranslation } from 'react-i18next';
-import DraggableFlatList, { RenderItemParams, ScaleDecorator } from 'react-native-draggable-flatlist';
-import Animated, {
-  FadeInDown,
-} from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Circle, Path } from 'react-native-svg';
+} from "@/utils/calc";
+import { TrueSheet } from "@lodev09/react-native-true-sheet";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { useTranslation } from "react-i18next";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import DraggableFlatList, {
+  RenderItemParams,
+  ScaleDecorator,
+} from "react-native-draggable-flatlist";
+import Animated, { FadeInDown } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Svg, { Circle, Path } from "react-native-svg";
 
-import type { Category } from '@/store';
-
+import type { Category } from "@/store";
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const { subs, incomes, categories, reorderSubs } = useStore();
-  const currency = useSettings(s => s.currency);
+  const currency = useSettings((s) => s.currency);
 
   const catMap = useMemo(() => {
     const m: Record<string, Category> = {};
-    categories.forEach(c => { m[c.id] = c; });
+    categories.forEach((c) => {
+      m[c.id] = c;
+    });
     return m;
   }, [categories]);
-  const [viewPeriod, setViewPeriod] = useState<'mo' | 'yr'>('mo');
+  const [viewPeriod, setViewPeriod] = useState<"mo" | "yr">("mo");
   const [filterCat, setFilterCat] = useState<string | null>(null);
   const [trialSheet, setTrialSheet] = useState<Sub | null>(null);
   const [editSubId, setEditSubId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [proFeature, setProFeature] = useState<ProFeatureKey | null>(null);
-  const isPro = useSettings(s => s.isPro);
+  const isPro = useSettings((s) => s.isPro);
   const addSheetRef = useRef<TrueSheet>(null);
   const incomeRef = useRef<TrueSheet>(null);
 
   // ─── Sheet state ───
   const [popularSubs, setPopularSubs] = useState<PopularSub[]>([]);
-  const [sheetPhase, setSheetPhase] = useState<'pick' | 'form'>('pick');
-  const [sheetQuery, setSheetQuery] = useState('');
-  const [sheetForm, setSheetForm] = useState({ name: '', icon: '📦', color: '#000000', cost: '', categoryId: 'cat_other' });
+  const [sheetPhase, setSheetPhase] = useState<"pick" | "form">("pick");
+  const [sheetQuery, setSheetQuery] = useState("");
+  const [sheetForm, setSheetForm] = useState({
+    name: "",
+    icon: "📦",
+    color: "#000000",
+    cost: "",
+    categoryId: "cat_other",
+  });
 
-  useEffect(() => { getPopularSubs().then(setPopularSubs); }, []);
+  useEffect(() => {
+    getPopularSubs().then(setPopularSubs);
+  }, []);
 
   const sheetFiltered = useMemo(() => {
     if (!sheetQuery.trim()) return popularSubs;
     const q = sheetQuery.toLowerCase();
-    return popularSubs.filter(s => s.name.toLowerCase().includes(q));
+    return popularSubs.filter((s) => s.name.toLowerCase().includes(q));
   }, [popularSubs, sheetQuery]);
 
   const rate = blended(incomes);
-  const activeTrials = subs.filter(s => s.isTrial && s.trialDecision === 'pending' && trialDaysLeft(s.trialEndDay) > 0);
-  const expiredTrials = subs.filter(s => s.isTrial && trialDaysLeft(s.trialEndDay) <= 0);
-  const active = [...subs.filter(s => s.active && !s.isTrial), ...expiredTrials];
-  const inactive = subs.filter(s => !s.active && !s.isTrial);
+  const activeTrials = subs.filter(
+    (s) =>
+      s.isTrial &&
+      s.trialDecision === "pending" &&
+      trialDaysLeft(s.trialEndDay) > 0,
+  );
+  const expiredTrials = subs.filter(
+    (s) => s.isTrial && trialDaysLeft(s.trialEndDay) <= 0,
+  );
+  const active = [
+    ...subs.filter((s) => s.active && !s.isTrial),
+    ...expiredTrials,
+  ];
+  const inactive = subs.filter((s) => !s.active && !s.isTrial);
   const totalMo = active.reduce((sum, s) => sum + subMo(s), 0);
-  const displayTotal = viewPeriod === 'yr' ? totalMo * 12 : totalMo;
+  const displayTotal = viewPeriod === "yr" ? totalMo * 12 : totalMo;
   const totalIncomeMo = incomes.reduce((sum, i) => {
-    return sum + (i.isHourly ? i.amount * (i.hoursPerWeek || 10) * 4.33 : i.amount / 12);
+    return (
+      sum +
+      (i.isHourly ? i.amount * (i.hoursPerWeek || 10) * 4.33 : i.amount / 12)
+    );
   }, 0);
   const pctIncome = totalIncomeMo > 0 ? (totalMo / totalIncomeMo) * 100 : 0;
 
   const catBreakdown = useMemo(() => {
     const bd: Record<string, number> = {};
-    active.forEach(s => { bd[s.categoryId] = (bd[s.categoryId] || 0) + subMo(s); });
+    active.forEach((s) => {
+      bd[s.categoryId] = (bd[s.categoryId] || 0) + subMo(s);
+    });
     return Object.entries(bd).sort((a, b) => b[1] - a[1]);
   }, [active]);
 
   const displaySubs = useMemo(() => {
     // Single unified list: active trials + active regular + expired trials
     // This preserves sortOrder positions across trial → paid transitions
-    const all = subs.filter(s => {
-      if (s.isTrial && s.trialDecision === 'pending' && trialDaysLeft(s.trialEndDay) > 0) return true;
+    const all = subs.filter((s) => {
+      if (
+        s.isTrial &&
+        s.trialDecision === "pending" &&
+        trialDaysLeft(s.trialEndDay) > 0
+      )
+        return true;
       if (s.isTrial && trialDaysLeft(s.trialEndDay) <= 0) return true;
       if (s.active && !s.isTrial) return true;
       return false;
     });
-    const filtered = filterCat ? all.filter(s => s.categoryId === filterCat) : all;
+    const filtered = filterCat
+      ? all.filter((s) => s.categoryId === filterCat)
+      : all;
     return filtered.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
   }, [subs, filterCat]);
 
-  const isYr = viewPeriod === 'yr';
+  const isYr = viewPeriod === "yr";
 
-  const handleDragEnd = useCallback(({ data }: { data: Sub[] }) => {
-    // Persist the full ordering: dragged items + non-active items
-    const activeIds = data.map(s => s.id);
-    const otherIds = subs.filter(s => !activeIds.includes(s.id)).map(s => s.id);
-    reorderSubs([...activeIds, ...otherIds]);
-  }, [subs, reorderSubs]);
+  const handleDragEnd = useCallback(
+    ({ data }: { data: Sub[] }) => {
+      // Persist the full ordering: dragged items + non-active items
+      const activeIds = data.map((s) => s.id);
+      const otherIds = subs
+        .filter((s) => !activeIds.includes(s.id))
+        .map((s) => s.id);
+      reorderSubs([...activeIds, ...otherIds]);
+    },
+    [subs, reorderSubs],
+  );
 
-  const renderItem = useCallback(({ item: s_, drag, isActive: isDragging }: RenderItemParams<Sub>) => {
-    // Trial card
-    if (s_.isTrial && s_.trialDecision === 'pending' && trialDaysLeft(s_.trialEndDay) > 0) {
+  const renderItem = useCallback(
+    ({ item: s_, drag, isActive: isDragging }: RenderItemParams<Sub>) => {
+      // Trial card
+      if (
+        s_.isTrial &&
+        s_.trialDecision === "pending" &&
+        trialDaysLeft(s_.trialEndDay) > 0
+      ) {
+        const mc = subMo(s_);
+        const daysLeft = trialDaysLeft(s_.trialEndDay);
+        const displayCost = isYr ? mc * 12 : mc;
+        return (
+          <ScaleDecorator>
+            <SubRow
+              name={s_.name}
+              icon={s_.icon}
+              color={s_.color}
+              costLabel={fmt(0)}
+              variant="trial"
+              trialDaysLeft={daysLeft}
+              trialCostLabel={`Then ${fmt(displayCost)}/${isYr ? "yr" : "mo"}`}
+              onPress={() => setTrialSheet(s_)}
+              onLongPress={drag}
+              isDragging={isDragging}
+            />
+          </ScaleDecorator>
+        );
+      }
+      // Regular card
       const mc = subMo(s_);
-      const daysLeft = trialDaysLeft(s_.trialEndDay);
       const displayCost = isYr ? mc * 12 : mc;
+      const remain = nextChargeIn(s_);
+      const total = cycleDays(s_);
+      const urgent = remain <= 3;
+      const justEndedTrial =
+        s_.isTrial && daysSinceTrialEnd(s_.trialEndDay) <= 5;
       return (
         <ScaleDecorator>
           <SubRow
             name={s_.name}
             icon={s_.icon}
             color={s_.color}
-            costLabel={fmt(0)}
-            variant="trial"
-            trialDaysLeft={daysLeft}
-            trialCostLabel={`Then ${fmt(displayCost)}/${isYr ? 'yr' : 'mo'}`}
-            onPress={() => setTrialSheet(s_)}
+            costLabel={fmt(displayCost)}
+            costSub={`/${isYr ? "year" : "month"}`}
+            renewLabel={daysLabel(remain)}
+            hoursLabel={toHrs(displayCost, rate)}
+            urgent={urgent}
+            trialJustEnded={justEndedTrial}
+            onPress={() =>
+              justEndedTrial ? setTrialSheet(s_) : setEditSubId(s_.id)
+            }
             onLongPress={drag}
             isDragging={isDragging}
           />
         </ScaleDecorator>
       );
-    }
-    // Regular card
-    const mc = subMo(s_);
-    const displayCost = isYr ? mc * 12 : mc;
-    const remain = nextChargeIn(s_);
-    const total = cycleDays(s_);
-    const urgent = remain <= 3;
-    const justEndedTrial = s_.isTrial && daysSinceTrialEnd(s_.trialEndDay) <= 5;
-    return (
-      <ScaleDecorator>
-        <SubRow
-          name={s_.name}
-          icon={s_.icon}
-          color={s_.color}
-          costLabel={fmt(displayCost)}
-          costSub={`/${isYr ? 'year' : 'month'}`}
-          renewLabel={daysLabel(remain)}
-          hoursLabel={toHrs(displayCost, rate)}
-          urgent={urgent}
-          trialJustEnded={justEndedTrial}
-          onPress={() => justEndedTrial ? setTrialSheet(s_) : setEditSubId(s_.id)}
-          onLongPress={drag}
-          isDragging={isDragging}
-        />
-      </ScaleDecorator>
-    );
-  }, [isYr, rate]);
+    },
+    [isYr, rate],
+  );
 
-  const ListHeader = useMemo(() => (
-    <>
-      {/* Compact Hero Summary Card */}
-      <Animated.View entering={FadeInDown.duration(400)}>
-        <Card style={s.heroCard}>
-          <View style={s.heroRow}>
-            <View style={s.heroStat}>
-              <Text style={s.heroStatLabel}>{t('home.totalCost')}</Text>
-              <Text style={s.heroStatValue}>{fmt(displayTotal)}</Text>
-              <Text style={s.heroStatHint}>{active.length} active</Text>
-            </View>
-            <View style={s.heroDivider} />
-            {incomes.length === 0 ? (
-              <TouchableOpacity onPress={() => incomeRef.current?.present()} style={s.heroStat} activeOpacity={0.7}>
-                <Text style={s.heroStatLabel}>{t('home.workHours')}</Text>
-                <View style={s.heroAddBtn}>
-                  <Svg width={14} height={14} viewBox="0 0 24 24" fill="none">
-                    <Path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth={2.5} strokeLinecap="round" />
-                  </Svg>
-                </View>
-                <Text style={[s.heroStatHint, { color: C.green }]}>{t('home.setIncome')}</Text>
-              </TouchableOpacity>
-            ) : (
+  const ListHeader = useMemo(
+    () => (
+      <>
+        {/* Compact Hero Summary Card */}
+        <Animated.View entering={FadeInDown.duration(400)}>
+          <Card style={s.heroCard}>
+            <View style={s.heroRow}>
               <View style={s.heroStat}>
-                <Text style={s.heroStatLabel}>{t('home.workHours')}</Text>
-                <Text style={s.heroStatValue}>{toHrs(displayTotal, rate)}</Text>
-                <Text style={s.heroStatHint}>{t('home.toEarnThis')}</Text>
+                <Text style={s.heroStatLabel}>{t("home.totalCost")}</Text>
+                <Text style={s.heroStatValue}>{fmt(displayTotal)}</Text>
+                <Text style={s.heroStatHint}>{active.length} active</Text>
               </View>
-            )}
-            <View style={s.heroDivider} />
-            <View style={s.heroStat}>
-              <Text style={s.heroStatLabel}>{t('home.percentIncome')}</Text>
-              <Text style={s.heroStatValue}>{pctIncome.toFixed(1)}%</Text>
-              <Text style={s.heroStatHint}>{t('home.ofMonthly')}</Text>
+              <View style={s.heroDivider} />
+              {incomes.length === 0 ? (
+                <TouchableOpacity
+                  onPress={() => incomeRef.current?.present()}
+                  style={s.heroStat}
+                  activeOpacity={0.7}
+                >
+                  <Text style={s.heroStatLabel}>{t("home.workHours")}</Text>
+                  <View style={s.heroAddBtn}>
+                    <Svg width={14} height={14} viewBox="0 0 24 24" fill="none">
+                      <Path
+                        d="M12 5v14M5 12h14"
+                        stroke="#fff"
+                        strokeWidth={2.5}
+                        strokeLinecap="round"
+                      />
+                    </Svg>
+                  </View>
+                  <Text style={[s.heroStatHint, { color: C.green }]}>
+                    {t("home.setIncome")}
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <View style={s.heroStat}>
+                  <Text style={s.heroStatLabel}>{t("home.workHours")}</Text>
+                  <Text style={s.heroStatValue}>
+                    {toHrs(displayTotal, rate)}
+                  </Text>
+                  <Text style={s.heroStatHint}>{t("home.toEarnThis")}</Text>
+                </View>
+              )}
+              <View style={s.heroDivider} />
+              <View style={s.heroStat}>
+                <Text style={s.heroStatLabel}>{t("home.percentIncome")}</Text>
+                <Text style={s.heroStatValue}>{pctIncome.toFixed(1)}%</Text>
+                <Text style={s.heroStatHint}>{t("home.ofMonthly")}</Text>
+              </View>
             </View>
-          </View>
-        </Card>
-      </Animated.View>
+          </Card>
+        </Animated.View>
 
-      {/* Subscription List Header */}
-      <View style={{ marginBottom: 12, marginTop: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <Text style={s.subCount}>
-          {t('home.subsCount', { count: displaySubs.length })}
-          {activeTrials.length > 0 && (
-            <Text style={s.trialCount}> · {t('home.trialsCount', { count: activeTrials.length })}</Text>
-          )}
-        </Text>
-        {displaySubs.length > 0 && <Text style={s.dragHint}>{t('home.holdToReorder')}</Text>}
-      </View>
-
-    </>
-  ), [displayTotal, active.length, incomes.length, rate, pctIncome, displaySubs.length, isYr, activeTrials]);
-
-  const ListFooter = useMemo(() => (
-    <>
-      {!isPro && subs.filter(s => s.active || s.isTrial).length >= 2 && (
-        <TouchableOpacity
-          onPress={() => setProFeature('subs')}
+        {/* Subscription List Header */}
+        <View
           style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-            paddingVertical: 16,
-            marginTop: 8,
-            borderRadius: 16,
-            backgroundColor: 'rgba(245,166,35,0.08)',
+            marginBottom: 12,
+            marginTop: 12,
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "baseline",
           }}
-          activeOpacity={0.7}
         >
-          <ProBadge size="sm" />
-          <Text style={{ fontSize: 13, fontWeight: '500', color: '#F5A623' }}>{t('pro.subLimitHint')}</Text>
-        </TouchableOpacity>
-      )}
-      {inactive.length > 0 && (
-        <View style={{ marginTop: 24 }}>
-          <Text style={[s.sectionCap, { marginBottom: 8 }]}>{t('home.cancelled')}</Text>
-          {inactive.map(s_ => (
-            <SubRow
-              key={s_.id}
-              name={s_.name}
-              icon={s_.icon}
-              color={s_.color}
-              costLabel={fmt(s_.cost)}
-              variant="inactive"
-              onPress={() => setEditSubId(s_.id)}
-            />
-          ))}
+          <Text style={s.subCount}>
+            {t("home.subsCount", { count: displaySubs.length })}
+            {activeTrials.length > 0 && (
+              <Text style={s.trialCount}>
+                {" "}
+                · {t("home.trialsCount", { count: activeTrials.length })}
+              </Text>
+            )}
+          </Text>
+          {displaySubs.length > 0 && (
+            <Text style={s.dragHint}>{t("home.holdToReorder")}</Text>
+          )}
         </View>
-      )}
-    </>
-  ), [inactive, isYr, isPro, subs]);
+      </>
+    ),
+    [
+      displayTotal,
+      active.length,
+      incomes.length,
+      rate,
+      pctIncome,
+      displaySubs.length,
+      isYr,
+      activeTrials,
+    ],
+  );
+
+  const ListFooter = useMemo(
+    () => (
+      <>
+        {inactive.length > 0 && (
+          <View style={{ marginTop: 24 }}>
+            <Text style={[s.sectionCap, { marginBottom: 8 }]}>
+              {t("home.cancelled")}
+            </Text>
+            {inactive.map((s_) => (
+              <SubRow
+                key={s_.id}
+                name={s_.name}
+                icon={s_.icon}
+                color={s_.color}
+                costLabel={fmt(s_.cost)}
+                variant="inactive"
+                onPress={() => setEditSubId(s_.id)}
+              />
+            ))}
+          </View>
+        )}
+      </>
+    ),
+    [inactive, isYr, isPro, subs],
+  );
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       {/* Sticky Header */}
       <View style={[s.header, { paddingTop: insets.top + 8 }]}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-            <Path d="M12 2.5C12 2.5 5 10.5 5 15a7 7 0 1014 0c0-4.5-7-12.5-7-12.5z" fill="#177b9c" />
+            <Path
+              d="M12 2.5C12 2.5 5 10.5 5 15a7 7 0 1014 0c0-4.5-7-12.5-7-12.5z"
+              fill="#177b9c"
+            />
             <Circle cx="9" cy="15" r="2.5" fill="#3a9cbc" />
           </Svg>
           <Text style={s.wordmark}>Drip</Text>
         </View>
         <AnimatedPressable
           onPress={() => {
-            if (!isPro && subs.filter(s => s.active || s.isTrial).length >= 2) {
-              setProFeature('subs');
-            } else {
-              addSheetRef.current?.present();
-            }
+            addSheetRef.current?.present();
           }}
           style={s.addBtn}
         >
           <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
-            <Path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth={2.2} strokeLinecap="round" />
+            <Path
+              d="M12 5v14M5 12h14"
+              stroke="#fff"
+              strokeWidth={2.2}
+              strokeLinecap="round"
+            />
           </Svg>
         </AnimatedPressable>
       </View>
@@ -294,7 +369,10 @@ export default function HomeScreen() {
         onDragEnd={handleDragEnd}
         ListHeaderComponent={ListHeader}
         ListFooterComponent={ListFooter}
-        contentContainerStyle={{ paddingHorizontal: LAYOUT.screenHPad, paddingBottom: LAYOUT.tabBarHeight + 128 }}
+        contentContainerStyle={{
+          paddingHorizontal: LAYOUT.screenHPad,
+          paddingBottom: LAYOUT.tabBarHeight + 128,
+        }}
         showsVerticalScrollIndicator={false}
         activationDistance={0}
       />
@@ -314,21 +392,26 @@ export default function HomeScreen() {
 
 const s = StyleSheet.create({
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: LAYOUT.screenHPad,
     paddingBottom: 12,
-    backgroundColor: 'rgba(255,255,255,0.95)',
+    backgroundColor: "rgba(255,255,255,0.95)",
     zIndex: 50,
   },
   wordmark: {
-    fontSize: 18, fontWeight: '800', color: C.t1,
+    fontSize: 18,
+    fontWeight: "800",
+    color: C.t1,
   },
   addBtn: {
-    width: 36, height: 36, borderRadius: R.pill,
+    width: 36,
+    height: 36,
+    borderRadius: R.pill,
     backgroundColor: C.black,
-    alignItems: 'center', justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   heroCard: {
     marginTop: SP[1],
@@ -336,45 +419,69 @@ const s = StyleSheet.create({
     paddingHorizontal: SP[3],
   },
   heroRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   heroStat: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
   },
   heroStatLabel: {
-    fontSize: TS.micro.fontSize, fontWeight: '600', color: C.t2,
-    letterSpacing: TS.micro.letterSpacing, textTransform: 'uppercase',
+    fontSize: TS.micro.fontSize,
+    fontWeight: "600",
+    color: C.t2,
+    letterSpacing: TS.micro.letterSpacing,
+    textTransform: "uppercase",
     marginBottom: SP[1],
   },
   heroStatValue: {
-    fontSize: TS.subtitle.fontSize, fontWeight: '700', color: C.t1,
+    fontSize: TS.subtitle.fontSize,
+    fontWeight: "700",
+    color: C.t1,
     letterSpacing: TS.subtitle.letterSpacing,
   },
   heroStatHint: {
-    fontSize: TS.micro.fontSize, fontWeight: '400', color: C.t3, marginTop: 2,
+    fontSize: TS.micro.fontSize,
+    fontWeight: "400",
+    color: C.t3,
+    marginTop: 2,
   },
   heroAddBtn: {
-    width: 28, height: 28, borderRadius: 14,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: C.accent,
-    alignItems: 'center', justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginVertical: 2,
   },
   heroDivider: {
-    width: 1, height: SP[5], backgroundColor: C.line,
+    width: 1,
+    height: SP[5],
+    backgroundColor: C.line,
   },
   sectionCap: {
-    fontSize: 11, fontWeight: '600', color: C.t3, letterSpacing: 0.5, textTransform: 'uppercase',
+    fontSize: 11,
+    fontWeight: "600",
+    color: C.t3,
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
   },
   subCount: {
-    fontSize: 15, fontWeight: '700', color: C.t1,
+    fontSize: 15,
+    fontWeight: "700",
+    color: C.t1,
   },
   trialCount: {
-    fontSize: 15, fontWeight: '600', color: C.t2,
+    fontSize: 15,
+    fontWeight: "600",
+    color: C.t2,
   },
   dragHint: {
-    fontSize: 11, fontWeight: '400', color: C.t3, marginTop: 2,
+    fontSize: 11,
+    fontWeight: "400",
+    color: C.t3,
+    marginTop: 2,
   },
 });

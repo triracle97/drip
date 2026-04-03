@@ -1,4 +1,4 @@
-import { C, R } from '@/constants/design';
+import { C } from '@/constants/design';
 import { useRevenueCat } from '@/hooks/useRevenueCat';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import React, { useEffect, useRef, useState } from 'react';
@@ -10,15 +10,25 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
+  withSequence,
+  Easing,
+} from 'react-native-reanimated';
+import Svg, { Path, Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 
-export type ProFeatureKey = 'subs' | 'insights' | 'calendar' | 'trial' | 'categories';
+export type ProFeatureKey = 'subs' | 'insights' | 'calendar' | 'trial' | 'categories' | 'customSub';
 
 interface Props {
   feature: ProFeatureKey | null;
   onClose: () => void;
   onPurchased?: () => void;
 }
+
+// Placeholder for future Lottie animation
 
 export default function ProSheet({ feature, onClose, onPurchased }: Props) {
   const { t } = useTranslation();
@@ -59,20 +69,11 @@ export default function ProSheet({ feature, onClose, onPurchased }: Props) {
     <TrueSheet
       ref={sheetRef}
       detents={['auto']}
-      cornerRadius={24}
+      cornerRadius={32}
       onDidDismiss={onClose}
       grabber={false}
     >
       <View style={s.content}>
-        <View style={s.iconCircle}>
-          <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
-            <Path
-              d="M12 2l2.09 6.26L20 9.27l-4.91 3.82L16.18 20 12 16.77 7.82 20l1.09-6.91L4 9.27l5.91-1.01L12 2z"
-              fill={C.gold}
-            />
-          </Svg>
-        </View>
-
         <Text style={s.headline}>
           {feature ? t(`pro.headline.${feature}`) : ''}
         </Text>
@@ -109,52 +110,52 @@ export default function ProSheet({ feature, onClose, onPurchased }: Props) {
 const s = StyleSheet.create({
   content: {
     padding: 24,
-    paddingBottom: 40,
+    paddingTop: 40,
+    paddingBottom: 48,
     alignItems: 'center',
-  },
-  iconCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: C.warningBg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
   },
   headline: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 28,
+    fontWeight: '800',
     color: C.t1,
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
+    letterSpacing: -0.5,
   },
   desc: {
-    fontSize: 14,
+    fontSize: 16,
     color: C.t2,
     textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 24,
-    paddingHorizontal: 16,
+    lineHeight: 24,
+    marginBottom: 36,
+    paddingHorizontal: 8,
   },
   ctaBtn: {
-    backgroundColor: C.black,
-    borderRadius: R.md,
-    paddingVertical: 16,
+    backgroundColor: '#177b9c',
+    borderRadius: 100,
+    paddingVertical: 18,
     paddingHorizontal: 32,
     width: '100%',
     alignItems: 'center',
+    shadowColor: '#177b9c',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 4,
   },
   ctaText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
     color: '#fff',
+    letterSpacing: 0.3,
   },
   restoreBtn: {
-    marginTop: 12,
-    paddingVertical: 8,
+    marginTop: 20,
+    paddingVertical: 12,
   },
   restoreText: {
-    fontSize: 13,
+    fontSize: 14,
+    fontWeight: '600',
     color: C.t3,
   },
 });
