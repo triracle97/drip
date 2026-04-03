@@ -9,22 +9,22 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_RC_API_KEY": "YOUR_RC_API_KEY_HERE",
-        "EXPO_PUBLIC_AMPLITUDE_API_KEY": "YOUR_AMPLITUDE_API_KEY_HERE"
+        "EXPO_PUBLIC_RC_API_KEY": "appl_fkZokPhKhPdrUCsgFcnHpqpdnBm",
+        "EXPO_PUBLIC_AMPLITUDE_API_KEY": "72ddd422524430f93f31243f7ff8be41"
       }
     },
     "preview": {
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_RC_API_KEY": "YOUR_RC_API_KEY_HERE",
-        "EXPO_PUBLIC_AMPLITUDE_API_KEY": "YOUR_AMPLITUDE_API_KEY_HERE"
+        "EXPO_PUBLIC_RC_API_KEY": "appl_fkZokPhKhPdrUCsgFcnHpqpdnBm",
+        "EXPO_PUBLIC_AMPLITUDE_API_KEY": "72ddd422524430f93f31243f7ff8be41"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_RC_API_KEY": "YOUR_RC_API_KEY_HERE",
-        "EXPO_PUBLIC_AMPLITUDE_API_KEY": "YOUR_AMPLITUDE_API_KEY_HERE"
+        "EXPO_PUBLIC_RC_API_KEY": "appl_fkZokPhKhPdrUCsgFcnHpqpdnBm",
+        "EXPO_PUBLIC_AMPLITUDE_API_KEY": "72ddd422524430f93f31243f7ff8be41"
       }
     }
   },

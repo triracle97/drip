@@ -128,7 +128,7 @@ export function useRevenueCat() {
           console.log("[RevenueCat] Available Plans:");
           offerings.current.availablePackages.forEach((pack) => {
             console.log(
-              ` - ${pack.identifier}: ${pack.product.title} | Price: ${pack.product.priceString} | Type: ${pack.packageType}`
+              ` - ${pack.identifier}: ${pack.product.title} | Price: ${pack.product.priceString} | Type: ${pack.packageType}`,
             );
           });
         }
@@ -174,16 +174,20 @@ export function useRevenueCat() {
   useEffect(() => {
     if (customerInfo) {
       // 1. Standard approach: Check if "pro" entitlement is active securely
-      const hasProEntitlement = customerInfo.entitlements.active[ENTITLEMENT_ID] !== undefined;
+      const hasProEntitlement =
+        customerInfo.entitlements.active[ENTITLEMENT_ID] !== undefined;
 
       // 2. Fallback for Non-Consumable (Lifetime/1-time payments)
       // If the developer forgot to map the product to the Entitlement in the RevenueCat Dashboard,
       // this catches the verified purchase natively from Apple's receipt.
-      const hasLifetimePurchase = customerInfo.nonSubscriptionTransactions.length > 0;
-      const hasAnyPurchase = customerInfo.allPurchasedProductIdentifiers.length > 0;
+      const hasLifetimePurchase =
+        customerInfo.nonSubscriptionTransactions.length > 0;
+      const hasAnyPurchase =
+        customerInfo.allPurchasedProductIdentifiers.length > 0;
 
-      const proValue = hasProEntitlement || hasLifetimePurchase || hasAnyPurchase;
-      
+      const proValue =
+        hasProEntitlement || hasLifetimePurchase || hasAnyPurchase;
+
       setIsPro(proValue);
       // Persist to Zustand so other screens get the cached value instantly
       useSettings.getState().setIsPro(proValue);
