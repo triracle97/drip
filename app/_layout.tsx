@@ -44,7 +44,7 @@ export const unstable_settings = {
 
 function AppContent() {
   const { isLoaded, subs } = useStore();
-  const { notificationsEnabled, notificationTime, _hydrated, language } = useSettings();
+  const { notificationsEnabled, notificationTime, _hydrated, language, firstOpenDate, setFirstOpenDate } = useSettings();
   const appState = useRef(AppState.currentState);
 
   const { isPro, customerInfo } = useRevenueCat();
@@ -96,6 +96,13 @@ function AppContent() {
       i18n.changeLanguage(resolved);
     }
   }, [_hydrated, language]);
+
+  // Record first open date (once)
+  useEffect(() => {
+    if (_hydrated && !firstOpenDate) {
+      setFirstOpenDate(new Date().toISOString());
+    }
+  }, [_hydrated, firstOpenDate]);
 
   if (!isLoaded || !_hydrated) {
     return (

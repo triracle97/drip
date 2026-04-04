@@ -6,6 +6,7 @@ import CategoryModal from "@/components/CategoryModal";
 import type { ProFeatureKey } from "@/components/ProSheet";
 import ProSheet from "@/components/ProSheet";
 import { C, R } from "@/constants/design";
+import { useReviewPrompt } from "@/hooks/useReviewPrompt";
 import { Sub, useStore } from "@/store";
 import { useSettings } from "@/store/settings";
 import { getPopularSubs, PopularSub } from "@/store/supabase";
@@ -153,6 +154,7 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
   const { addSub, incomes, categories, subs } = useStore();
   const currency = useSettings((s) => s.currency);
   const isPro = useSettings((s) => s.isPro);
+  const { maybeRequestAfterAdd } = useReviewPrompt();
   const rate = blended(incomes);
 
   const [popularSubs, setPopularSubs] = useState<PopularSub[]>([]);
@@ -289,6 +291,7 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
       sortOrder: 0,
     };
     addSub(newSub);
+    maybeRequestAfterAdd();
     dismiss();
   };
 
@@ -730,7 +733,6 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
               <Text style={[s.trialLabel, { color: f.isTrial ? C.red : C.t1 }]}>
                 {t("addSub.freeTrial")}
               </Text>
-              {!isPro && <Lock size={12} color={C.gold} strokeWidth={2.5} />}
             </View>
             <Text style={{ fontSize: 12, color: C.t3 }}>
               {t("addSub.trialReminder")}
@@ -740,10 +742,6 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
             <Switch
               value={f.isTrial}
               onValueChange={(v) => {
-                if (!isPro) {
-                  setProFeature("trial");
-                  return;
-                }
                 u("isTrial", v);
               }}
               trackColor={{ false: "rgba(0,0,0,0.16)", true: C.black }}

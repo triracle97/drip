@@ -26,7 +26,6 @@ const FEATURES = [
   'pro.feature.unlimitedSubs',
   'pro.feature.fullInsights',
   'pro.feature.fullCalendar',
-  'pro.feature.trialTracking',
   'pro.feature.customCategories',
 ] as const;
 

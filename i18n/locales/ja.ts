@@ -43,6 +43,7 @@ const ja = {
   'settings.notificationTime': '通知時刻',
   'settings.enableNotifications': 'システム設定で通知を有効にしてください',
   'settings.version': 'Drip v1.0 · 時間でコストを把握しよう',
+  'settings.rateUs': 'Dripを評価する',
 
   // Calendar / Timeline
   'calendar.title': 'タイムライン',

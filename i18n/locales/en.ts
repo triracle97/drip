@@ -45,6 +45,7 @@ const en = {
   "settings.notificationTime": "Notification time",
   "settings.enableNotifications": "Enable notifications in system Settings",
   "settings.version": "Drip v{{version}} · Track what you pay with your time",
+  "settings.rateUs": "Rate Drip",
 
   // Calendar / Timeline
   "calendar.title": "Timeline",

@@ -12,6 +12,8 @@ interface SettingsState {
     hasOnboarded: boolean;
     showCongrats: boolean;
     pendingCongrats: boolean;
+    hasRequestedReview: boolean;
+    firstOpenDate: string;
     _hydrated: boolean;
 
     setCurrency: (code: string) => void;
@@ -22,6 +24,8 @@ interface SettingsState {
     setHasOnboarded: (val: boolean) => void;
     setShowCongrats: (val: boolean) => void;
     setPendingCongrats: (val: boolean) => void;
+    setHasRequestedReview: (val: boolean) => void;
+    setFirstOpenDate: (date: string) => void;
 }
 
 export const useSettings = create<SettingsState>()(
@@ -35,6 +39,8 @@ export const useSettings = create<SettingsState>()(
             hasOnboarded: false,
             showCongrats: false,
             pendingCongrats: false,
+            hasRequestedReview: false,
+            firstOpenDate: '',
             _hydrated: false,
 
             setCurrency: (code) => set({ currency: code }),
@@ -45,6 +51,8 @@ export const useSettings = create<SettingsState>()(
             setHasOnboarded: (val) => set({ hasOnboarded: val }),
             setShowCongrats: (val) => set({ showCongrats: val }),
             setPendingCongrats: (val) => set({ pendingCongrats: val }),
+            setHasRequestedReview: (val) => set({ hasRequestedReview: val }),
+            setFirstOpenDate: (date) => set({ firstOpenDate: date }),
         }),
         {
             name: 'drip-settings',
@@ -58,6 +66,8 @@ export const useSettings = create<SettingsState>()(
                 notificationTime: state.notificationTime,
                 language: state.language,
                 hasOnboarded: state.hasOnboarded,
+                hasRequestedReview: state.hasRequestedReview,
+                firstOpenDate: state.firstOpenDate,
             }),
         },
     ),

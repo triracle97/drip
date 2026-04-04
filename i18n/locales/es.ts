@@ -45,6 +45,7 @@ const es = {
   'settings.notificationTime': 'Hora de notificación',
   'settings.enableNotifications': 'Habilitar notificaciones en Ajustes del sistema',
   'settings.version': 'Drip v1.0 · Rastrea lo que pagas con tu tiempo',
+  'settings.rateUs': 'Calificar Drip',
 
   // Calendar / Timeline
   'calendar.title': 'Cronología',

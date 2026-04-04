@@ -18,7 +18,6 @@ export type ProFeatureKey =
   | "subs"
   | "insights"
   | "calendar"
-  | "trial"
   | "categories"
   | "customSub";
 

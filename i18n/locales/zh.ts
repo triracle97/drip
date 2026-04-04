@@ -43,6 +43,7 @@ const zh = {
   'settings.notificationTime': '通知时间',
   'settings.enableNotifications': '在系统设置中启用通知',
   'settings.version': 'Drip v1.0 · 用时间衡量每一笔支出',
+  'settings.rateUs': '给 Drip 评分',
 
   // Calendar / Timeline
   'calendar.title': '时间轴',

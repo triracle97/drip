@@ -43,6 +43,7 @@ const vi = {
   'settings.notificationTime': 'Thời gian thông báo',
   'settings.enableNotifications': 'Bật thông báo trong Cài đặt hệ thống',
   'settings.version': 'Drip v1.0 · Theo dõi chi phí bằng thời gian của bạn',
+  'settings.rateUs': 'Đánh giá Drip',
 
   // Calendar / Timeline
   'calendar.title': 'Dòng thời gian',

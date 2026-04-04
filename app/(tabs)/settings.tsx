@@ -8,6 +8,7 @@ import Toast from "@/components/Toast";
 import { getCurrency } from "@/constants/currencies";
 import { C, LAYOUT, R, SP } from "@/constants/design";
 import { LANGUAGE_OPTIONS } from "@/i18n";
+import { useReviewPrompt } from "@/hooks/useReviewPrompt";
 import { useStore } from "@/store";
 import { useSettings } from "@/store/settings";
 import { blended, fmt, monthlyIncome, subMo, toHrs } from "@/utils/calc";
@@ -57,6 +58,7 @@ export default function SettingsScreen() {
   const languageLabel =
     LANGUAGE_OPTIONS.find((o) => o.code === language)?.label ?? "English";
   const rate = blended(incomes);
+  const { requestReviewManually } = useReviewPrompt();
   const moIncome = monthlyIncome(incomes);
   const totalMo = subs
     .filter((s) => s.active && !s.isTrial)
@@ -296,6 +298,26 @@ export default function SettingsScreen() {
             display="spinner"
             onChange={handleTimeChange}
           />
+        )}
+
+        {/* Rate Us */}
+        {isPro && (
+          <TouchableOpacity
+            onPress={requestReviewManually}
+            style={s.row}
+            activeOpacity={0.75}
+          >
+            <Text style={s.rowLabel}>{t("settings.rateUs")}</Text>
+            <Svg width={12} height={12} viewBox="0 0 16 16" fill="none">
+              <Path
+                d="M6 3l5 5-5 5"
+                stroke={C.t3}
+                strokeWidth={1.6}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </Svg>
+          </TouchableOpacity>
         )}
 
         <Text style={s.version}>

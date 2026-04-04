@@ -2,6 +2,7 @@ import AnimatedPressable from '@/components/AnimatedPressable';
 import BrandLogo from '@/components/BrandLogo';
 import Card from '@/components/Card';
 import { C, R, SP } from '@/constants/design';
+import { useReviewPrompt } from '@/hooks/useReviewPrompt';
 import { Sub, useStore } from '@/store';
 import { useSettings } from '@/store/settings';
 import { blended, fmt, subMo, toHrs, trialDaysLeft } from '@/utils/calc';
@@ -23,6 +24,7 @@ interface Props {
 export default function TrialSheet({ sub: t, onClose }: Props) {
     const { t: i18n } = useTranslation();
     const { incomes, decideTrial } = useStore();
+    const { maybeRequestAfterTrialKeep } = useReviewPrompt();
     const currency = useSettings(s => s.currency);
     const rate = blended(incomes);
 
@@ -48,6 +50,8 @@ export default function TrialSheet({ sub: t, onClose }: Props) {
         if (!t) return;
         decideTrial(t.id, decision);
         sheetRef.current?.dismiss().catch(() => { });
+        // Request review after a positive trial decision
+        maybeRequestAfterTrialKeep(decision);
     };
 
     const handleDismissed = () => {

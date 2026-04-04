@@ -43,6 +43,7 @@ const ko = {
   'settings.notificationTime': '알림 시간',
   'settings.enableNotifications': '시스템 설정에서 알림을 활성화하세요',
   'settings.version': 'Drip v1.0 · 시간으로 지출을 추적하세요',
+  'settings.rateUs': 'Drip 평가하기',
 
   // Calendar / Timeline
   'calendar.title': '타임라인',
