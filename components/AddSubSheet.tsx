@@ -15,6 +15,7 @@ import { Lock } from "lucide-react-native";
 import React, {
   forwardRef,
   useCallback,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -167,6 +168,7 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
 
   // Keep a local ref so we can call dismiss() internally
   const sheetRef = useRef<TrueSheet>(null);
+  const pendingResume = useRef(false);
   const setRefs = useCallback(
     (node: TrueSheet | null) => {
       sheetRef.current = node;
@@ -186,8 +188,25 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
   );
   const canSave = f.name.trim() && parseFloat(f.cost) > 0;
 
-  // Reset state when sheet presents
+  // Re-present AddSubSheet after CongratsModal is dismissed
+  const showCongrats = useSettings((s) => s.showCongrats);
+  const skipNextReset = useRef(false);
+  useEffect(() => {
+    if (!showCongrats && pendingResume.current) {
+      pendingResume.current = false;
+      skipNextReset.current = true;
+      setTimeout(() => {
+        sheetRef.current?.present().catch(() => {});
+      }, 200);
+    }
+  }, [showCongrats]);
+
+  // Reset state when sheet presents (skip if resuming after purchase)
   const handlePresent = useCallback(() => {
+    if (skipNextReset.current) {
+      skipNextReset.current = false;
+      return;
+    }
     getPopularSubs().then(setPopularSubs);
     setQuery("");
     setPhase("pick");
@@ -954,6 +973,17 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
         backgroundColor={C.bg}
         onWillPresent={handlePresent}
         onDidDismiss={() => {
+          // Check if this dismiss is from a purchase flow
+          const { pendingCongrats, setPendingCongrats, setShowCongrats } = useSettings.getState();
+          if (pendingCongrats) {
+            // Don't reset state — we'll resume after congrats
+            pendingResume.current = true;
+            setPendingCongrats(false);
+            setTimeout(() => setShowCongrats(true), 200);
+            return;
+          }
+
+          // Normal dismiss — reset everything
           setPhase("pick");
           setQuery("");
           setF({ ...DEFAULT_FORM });
@@ -985,7 +1015,11 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
         </KeyboardAvoidingView>
       </TrueSheet>
 
-      <ProSheet feature={proFeature} onClose={() => setProFeature(null)} />
+      <ProSheet
+        feature={proFeature}
+        onClose={() => setProFeature(null)}
+        onPurchased={dismiss}
+      />
     </>
   );
 });

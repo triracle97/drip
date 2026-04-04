@@ -114,25 +114,48 @@ export function useRevenueCat() {
   const [isPro, setIsPro] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [debugInfo, setDebugInfo] = useState<string>("");
+  const [debugOfferings, setDebugOfferings] = useState<string>("");
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const offerings = await Purchases.getOfferings();
-        if (
-          offerings.current !== null &&
-          offerings.current.availablePackages.length !== 0
-        ) {
-          setCurrentOffering(offerings.current);
+        console.log("[RevenueCat] Fetched all offerings:", JSON.stringify(offerings, null, 2));
+        setDebugOfferings(JSON.stringify({
+          currentIdentifier: offerings.current?.identifier || null,
+          allKeys: offerings.all ? Object.keys(offerings.all) : [],
+          raw: offerings
+        }, null, 2));
+
+        let current = offerings.current;
+
+        // Fallback: If 'current' is not explicitly mapped in RevenueCat dashboard, use the first available offering
+        if (!current && offerings.all) {
+          const offeringKeys = Object.keys(offerings.all);
+          if (offeringKeys.length > 0) {
+            current = offerings.all[offeringKeys[0]];
+            console.warn(`[RevenueCat] 'current' offering is null. Falling back to offering: ${offeringKeys[0]}`);
+          }
+        }
+
+        if (current && current.availablePackages.length !== 0) {
+          setCurrentOffering(current);
 
           console.log("[RevenueCat] Available Plans:");
-          offerings.current.availablePackages.forEach((pack) => {
+          current.availablePackages.forEach((pack) => {
             console.log(
               ` - ${pack.identifier}: ${pack.product.title} | Price: ${pack.product.priceString} | Type: ${pack.packageType}`,
             );
           });
+        } else {
+          console.warn("[RevenueCat] No available packages found in offerings.");
         }
+      } catch (e: any) {
+        console.error("Error fetching RevenueCat offerings", e);
+        setDebugOfferings(JSON.stringify({ error: e?.message || e }, null, 2));
+      }
 
+      try {
         const info = await Purchases.getCustomerInfo();
         setCustomerInfo(info);
         setDebugInfo(
@@ -152,7 +175,7 @@ export function useRevenueCat() {
           ),
         );
       } catch (e) {
-        console.error("Error fetching RevenueCat data", e);
+        console.error("Error fetching RevenueCat customer info", e);
       } finally {
         setIsReady(true);
       }
@@ -255,6 +278,7 @@ export function useRevenueCat() {
     isPro,
     isReady,
     debugInfo,
+    debugOfferings,
     purchasePackage,
     restorePurchases,
     presentPaywall,

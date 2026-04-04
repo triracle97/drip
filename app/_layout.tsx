@@ -28,7 +28,7 @@ if ((TextInput as any).defaultProps == null) (TextInput as any).defaultProps = {
 // Configure RevenueCat synchronously at module level — before any component mounts
 const rcApiKey = process.env.EXPO_PUBLIC_RC_API_KEY;
 if (rcApiKey) {
-  Purchases.setLogLevel(LOG_LEVEL.DEBUG);
+  Purchases.setLogLevel(__DEV__ ? LOG_LEVEL.DEBUG : LOG_LEVEL.INFO);
   Purchases.configure({
     apiKey: rcApiKey,
     storeKitVersion: STOREKIT_VERSION.STOREKIT_2,

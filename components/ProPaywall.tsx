@@ -10,6 +10,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -44,6 +45,11 @@ export default function ProPaywall({ visible, onClose, onPurchased }: Props) {
         setShowCongrats(true);
         onPurchased?.();
         onClose();
+      } else {
+        Alert.alert(
+          "Purchase Unavailable",
+          "Products are currently not available. If you're on TestFlight, please ensure RevenueCat configuration and App Store Connect products are set up correctly."
+        );
       }
       return;
     }

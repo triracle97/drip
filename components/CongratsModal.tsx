@@ -1,15 +1,16 @@
 import { C } from "@/constants/design";
 import { useSettings } from "@/store/settings";
 import LottieView from "lottie-react-native";
-import React from "react";
+import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function CongratsModal() {
   const { t } = useTranslation();
-  const { showCongrats, setShowCongrats } = useSettings();
+  const showCongrats = useSettings((s) => s.showCongrats);
+  const setShowCongrats = useSettings((s) => s.setShowCongrats);
   const insets = useSafeAreaInsets();
 
   const handleClose = () => {
@@ -19,51 +20,47 @@ export default function CongratsModal() {
   if (!showCongrats) return null;
 
   return (
-    <Modal
-      transparent
-      visible={showCongrats}
-      animationType="fade"
-      onRequestClose={handleClose}
+    <Animated.View
+      entering={FadeIn.duration(400)}
+      exiting={FadeOut.duration(300)}
+      style={[s.root, { paddingBottom: insets.bottom + 20 }]}
     >
-      <Animated.View
-        entering={FadeIn.duration(400)}
-        exiting={FadeOut.duration(300)}
-        style={[s.overlay, { paddingBottom: insets.bottom + 20 }]}
-      >
-        {/* Content Box */}
-        <View style={s.content}>
-          {/* Confetti relative to modal */}
-          <View style={s.lottieContainer} pointerEvents="none">
-            <LottieView
-              source={require("@/assets/animation/Confetti.json")}
-              autoPlay
-              loop={true}
-              style={{ width: "100%", height: "100%" }}
-              resizeMode="contain"
-              onAnimationFinish={() => {}}
-            />
-          </View>
 
-          <Text style={s.title}>{t("pro.purchaseSuccess")}</Text>
-          <Text style={s.description}>{t("pro.congratsDesc")}</Text>
-
-          <TouchableOpacity
-            style={s.ctaBtn}
-            onPress={handleClose}
-            activeOpacity={0.8}
-          >
-            <Text style={s.ctaText}>{t("pro.congratsCta")}</Text>
-          </TouchableOpacity>
+      {/* Content Box */}
+      <View style={s.content}>
+        {/* Confetti */}
+        <View style={s.lottieContainer} pointerEvents="none">
+          <LottieView
+            source={require("@/assets/animation/Confetti.json")}
+            autoPlay
+            loop={true}
+            style={{ width: "100%", height: "100%" }}
+            resizeMode="contain"
+            onAnimationFinish={() => {}}
+          />
         </View>
-      </Animated.View>
-    </Modal>
+
+        <Text style={s.title}>{t("pro.purchaseSuccess")}</Text>
+        <Text style={s.description}>{t("pro.congratsDesc")}</Text>
+
+        <TouchableOpacity
+          style={s.ctaBtn}
+          onPress={handleClose}
+          activeOpacity={0.8}
+        >
+          <Text style={s.ctaText}>{t("pro.congratsCta")}</Text>
+        </TouchableOpacity>
+      </View>
+    </Animated.View>
   );
 }
 
 const s = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.45)", // A stylish dark dim
+  root: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 9999,
+    elevation: 9999,
+    backgroundColor: "rgba(0, 0, 0, 0.45)",
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 24,
@@ -79,7 +76,6 @@ const s = StyleSheet.create({
     borderRadius: 24,
     padding: 32,
     alignItems: "center",
-    zIndex: 10,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.15,

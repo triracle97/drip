@@ -11,6 +11,7 @@ interface SettingsState {
     isPro: boolean;
     hasOnboarded: boolean;
     showCongrats: boolean;
+    pendingCongrats: boolean;
     _hydrated: boolean;
 
     setCurrency: (code: string) => void;
@@ -20,6 +21,7 @@ interface SettingsState {
     setIsPro: (val: boolean) => void;
     setHasOnboarded: (val: boolean) => void;
     setShowCongrats: (val: boolean) => void;
+    setPendingCongrats: (val: boolean) => void;
 }
 
 export const useSettings = create<SettingsState>()(
@@ -32,6 +34,7 @@ export const useSettings = create<SettingsState>()(
             isPro: false,
             hasOnboarded: false,
             showCongrats: false,
+            pendingCongrats: false,
             _hydrated: false,
 
             setCurrency: (code) => set({ currency: code }),
@@ -41,6 +44,7 @@ export const useSettings = create<SettingsState>()(
             setIsPro: (val) => set({ isPro: val }),
             setHasOnboarded: (val) => set({ hasOnboarded: val }),
             setShowCongrats: (val) => set({ showCongrats: val }),
+            setPendingCongrats: (val) => set({ pendingCongrats: val }),
         }),
         {
             name: 'drip-settings',

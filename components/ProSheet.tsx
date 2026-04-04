@@ -11,6 +11,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Alert,
 } from "react-native";
 
 export type ProFeatureKey =
@@ -31,7 +32,7 @@ interface Props {
 
 export default function ProSheet({ feature, onClose, onPurchased }: Props) {
   const { t } = useTranslation();
-  const { setIsPro, setShowCongrats } = useSettings();
+  const { setIsPro, setPendingCongrats } = useSettings();
   const { currentOffering, purchasePackage, restorePurchases } =
     useRevenueCat();
   const sheetRef = useRef<TrueSheet>(null);
@@ -53,9 +54,14 @@ export default function ProSheet({ feature, onClose, onPurchased }: Props) {
     if (!pack) {
       if (__DEV__) {
         setIsPro(true);
-        setShowCongrats(true);
-        sheetRef.current?.dismiss().catch(() => {});
+        setPendingCongrats(true);
         onPurchased?.();
+        sheetRef.current?.dismiss().catch(() => {});
+      } else {
+        Alert.alert(
+          "Purchase Unavailable",
+          "Products are currently not available. If you're on TestFlight, please ensure RevenueCat configuration and App Store Connect products are set up correctly."
+        );
       }
       return;
     }
@@ -64,9 +70,9 @@ export default function ProSheet({ feature, onClose, onPurchased }: Props) {
     setLoading(false);
     if (success) {
       setIsPro(true);
-      setShowCongrats(true);
-      sheetRef.current?.dismiss().catch(() => {});
+      setPendingCongrats(true);
       onPurchased?.();
+      sheetRef.current?.dismiss().catch(() => {});
     }
   };
 
@@ -76,12 +82,24 @@ export default function ProSheet({ feature, onClose, onPurchased }: Props) {
     setLoading(false);
   };
 
+  const handleDismiss = () => {
+    // If no parent sheet handles congrats (top-level usage), flush it now
+    if (!onPurchased) {
+      const { pendingCongrats, setPendingCongrats, setShowCongrats } = useSettings.getState();
+      if (pendingCongrats) {
+        setPendingCongrats(false);
+        setTimeout(() => setShowCongrats(true), 200);
+      }
+    }
+    onClose();
+  };
+
   return (
     <TrueSheet
       ref={sheetRef}
       detents={["auto"]}
       cornerRadius={32}
-      onDidDismiss={onClose}
+      onDidDismiss={handleDismiss}
       grabber={false}
     >
       <View style={s.content}>
