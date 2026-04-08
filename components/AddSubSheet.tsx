@@ -12,7 +12,6 @@ import { useSettings } from "@/store/settings";
 import { getPopularSubs, PopularSub } from "@/store/supabase";
 import { addDaysISO, blended, fmt, moEq, toHrs } from "@/utils/calc";
 import { TrueSheet } from "@lodev09/react-native-true-sheet";
-import { Lock } from "lucide-react-native";
 import React, {
   forwardRef,
   useCallback,
@@ -402,25 +401,6 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
         )}
       </ScrollView>
 
-      {/* Sticky custom button */}
-      <View
-        style={[
-          s.stickyBottom,
-          { paddingBottom: Math.max(insets.bottom, 16) + 60 },
-        ]}
-      >
-        <AnimatedPressable onPress={pickCustom} style={s.customBtn}>
-          <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
-            <Path
-              d="M12 5v14M5 12h14"
-              stroke={C.t2}
-              strokeWidth={2}
-              strokeLinecap="round"
-            />
-          </Svg>
-          <Text style={s.customBtnText}>{t("addSub.addCustom")}</Text>
-        </AnimatedPressable>
-      </View>
     </Animated.View>
   );
 
@@ -919,29 +899,6 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
         )}
       </ScrollView>
 
-      {/* Sticky save button */}
-      <View
-        style={[
-          s.stickyBottom,
-          { paddingBottom: Math.max(insets.bottom, 16) + 60 },
-        ]}
-      >
-        <AnimatedPressable
-          onPress={save}
-          disabled={!canSave}
-          style={[
-            s.saveBtn,
-            {
-              backgroundColor: canSave ? C.black : C.bgSub,
-              opacity: canSave ? 1 : 0.5,
-            },
-          ]}
-        >
-          <Text style={[s.saveTxt, { color: canSave ? "#fff" : C.t3 }]}>
-            {f.isTrial ? t("addSub.addTrial") : t("addSub.addSubscription")}
-          </Text>
-        </AnimatedPressable>
-      </View>
 
       <AppearanceModal
         visible={showAppearance}
@@ -970,9 +927,55 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
         scrollable
         backgroundColor={C.bg}
         onWillPresent={handlePresent}
+        footer={
+          phase === "pick" ? (
+            <View
+              style={[
+                s.stickyBottom,
+                { paddingBottom: (Platform.OS === 'ios' && Platform.isPad) ? 24 : Math.max(insets.bottom, 16) + 12 },
+              ]}
+            >
+              <AnimatedPressable onPress={pickCustom} style={s.customBtn}>
+                <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+                  <Path
+                    d="M12 5v14M5 12h14"
+                    stroke={C.t2}
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                  />
+                </Svg>
+                <Text style={s.customBtnText}>{t("addSub.addCustom")}</Text>
+              </AnimatedPressable>
+            </View>
+          ) : (
+            <View
+              style={[
+                s.stickyBottom,
+                { paddingBottom: (Platform.OS === 'ios' && Platform.isPad) ? 24 : Math.max(insets.bottom, 16) + 12 },
+              ]}
+            >
+              <AnimatedPressable
+                onPress={save}
+                disabled={!canSave}
+                style={[
+                  s.saveBtn,
+                  {
+                    backgroundColor: canSave ? C.black : C.bgSub,
+                    opacity: canSave ? 1 : 0.5,
+                  },
+                ]}
+              >
+                <Text style={[s.saveTxt, { color: canSave ? "#fff" : C.t3 }]}>
+                  {f.isTrial ? t("addSub.addTrial") : t("addSub.addSubscription")}
+                </Text>
+              </AnimatedPressable>
+            </View>
+          )
+        }
         onDidDismiss={() => {
           // Check if this dismiss is from a purchase flow
-          const { pendingCongrats, setPendingCongrats, setShowCongrats } = useSettings.getState();
+          const { pendingCongrats, setPendingCongrats, setShowCongrats } =
+            useSettings.getState();
           if (pendingCongrats) {
             // Don't reset state — we'll resume after congrats
             pendingResume.current = true;

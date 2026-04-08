@@ -452,7 +452,7 @@ export default function OnboardingSheet() {
         <Animated.View
           style={[
             s.container,
-            { height: screenHeight, paddingTop: insets.top + 16 },
+            { flex: 1, paddingTop: insets.top + 16 },
             animatedContainerStyle,
           ]}
         >

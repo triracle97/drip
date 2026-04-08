@@ -83,6 +83,20 @@ const IncomeSheet = forwardRef<TrueSheet>(function IncomeSheet(_props, ref) {
             dimmedDetentIndex={0}
             backgroundColor={C.bg}
             onWillPresent={handlePresent}
+            footer={
+                <View style={{ paddingHorizontal: SP[4], paddingBottom: (Platform.OS === 'ios' && Platform.isPad) ? 24 : Math.max(insets.bottom, 16) + 12 }}>
+                    {/* Save button */}
+                    <AnimatedPressable
+                        onPress={handleSave}
+                        disabled={!canSave}
+                        style={[s.saveBtn, { backgroundColor: canSave ? C.black : C.bgSub, opacity: canSave ? 1 : 0.5 }]}
+                    >
+                        <Text style={[s.saveBtnText, { color: canSave ? '#fff' : C.t3 }]}>
+                            {existing ? t('income.updateIncome') : t('income.addIncome')}
+                        </Text>
+                    </AnimatedPressable>
+                </View>
+            }
         >
             {/* Custom grabber */}
             <View style={{ alignItems: 'center', justifyContent: 'center' }}>
@@ -96,7 +110,7 @@ const IncomeSheet = forwardRef<TrueSheet>(function IncomeSheet(_props, ref) {
                 <ScrollView
                     keyboardShouldPersistTaps="handled"
                     showsVerticalScrollIndicator={false}
-                    contentContainerStyle={{ paddingHorizontal: SP[4], paddingBottom: Math.max(insets.bottom, 16) }}
+                    contentContainerStyle={{ paddingHorizontal: SP[4], paddingBottom: 100 }}
                 >
                     {/* Header */}
                     <View style={s.headerRow}>
@@ -164,17 +178,6 @@ const IncomeSheet = forwardRef<TrueSheet>(function IncomeSheet(_props, ref) {
                             <Text style={s.previewValue}>{fmt(hourlyRate)}<Text style={s.previewUnit}>/hr</Text></Text>
                         </View>
                     )}
-
-                    {/* Save button */}
-                    <AnimatedPressable
-                        onPress={handleSave}
-                        disabled={!canSave}
-                        style={[s.saveBtn, { backgroundColor: canSave ? C.black : C.bgSub, opacity: canSave ? 1 : 0.5 }]}
-                    >
-                        <Text style={[s.saveBtnText, { color: canSave ? '#fff' : C.t3 }]}>
-                            {existing ? t('income.updateIncome') : t('income.addIncome')}
-                        </Text>
-                    </AnimatedPressable>
                 </ScrollView>
             </KeyboardAvoidingView>
         </TrueSheet>
