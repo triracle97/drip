@@ -7,11 +7,11 @@ import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
+  Alert,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  Alert,
 } from "react-native";
 
 export type ProFeatureKey =
@@ -59,7 +59,7 @@ export default function ProSheet({ feature, onClose, onPurchased }: Props) {
       } else {
         Alert.alert(
           "Purchase Unavailable",
-          "Products are currently not available. If you're on TestFlight, please ensure RevenueCat configuration and App Store Connect products are set up correctly."
+          "Products are currently not available. If you're on TestFlight, please ensure RevenueCat configuration and App Store Connect products are set up correctly.",
         );
       }
       return;
@@ -84,7 +84,8 @@ export default function ProSheet({ feature, onClose, onPurchased }: Props) {
   const handleDismiss = () => {
     // If no parent sheet handles congrats (top-level usage), flush it now
     if (!onPurchased) {
-      const { pendingCongrats, setPendingCongrats, setShowCongrats } = useSettings.getState();
+      const { pendingCongrats, setPendingCongrats, setShowCongrats } =
+        useSettings.getState();
       if (pendingCongrats) {
         setPendingCongrats(false);
         setTimeout(() => setShowCongrats(true), 200);
@@ -127,7 +128,10 @@ export default function ProSheet({ feature, onClose, onPurchased }: Props) {
           ) : (
             <Text style={s.ctaText}>
               {t("pro.priceOnce", {
-                price: (currentOffering?.availablePackages[0]?.product.priceString ?? "$4").replace("US$", "$"),
+                price: (
+                  currentOffering?.availablePackages[0]?.product.priceString ??
+                  "$4"
+                ).replace("US$", "$"),
               })}
             </Text>
           )}

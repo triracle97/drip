@@ -84,7 +84,7 @@ const IncomeSheet = forwardRef<TrueSheet>(function IncomeSheet(_props, ref) {
             backgroundColor={C.bg}
             onWillPresent={handlePresent}
             footer={
-                <View style={{ paddingHorizontal: SP[4], paddingBottom: (Platform.OS === 'ios' && Platform.isPad) ? 24 : Math.max(insets.bottom, 16) + 12 }}>
+                <View style={{ paddingHorizontal: SP[4], paddingBottom: (Platform.OS === 'ios' && Platform.isPad) ? 24 : Math.max(insets.bottom, 16) }}>
                     {/* Save button */}
                     <AnimatedPressable
                         onPress={handleSave}

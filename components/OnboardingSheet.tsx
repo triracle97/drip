@@ -16,11 +16,12 @@ import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Dimensions,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
@@ -35,9 +36,7 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
 } from "react-native-reanimated";
-import {
-  useSafeAreaInsets
-} from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Path } from "react-native-svg";
 import CurrencySheet from "./CurrencySheet";
 
@@ -65,7 +64,8 @@ export default function OnboardingSheet() {
   const insets = useSafeAreaInsets();
   const sheetRef = useRef<TrueSheet>(null);
   const { addIncome } = useStore();
-  const { hasOnboarded, setHasOnboarded, currency, setIsPro, setShowCongrats } = useSettings();
+  const { hasOnboarded, setHasOnboarded, currency, setIsPro, setShowCongrats } =
+    useSettings();
   const { currentOffering, purchasePackage, restorePurchases } =
     useRevenueCat();
 
@@ -225,7 +225,10 @@ export default function OnboardingSheet() {
             ) : (
               <Text style={[s.ctaText, s.paywallCtaText]}>
                 {t("pro.priceOnce", {
-                  price: (currentOffering?.availablePackages[0]?.product.priceString ?? "$4").replace("US$", "$"),
+                  price: (
+                    currentOffering?.availablePackages[0]?.product
+                      .priceString ?? "$4"
+                  ).replace("US$", "$"),
                 })}
               </Text>
             )}
@@ -436,51 +439,58 @@ export default function OnboardingSheet() {
 
   // if (hasOnboarded) return null;
 
+  const isIPad = Platform.OS === 'ios' && Platform.isPad;
   const animatedContainerStyle = useAnimatedStyle(() => ({
-    paddingBottom: insets.bottom + 56 + keyboard.height.value,
+    paddingBottom: isIPad ? 24 : insets.bottom + 56 + keyboard.height.value,
   }));
 
   return (
-    <TrueSheet
-      ref={sheetRef}
-      detents={[1]}
-      dismissible={false}
-      grabber={false}
-      cornerRadius={0}
-    >
-      <GestureDetector gesture={swipeGesture}>
-        <Animated.View
-          style={[
-            s.container,
-            { flex: 1, paddingTop: insets.top + 16 },
-            animatedContainerStyle,
-          ]}
-        >
-          <View style={{ flex: 1, position: "relative" }}>
-            {step === 0 && renderStepValueProp()}
-            {step === 1 && renderStepFeatures()}
-            {step === 2 && renderStepIncome()}
-            {step === 3 && renderStepPaywall()}
-          </View>
+    <>
+      <TrueSheet
+        ref={sheetRef}
+        detents={[1]}
+        dismissible={false}
+        grabber={false}
+        cornerRadius={0}
+        backgroundColor={C.bg}
+      >
+        <GestureDetector gesture={swipeGesture}>
+          <Animated.View
+            style={[
+              s.container,
+              { paddingTop: insets.top + 16 },
+              Platform.OS === "ios" && Platform.isPad
+                ? { flex: 1, minHeight: 600 }
+                : { height: "100%" },
+              animatedContainerStyle,
+            ]}
+          >
+            <View style={{ flex: 1, position: "relative" }}>
+              {step === 0 && renderStepValueProp()}
+              {step === 1 && renderStepFeatures()}
+              {step === 2 && renderStepIncome()}
+              {step === 3 && renderStepPaywall()}
+            </View>
 
-          {(step === 2 || step === 3) && (
-            <TouchableOpacity
-              style={[s.absoluteSkipBtn, { top: insets.top + 12 }]}
-              onPress={step === 2 ? () => goForward(3) : completeOnboarding}
-              activeOpacity={0.7}
-            >
-              <Text style={s.absoluteSkipText}>{t("onboarding.skip")}</Text>
-            </TouchableOpacity>
-          )}
+            {(step === 2 || step === 3) && (
+              <TouchableOpacity
+                style={[s.absoluteSkipBtn, { top: insets.top + 12 }]}
+                onPress={step === 2 ? () => goForward(3) : completeOnboarding}
+                activeOpacity={0.7}
+              >
+                <Text style={s.absoluteSkipText}>{t("onboarding.skip")}</Text>
+              </TouchableOpacity>
+            )}
 
-          {renderBottomArea()}
-        </Animated.View>
-      </GestureDetector>
+            {renderBottomArea()}
+          </Animated.View>
+        </GestureDetector>
+      </TrueSheet>
       <CurrencySheet
         visible={currencyVisible}
         onClose={() => setCurrencyVisible(false)}
       />
-    </TrueSheet>
+    </>
   );
 }
 
