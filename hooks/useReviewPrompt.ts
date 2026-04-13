@@ -1,6 +1,7 @@
 import { useStore } from '@/store';
 import { useSettings } from '@/store/settings';
 import { useCallback } from 'react';
+import { AnalyticsEvents, track } from '@/lib/analytics';
 
 /**
  * Hook that encapsulates the in-app review prompt logic.
@@ -18,9 +19,10 @@ export function useReviewPrompt() {
     const firstOpenDate = useSettings(s => s.firstOpenDate);
     const setHasRequestedReview = useSettings(s => s.setHasRequestedReview);
 
-    const requestReview = useCallback(async () => {
+    const requestReview = useCallback(async (source: 'after_add' | 'after_trial_keep') => {
         // Mark as requested before calling (even if OS decides not to show)
         setHasRequestedReview(true);
+        track(AnalyticsEvents.REVIEW_PROMPTED, { source });
 
         try {
             const StoreReview = await import('expo-store-review');
@@ -46,7 +48,7 @@ export function useReviewPrompt() {
         // Wait a beat so the sheet dismissal feels natural
         await new Promise(r => setTimeout(r, 2000));
 
-        await requestReview();
+        await requestReview('after_add');
     }, [hasRequestedReview, subs.length, requestReview]);
 
     /**
@@ -66,7 +68,7 @@ export function useReviewPrompt() {
         // Wait so it doesn't feel jarring after sheet dismiss
         await new Promise(r => setTimeout(r, 1500));
 
-        await requestReview();
+        await requestReview('after_trial_keep');
     }, [hasRequestedReview, firstOpenDate, requestReview]);
 
     /**
@@ -78,6 +80,7 @@ export function useReviewPrompt() {
             const StoreReview = await import('expo-store-review');
             const hasAction = await StoreReview.hasAction();
             if (hasAction) {
+                track(AnalyticsEvents.REVIEW_PROMPTED, { source: 'manual' });
                 await StoreReview.requestReview();
             }
         } catch {

@@ -108,4 +108,7 @@ export const AnalyticsEvents = {
 
     // Pro Feature Gate
     PRO_GATE_HIT: 'pro_gate_hit',
+
+    // Review Prompt
+    REVIEW_PROMPTED: 'review_prompted',
 } as const;
