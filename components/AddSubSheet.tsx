@@ -6,7 +6,9 @@ import CategoryModal from "@/components/CategoryModal";
 import type { ProFeatureKey } from "@/components/ProSheet";
 import ProSheet from "@/components/ProSheet";
 import { C, R } from "@/constants/design";
+import { getCurrency } from "@/constants/currencies";
 import { useReviewPrompt } from "@/hooks/useReviewPrompt";
+import { useNumberFormat } from "@/hooks/useNumberFormat";
 import { AnalyticsEvents, track } from "@/lib/analytics";
 import { Sub, useStore } from "@/store";
 import { useSettings } from "@/store/settings";
@@ -157,6 +159,8 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
   const currency = useSettings((s) => s.currency);
   const isPro = useSettings((s) => s.isPro);
   const { maybeRequestAfterAdd } = useReviewPrompt();
+  const { formatNumber, parseFormatted } = useNumberFormat();
+  const currencySymbol = getCurrency(currency).symbol;
   const rate = blended(incomes);
 
   const [popularSubs, setPopularSubs] = useState<PopularSub[]>([]);
@@ -510,7 +514,7 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
         <Field label={t("addSub.priceBilling")}>
           <View style={s.priceCycleRow}>
             <View style={[s.dollarRow, { flex: 1 }]}>
-              <Text style={s.dollarSign}>$</Text>
+              <Text style={s.dollarSign}>{currencySymbol}</Text>
               <TextInput
                 style={[
                   s.inp,
@@ -520,8 +524,8 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
                     borderBottomLeftRadius: 0,
                   },
                 ]}
-                value={f.cost}
-                onChangeText={(v) => u("cost", v)}
+                value={formatNumber(f.cost)}
+                onChangeText={(v) => u("cost", parseFormatted(v))}
                 placeholder="0.00"
                 placeholderTextColor={C.t3}
                 keyboardType="decimal-pad"

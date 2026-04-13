@@ -1,6 +1,7 @@
 import AnimatedPressable from '@/components/AnimatedPressable';
 import { C, R, SP } from '@/constants/design';
 import { AnalyticsEvents, track } from '@/lib/analytics';
+import { useNumberFormat } from '@/hooks/useNumberFormat';
 import { useStore } from '@/store';
 import { useSettings } from '@/store/settings';
 import { fmt } from '@/utils/calc';
@@ -24,10 +25,11 @@ const IncomeSheet = forwardRef<TrueSheet>(function IncomeSheet(_props, ref) {
     const insets = useSafeAreaInsets();
     const { t } = useTranslation();
     const { incomes, addIncome, updateIncome } = useStore();
-    const currency = useSettings(s => s.currency);
+    const currency = useSettings((s) => s.currency);
     const existing = incomes[0] ?? null;
+    const { formatNumber, parseFormatted } = useNumberFormat();
 
-    const [amount, setAmount] = useState('');
+    const [rawAmount, setRawAmount] = useState('');
     const [isHourly, setIsHourly] = useState(false);
     const [hours, setHours] = useState('40');
 
@@ -41,11 +43,11 @@ const IncomeSheet = forwardRef<TrueSheet>(function IncomeSheet(_props, ref) {
 
     const handlePresent = useCallback(() => {
         if (existing) {
-            setAmount(String(existing.amount));
+            setRawAmount(String(existing.amount));
             setIsHourly(existing.isHourly);
             setHours(String(existing.hoursPerWeek));
         } else {
-            setAmount('');
+            setRawAmount('');
             setIsHourly(false);
             setHours('40');
         }
@@ -55,12 +57,12 @@ const IncomeSheet = forwardRef<TrueSheet>(function IncomeSheet(_props, ref) {
         sheetRef.current?.dismiss().catch(() => { });
     }, []);
 
-    const canSave = parseFloat(amount) > 0;
+    const canSave = parseFloat(rawAmount) > 0;
 
     const handleSave = () => {
         if (!canSave) return;
         const label = isHourly ? 'Hourly income' : 'Salary';
-        const data = { label, amount: parseFloat(amount), isHourly, hoursPerWeek: parseInt(hours) || 40 };
+        const data = { label, amount: parseFloat(rawAmount), isHourly, hoursPerWeek: parseInt(hours) || 40 };
         if (existing) {
             updateIncome({ ...data, id: existing.id });
         } else {
@@ -69,13 +71,13 @@ const IncomeSheet = forwardRef<TrueSheet>(function IncomeSheet(_props, ref) {
         track(AnalyticsEvents.INCOME_UPDATED, {
             is_new: !existing,
             is_hourly: isHourly,
-            amount: parseFloat(amount),
+            amount: parseFloat(rawAmount),
         });
         dismiss();
     };
 
-    const hourlyRate = parseFloat(amount) > 0
-        ? (isHourly ? parseFloat(amount) : parseFloat(amount) / (52 * (parseInt(hours) || 40)))
+    const hourlyRate = parseFloat(rawAmount) > 0
+        ? (isHourly ? parseFloat(rawAmount) : parseFloat(rawAmount) / (52 * (parseInt(hours) || 40)))
         : 0;
 
     return (
@@ -155,8 +157,8 @@ const IncomeSheet = forwardRef<TrueSheet>(function IncomeSheet(_props, ref) {
                             <Text style={s.dollarSign}>$</Text>
                             <TextInput
                                 style={[s.inp, { flex: 1, borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }]}
-                                value={amount}
-                                onChangeText={setAmount}
+                                value={formatNumber(rawAmount)}
+                                onChangeText={(text) => setRawAmount(parseFormatted(text))}
                                 keyboardType="decimal-pad"
                                 placeholder="0"
                                 placeholderTextColor={C.t3}

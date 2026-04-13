@@ -157,8 +157,8 @@ export default function OnboardingSheet() {
       // Fallback for Simulator testing if no packages are loaded
       if (__DEV__) {
         setIsPro(true);
-        setShowCongrats(true);
         completeOnboarding('purchased');
+        setTimeout(() => setShowCongrats(true), 1000);
       }
       return;
     }
@@ -169,8 +169,8 @@ export default function OnboardingSheet() {
     if (success) {
       track(AnalyticsEvents.PURCHASE_COMPLETED, { source: 'onboarding', product: pack.product.identifier });
       setIsPro(true);
-      setShowCongrats(true);
       completeOnboarding('purchased');
+      setTimeout(() => setShowCongrats(true), 1000);
     } else {
       track(AnalyticsEvents.PURCHASE_FAILED, { source: 'onboarding' });
     }
@@ -452,12 +452,12 @@ export default function OnboardingSheet() {
     </Animated.View>
   );
 
-  // if (hasOnboarded) return null;
-
   const isIPad = Platform.OS === 'ios' && Platform.isPad;
   const animatedContainerStyle = useAnimatedStyle(() => ({
     paddingBottom: isIPad ? 24 : insets.bottom + 56 + keyboard.height.value,
   }));
+
+  if (hasOnboarded) return null;
 
   return (
     <>
@@ -508,11 +508,11 @@ export default function OnboardingSheet() {
             {renderBottomArea()}
           </Animated.View>
         </GestureDetector>
+        <CurrencySheet
+          visible={currencyVisible}
+          onClose={() => setCurrencyVisible(false)}
+        />
       </TrueSheet>
-      <CurrencySheet
-        visible={currencyVisible}
-        onClose={() => setCurrencyVisible(false)}
-      />
     </>
   );
 }

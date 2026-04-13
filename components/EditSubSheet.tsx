@@ -4,6 +4,8 @@ import BrandLogo from "@/components/BrandLogo";
 import Card from "@/components/Card";
 import CategoryModal from "@/components/CategoryModal";
 import { C, R } from "@/constants/design";
+import { getCurrency } from "@/constants/currencies";
+import { useNumberFormat } from "@/hooks/useNumberFormat";
 import { AnalyticsEvents, track } from "@/lib/analytics";
 import { useStore } from "@/store";
 import { useSettings } from "@/store/settings";
@@ -113,6 +115,8 @@ export default function EditSubSheet({
   const { t } = useTranslation();
   const { subs, updateSub, removeSub, categories, incomes } = useStore();
   const currency = useSettings((s) => s.currency);
+  const { formatNumber, parseFormatted } = useNumberFormat();
+  const currencySymbol = getCurrency(currency).symbol;
   const rate = blended(incomes);
 
   const sheetRef = useRef<TrueSheet>(null);
@@ -375,7 +379,7 @@ export default function EditSubSheet({
         <Field label={t("addSub.priceBilling")}>
           <View style={s.priceCycleRow}>
             <View style={[s.dollarRow, { flex: 1 }]}>
-              <Text style={s.dollarSign}>$</Text>
+              <Text style={s.dollarSign}>{currencySymbol}</Text>
               <TextInput
                 style={[
                   s.inp,
@@ -385,8 +389,8 @@ export default function EditSubSheet({
                     borderBottomLeftRadius: 0,
                   },
                 ]}
-                value={f.cost}
-                onChangeText={(v) => u("cost", v)}
+                value={formatNumber(f.cost)}
+                onChangeText={(v) => u("cost", parseFormatted(v))}
                 placeholder="0.00"
                 placeholderTextColor={C.t3}
                 keyboardType="decimal-pad"
