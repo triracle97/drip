@@ -11,6 +11,7 @@ import { Category, useStore } from '@/store';
 import type { SubscriptionEvent } from '@/store/repository';
 import { getAllEvents } from '@/store/repository';
 import { useSettings } from '@/store/settings';
+import { AnalyticsEvents, track } from '@/lib/analytics';
 import { blended, budgetHealth, fmt, lifetimeCost, monthlyIncome, monthName, subMo } from '@/utils/calc';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -157,7 +158,7 @@ export default function InsightsScreen() {
                     </>
                 ) : (
                     <Animated.View entering={FadeInDown.duration(300).delay(100)}>
-                        <TouchableOpacity onPress={() => setProFeature('insights')} activeOpacity={0.9} style={s.singlePaywallBox}>
+                        <TouchableOpacity onPress={() => { track(AnalyticsEvents.PRO_GATE_HIT, { feature: 'insights', source: 'insights_tab' }); setProFeature('insights'); }} activeOpacity={0.9} style={s.singlePaywallBox}>
                             <View style={s.singlePaywallIconBg}>
                                 <Lock size={26} color={C.gold} strokeWidth={2.5} />
                             </View>

@@ -1,5 +1,6 @@
 import AnimatedPressable from '@/components/AnimatedPressable';
 import { C, R, SP } from '@/constants/design';
+import { AnalyticsEvents, track } from '@/lib/analytics';
 import { useStore } from '@/store';
 import { useSettings } from '@/store/settings';
 import { fmt } from '@/utils/calc';
@@ -65,6 +66,11 @@ const IncomeSheet = forwardRef<TrueSheet>(function IncomeSheet(_props, ref) {
         } else {
             addIncome({ ...data, id: `i${Date.now()}` });
         }
+        track(AnalyticsEvents.INCOME_UPDATED, {
+            is_new: !existing,
+            is_hourly: isHourly,
+            amount: parseFloat(amount),
+        });
         dismiss();
     };
 

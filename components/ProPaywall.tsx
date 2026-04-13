@@ -1,5 +1,6 @@
 import { C, R } from '@/constants/design';
 import { useRevenueCat } from '@/hooks/useRevenueCat';
+import { AnalyticsEvents, track } from '@/lib/analytics';
 import { useSettings } from '@/store/settings';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -38,6 +39,7 @@ export default function ProPaywall({ visible, onClose, onPurchased }: Props) {
 
   const handlePurchase = async () => {
     const pack = currentOffering?.availablePackages[0];
+    track(AnalyticsEvents.PAYWALL_CTA_TAPPED, { source: 'settings' });
     if (!pack) {
       if (__DEV__) {
         setIsPro(true);
@@ -53,27 +55,32 @@ export default function ProPaywall({ visible, onClose, onPurchased }: Props) {
       return;
     }
     setLoading(true);
+    track(AnalyticsEvents.PURCHASE_STARTED, { source: 'settings', product: pack.product.identifier });
     const success = await purchasePackage(pack);
     setLoading(false);
     if (success) {
+      track(AnalyticsEvents.PURCHASE_COMPLETED, { source: 'settings', product: pack.product.identifier });
       setIsPro(true);
       setShowCongrats(true);
       onPurchased?.();
       onClose();
+    } else {
+      track(AnalyticsEvents.PURCHASE_FAILED, { source: 'settings' });
     }
   };
 
   const handleRestore = async () => {
+    track(AnalyticsEvents.RESTORE_TAPPED, { source: 'settings' });
     setLoading(true);
     await restorePurchases();
     setLoading(false);
   };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onShow={() => track(AnalyticsEvents.PAYWALL_VIEWED, { source: 'settings' })}>
       <View style={[s.container, { paddingTop: insets.top + 16 }]}>
         {/* Close button */}
-        <TouchableOpacity style={s.closeBtn} onPress={onClose} activeOpacity={0.7}>
+        <TouchableOpacity style={s.closeBtn} onPress={() => { track(AnalyticsEvents.PAYWALL_DISMISSED, { source: 'settings' }); onClose(); }} activeOpacity={0.7}>
           <Text style={s.closeText}>{t('pro.notNow')}</Text>
         </TouchableOpacity>
 

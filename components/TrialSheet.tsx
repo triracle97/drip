@@ -3,6 +3,7 @@ import BrandLogo from '@/components/BrandLogo';
 import Card from '@/components/Card';
 import { C, R, SP } from '@/constants/design';
 import { useReviewPrompt } from '@/hooks/useReviewPrompt';
+import { AnalyticsEvents, track } from '@/lib/analytics';
 import { Sub, useStore } from '@/store';
 import { useSettings } from '@/store/settings';
 import { blended, fmt, subMo, toHrs, trialDaysLeft } from '@/utils/calc';
@@ -34,6 +35,7 @@ export default function TrialSheet({ sub: t, onClose }: Props) {
         if (t) {
             const timer = setTimeout(() => {
                 sheetRef.current?.present().catch(() => { });
+                track(AnalyticsEvents.TRIAL_VIEWED, { name: t.name, days_left: trialDaysLeft(t.trialEndDay) });
             }, 50);
             return () => clearTimeout(timer);
         } else {
@@ -48,6 +50,12 @@ export default function TrialSheet({ sub: t, onClose }: Props) {
 
     const handleDecide = (decision: 'kept' | 'cancelled') => {
         if (!t) return;
+        track(AnalyticsEvents.TRIAL_DECIDED, {
+            name: t.name,
+            decision,
+            cost: t.cost,
+            days_left: trialDaysLeft(t.trialEndDay),
+        });
         decideTrial(t.id, decision);
         sheetRef.current?.dismiss().catch(() => { });
         // Request review after a positive trial decision

@@ -1,4 +1,5 @@
 import { C } from '@/constants/design';
+import { AnalyticsEvents, track } from '@/lib/analytics';
 import { BlurView } from 'expo-blur';
 import { Tabs } from 'expo-router';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -80,7 +81,10 @@ function DripTabBar({ state, descriptors, navigation }: any) {
         return (
           <TouchableOpacity
             key={route.key}
-            onPress={() => navigation.navigate(route.name)}
+            onPress={() => {
+              track(AnalyticsEvents.TAB_VIEWED, { tab: route.name });
+              navigation.navigate(route.name);
+            }}
             style={s.tab}
             activeOpacity={0.75}
           >

@@ -13,6 +13,7 @@ import { C, LAYOUT, R } from '@/constants/design';
 import { Sub, useStore } from '@/store';
 import type { SubscriptionEvent } from '@/store/repository';
 import { useSettings } from '@/store/settings';
+import { AnalyticsEvents, track } from '@/lib/analytics';
 import { getEventsByMonth } from '@/store/repository';
 import { blended, curMonth, curYear, fmt, monthName, nextChargeIn, subMo, toHrs } from '@/utils/calc';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
@@ -287,7 +288,7 @@ export default function TimelineScreen() {
                     </>
                 ) : (
                     <Animated.View entering={FadeInDown.duration(300).delay(200)}>
-                        <TouchableOpacity onPress={() => setProFeature('calendar')} activeOpacity={0.9} style={s.singlePaywallBox}>
+                        <TouchableOpacity onPress={() => { track(AnalyticsEvents.PRO_GATE_HIT, { feature: 'calendar', source: 'calendar_tab' }); setProFeature('calendar'); }} activeOpacity={0.9} style={s.singlePaywallBox}>
                             <View style={s.singlePaywallIconBg}>
                                 <Lock size={26} color={C.gold} strokeWidth={2.5} />
                             </View>

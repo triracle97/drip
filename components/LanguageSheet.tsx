@@ -1,6 +1,7 @@
 import { C, R, SP } from '@/constants/design';
 import { LANGUAGE_OPTIONS, resolveLanguage } from '@/i18n';
 import i18n from '@/i18n';
+import { AnalyticsEvents, track } from '@/lib/analytics';
 import { useSettings } from '@/store/settings';
 import React from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -19,6 +20,7 @@ export default function LanguageSheet({ visible, onClose }: Props) {
     const { t } = useTranslation();
 
     const handleSelect = (code: string) => {
+        track(AnalyticsEvents.LANGUAGE_CHANGED, { from: language, to: code });
         setLanguage(code);
         i18n.changeLanguage(resolveLanguage(code));
         onClose();

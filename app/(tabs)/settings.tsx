@@ -9,6 +9,7 @@ import { getCurrency } from "@/constants/currencies";
 import { C, LAYOUT, R, SP } from "@/constants/design";
 import { LANGUAGE_OPTIONS } from "@/i18n";
 import { useReviewPrompt } from "@/hooks/useReviewPrompt";
+import { AnalyticsEvents, track } from "@/lib/analytics";
 import { useStore } from "@/store";
 import { useSettings } from "@/store/settings";
 import { blended, fmt, monthlyIncome, subMo, toHrs } from "@/utils/calc";
@@ -72,6 +73,7 @@ export default function SettingsScreen() {
         return;
       }
     }
+    track(AnalyticsEvents.NOTIFICATIONS_TOGGLED, { enabled });
     setNotificationsEnabled(enabled);
     rescheduleAllNotifications(subs, enabled, notificationTime);
   };
@@ -303,7 +305,7 @@ export default function SettingsScreen() {
         {/* Rate Us */}
         {isPro && (
           <TouchableOpacity
-            onPress={requestReviewManually}
+            onPress={() => { track(AnalyticsEvents.RATE_US_TAPPED); requestReviewManually(); }}
             style={s.row}
             activeOpacity={0.75}
           >

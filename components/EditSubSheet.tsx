@@ -4,6 +4,7 @@ import BrandLogo from "@/components/BrandLogo";
 import Card from "@/components/Card";
 import CategoryModal from "@/components/CategoryModal";
 import { C, R } from "@/constants/design";
+import { AnalyticsEvents, track } from "@/lib/analytics";
 import { useStore } from "@/store";
 import { useSettings } from "@/store/settings";
 import {
@@ -19,6 +20,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
     Alert,
+    Keyboard,
     Modal,
     ScrollView,
     StyleSheet,
@@ -137,6 +139,22 @@ export default function EditSubSheet({
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [reminderOpen, setReminderOpen] = useState(false);
   const [showAppearance, setShowAppearance] = useState(false);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
+      () => setKeyboardVisible(true),
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+      () => setKeyboardVisible(false),
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   useEffect(() => {
     if (!id) {
@@ -222,6 +240,12 @@ export default function EditSubSheet({
             : "none",
       reminderDays: f.reminderDays ? parseInt(f.reminderDays) : null,
     });
+    track(AnalyticsEvents.SUB_EDITED, {
+      name: f.name,
+      cost: parseFloat(f.cost),
+      cycle: f.cycle,
+      is_active: f.active,
+    });
     dismissAndRouteBack();
   };
 
@@ -237,6 +261,11 @@ export default function EditSubSheet({
           text: t("editSub.remove"),
           style: "destructive",
           onPress: () => {
+            track(AnalyticsEvents.SUB_REMOVED, {
+              name: sub?.name,
+              cost: sub?.cost,
+              cycle: sub?.cycle,
+            });
             removeSub(id);
             dismissAndRouteBack();
           },
@@ -261,7 +290,7 @@ export default function EditSubSheet({
         <View
           style={[
             s.stickyBottom,
-            { paddingBottom: (Platform.OS === 'ios' && Platform.isPad) ? 24 : Math.max(insets.bottom, 16) + 12 },
+            { paddingBottom: keyboardVisible ? 12 : (Platform.OS === 'ios' && Platform.isPad) ? 24 : Math.max(insets.bottom, 16) + 12 },
           ]}
         >
           <View style={{ flexDirection: "row", gap: 8 }}>

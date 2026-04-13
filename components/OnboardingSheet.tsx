@@ -1,6 +1,7 @@
 import { getCurrency } from "@/constants/currencies";
 import { C, R } from "@/constants/design";
 import { useRevenueCat } from "@/hooks/useRevenueCat";
+import { AnalyticsEvents, track } from "@/lib/analytics";
 import { useStore } from "@/store";
 import { useSettings } from "@/store/settings";
 import { TrueSheet } from "@lodev09/react-native-true-sheet";
@@ -42,6 +43,9 @@ import CurrencySheet from "./CurrencySheet";
 
 const TOTAL_STEPS = 4;
 
+const STEP_NAMES = ['value_prop', 'features', 'income', 'paywall'] as const;
+function stepName(step: number) { return STEP_NAMES[step] ?? `step_${step}`; }
+
 const PRO_FEATURES = [
   "pro.feature.unlimitedSubs",
   "pro.feature.fullInsights",
@@ -80,6 +84,7 @@ export default function OnboardingSheet() {
   const goForward = (nextStep: number) => {
     setDirection("forward");
     setStep(nextStep);
+    track(AnalyticsEvents.ONBOARDING_STEP_VIEWED, { step: nextStep, step_name: stepName(nextStep) });
   };
 
   const goBack = () => {
@@ -112,12 +117,15 @@ export default function OnboardingSheet() {
     if (!hasOnboarded) {
       const timer = setTimeout(() => {
         sheetRef.current?.present().catch(() => {});
+        track(AnalyticsEvents.ONBOARDING_STARTED);
+        track(AnalyticsEvents.ONBOARDING_STEP_VIEWED, { step: 0, step_name: 'value_prop' });
       }, 300);
       return () => clearTimeout(timer);
     }
   }, [hasOnboarded]);
 
-  const completeOnboarding = () => {
+  const completeOnboarding = (method: 'purchased' | 'skipped') => {
+    track(AnalyticsEvents.ONBOARDING_COMPLETED, { method });
     sheetRef.current
       ?.dismiss()
       .then(() => {
@@ -138,31 +146,38 @@ export default function OnboardingSheet() {
       isHourly: false,
       hoursPerWeek: 40,
     });
+    track(AnalyticsEvents.ONBOARDING_INCOME_SUBMITTED, { monthly_income: val, currency });
     goForward(3);
   };
 
   const handlePurchase = async () => {
     const pack = currentOffering?.availablePackages[0];
+    track(AnalyticsEvents.PAYWALL_CTA_TAPPED, { source: 'onboarding' });
     if (!pack) {
       // Fallback for Simulator testing if no packages are loaded
       if (__DEV__) {
         setIsPro(true);
         setShowCongrats(true);
-        completeOnboarding();
+        completeOnboarding('purchased');
       }
       return;
     }
     setLoading(true);
+    track(AnalyticsEvents.PURCHASE_STARTED, { source: 'onboarding', product: pack.product.identifier });
     const success = await purchasePackage(pack);
     setLoading(false);
     if (success) {
+      track(AnalyticsEvents.PURCHASE_COMPLETED, { source: 'onboarding', product: pack.product.identifier });
       setIsPro(true);
       setShowCongrats(true);
-      completeOnboarding();
+      completeOnboarding('purchased');
+    } else {
+      track(AnalyticsEvents.PURCHASE_FAILED, { source: 'onboarding' });
     }
   };
 
   const handleRestore = async () => {
+    track(AnalyticsEvents.RESTORE_TAPPED, { source: 'onboarding' });
     setLoading(true);
     await restorePurchases();
     setLoading(false);
@@ -475,7 +490,15 @@ export default function OnboardingSheet() {
             {(step === 2 || step === 3) && (
               <TouchableOpacity
                 style={[s.absoluteSkipBtn, { top: insets.top + 12 }]}
-                onPress={step === 2 ? () => goForward(3) : completeOnboarding}
+                onPress={() => {
+                  if (step === 2) {
+                    track(AnalyticsEvents.ONBOARDING_INCOME_SKIPPED);
+                    goForward(3);
+                  } else {
+                    track(AnalyticsEvents.PAYWALL_DISMISSED, { source: 'onboarding' });
+                    completeOnboarding('skipped');
+                  }
+                }}
                 activeOpacity={0.7}
               >
                 <Text style={s.absoluteSkipText}>{t("onboarding.skip")}</Text>

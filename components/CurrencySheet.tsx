@@ -1,5 +1,6 @@
 import { C, R, SP } from '@/constants/design';
 import { CURRENCIES, getCurrency } from '@/constants/currencies';
+import { AnalyticsEvents, track } from '@/lib/analytics';
 import { useSettings } from '@/store/settings';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -35,6 +36,7 @@ export default function CurrencySheet({ visible, onClose }: Props) {
         : CURRENCIES;
 
     const handleSelect = (code: string) => {
+        track(AnalyticsEvents.CURRENCY_CHANGED, { from: currency, to: code });
         setCurrencyCode(code);
         onClose();
     };

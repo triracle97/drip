@@ -1,5 +1,6 @@
 import { C } from "@/constants/design";
 import { useRevenueCat } from "@/hooks/useRevenueCat";
+import { AnalyticsEvents, track } from "@/lib/analytics";
 import { useSettings } from "@/store/settings";
 import { TrueSheet } from "@lodev09/react-native-true-sheet";
 import LottieView from "lottie-react-native";
@@ -41,6 +42,7 @@ export default function ProSheet({ feature, onClose, onPurchased }: Props) {
     if (feature) {
       const timer = setTimeout(() => {
         sheetRef.current?.present().catch(() => {});
+        track(AnalyticsEvents.PAYWALL_VIEWED, { source: 'pro_sheet', feature });
       }, 50);
       return () => clearTimeout(timer);
     } else {
@@ -50,6 +52,7 @@ export default function ProSheet({ feature, onClose, onPurchased }: Props) {
 
   const handlePurchase = async () => {
     const pack = currentOffering?.availablePackages[0];
+    track(AnalyticsEvents.PAYWALL_CTA_TAPPED, { source: 'pro_sheet', feature });
     if (!pack) {
       if (__DEV__) {
         setIsPro(true);
@@ -65,23 +68,29 @@ export default function ProSheet({ feature, onClose, onPurchased }: Props) {
       return;
     }
     setLoading(true);
+    track(AnalyticsEvents.PURCHASE_STARTED, { source: 'pro_sheet', feature, product: pack.product.identifier });
     const success = await purchasePackage(pack);
     setLoading(false);
     if (success) {
+      track(AnalyticsEvents.PURCHASE_COMPLETED, { source: 'pro_sheet', feature, product: pack.product.identifier });
       setIsPro(true);
       setPendingCongrats(true);
       onPurchased?.();
       sheetRef.current?.dismiss().catch(() => {});
+    } else {
+      track(AnalyticsEvents.PURCHASE_FAILED, { source: 'pro_sheet', feature });
     }
   };
 
   const handleRestore = async () => {
+    track(AnalyticsEvents.RESTORE_TAPPED, { source: 'pro_sheet', feature });
     setLoading(true);
     await restorePurchases();
     setLoading(false);
   };
 
   const handleDismiss = () => {
+    track(AnalyticsEvents.PAYWALL_DISMISSED, { source: 'pro_sheet', feature });
     // If no parent sheet handles congrats (top-level usage), flush it now
     if (!onPurchased) {
       const { pendingCongrats, setPendingCongrats, setShowCongrats } =

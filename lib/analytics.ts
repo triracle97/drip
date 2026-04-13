@@ -63,3 +63,49 @@ export function getDeviceId(): string | undefined {
 export function getAmplitudeUserId(): string | undefined {
     return amplitude.getUserId();
 }
+
+// ── Event Constants ─────────────────────────────────────
+// Centralised event names to avoid typos and make Amplitude taxonomy clean.
+export const AnalyticsEvents = {
+    // Onboarding
+    ONBOARDING_STARTED: 'onboarding_started',
+    ONBOARDING_STEP_VIEWED: 'onboarding_step_viewed',
+    ONBOARDING_GET_STARTED: 'onboarding_get_started',
+    ONBOARDING_INCOME_SUBMITTED: 'onboarding_income_submitted',
+    ONBOARDING_INCOME_SKIPPED: 'onboarding_income_skipped',
+    ONBOARDING_COMPLETED: 'onboarding_completed',
+
+    // Paywall & Purchase
+    PAYWALL_VIEWED: 'paywall_viewed',
+    PAYWALL_CTA_TAPPED: 'paywall_cta_tapped',
+    PAYWALL_DISMISSED: 'paywall_dismissed',
+    PURCHASE_STARTED: 'purchase_started',
+    PURCHASE_COMPLETED: 'purchase_completed',
+    PURCHASE_FAILED: 'purchase_failed',
+    RESTORE_TAPPED: 'restore_tapped',
+
+    // Subscription Management
+    SUB_ADDED: 'subscription_added',
+    SUB_EDITED: 'subscription_edited',
+    SUB_REMOVED: 'subscription_removed',
+    SUB_TOGGLED_ACTIVE: 'subscription_toggled_active',
+
+    // Trial Management
+    TRIAL_VIEWED: 'trial_sheet_viewed',
+    TRIAL_DECIDED: 'trial_decided',
+
+    // Income
+    INCOME_UPDATED: 'income_updated',
+
+    // Navigation
+    TAB_VIEWED: 'tab_viewed',
+
+    // Settings
+    CURRENCY_CHANGED: 'currency_changed',
+    LANGUAGE_CHANGED: 'language_changed',
+    NOTIFICATIONS_TOGGLED: 'notifications_toggled',
+    RATE_US_TAPPED: 'rate_us_tapped',
+
+    // Pro Feature Gate
+    PRO_GATE_HIT: 'pro_gate_hit',
+} as const;

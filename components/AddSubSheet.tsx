@@ -7,6 +7,7 @@ import type { ProFeatureKey } from "@/components/ProSheet";
 import ProSheet from "@/components/ProSheet";
 import { C, R } from "@/constants/design";
 import { useReviewPrompt } from "@/hooks/useReviewPrompt";
+import { AnalyticsEvents, track } from "@/lib/analytics";
 import { Sub, useStore } from "@/store";
 import { useSettings } from "@/store/settings";
 import { getPopularSubs, PopularSub } from "@/store/supabase";
@@ -22,7 +23,9 @@ import React, {
 } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  Keyboard,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -166,10 +169,33 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
 
   const [reminderOpen, setReminderOpen] = useState(false);
   const [showAppearance, setShowAppearance] = useState(false);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
+      () => setKeyboardVisible(true),
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+      () => setKeyboardVisible(false),
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   // Keep a local ref so we can call dismiss() internally
   const sheetRef = useRef<TrueSheet>(null);
   const pendingResume = useRef(false);
+  const customNumRef = useRef<TextInput>(null);
+
+  useEffect(() => {
+    if (f.cycle === "custom") {
+      setTimeout(() => customNumRef.current?.focus(), 300);
+    }
+  }, [f.cycle]);
   const setRefs = useCallback(
     (node: TrueSheet | null) => {
       sheetRef.current = node;
@@ -235,6 +261,10 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
 
   const pickBrand = (q: PopularSub) => {
     if (!isPro && subs.filter((s) => s.active || s.isTrial).length >= 2) {
+      track(AnalyticsEvents.PRO_GATE_HIT, {
+        feature: "subs",
+        source: "add_sub",
+      });
       setProFeature("subs");
       return;
     }
@@ -251,6 +281,10 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
 
   const pickCustom = () => {
     if (!isPro) {
+      track(AnalyticsEvents.PRO_GATE_HIT, {
+        feature: "customSub",
+        source: "add_sub",
+      });
       setProFeature("customSub");
       return;
     }
@@ -290,6 +324,14 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
       sortOrder: 0,
     };
     addSub(newSub);
+    track(AnalyticsEvents.SUB_ADDED, {
+      name: f.name,
+      cost: parseFloat(f.cost),
+      cycle: f.cycle,
+      category: f.categoryId,
+      is_trial: f.isTrial,
+      has_reminder: !!f.reminderDays,
+    });
     maybeRequestAfterAdd();
     dismiss();
   };
@@ -400,7 +442,6 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
           </View>
         )}
       </ScrollView>
-
     </Animated.View>
   );
 
@@ -512,6 +553,7 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
             <View style={s.customCycleRow}>
               <Text style={{ fontSize: 12, color: C.t2 }}>Every</Text>
               <TextInput
+                ref={customNumRef}
                 style={[s.inp, { width: 52, textAlign: "center" }]}
                 value={f.customNum}
                 onChangeText={(v) => u("customNum", v)}
@@ -540,16 +582,34 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
           )}
         </Field>
 
-        {/* Billing cycle popup */}
-        {cycleOpen && (
-          <View style={[StyleSheet.absoluteFill, { zIndex: 999 }]}>
+        {/* Billing cycle modal */}
+        <Modal
+          visible={cycleOpen}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setCycleOpen(false)}
+        >
+          <View style={s.modalBackdrop}>
             <TouchableOpacity
-              style={s.popupOverlay}
-              activeOpacity={1}
+              style={StyleSheet.absoluteFillObject}
               onPress={() => setCycleOpen(false)}
-            >
-              <View style={s.popupCard}>
-                <Text style={s.popupTitle}>Billing Cycle</Text>
+              activeOpacity={1}
+            />
+            <View style={s.modalSheet}>
+              <View style={s.modalHeader}>
+                <Text style={s.modalTitle}>{t("addSub.priceBilling")}</Text>
+                <TouchableOpacity
+                  style={s.modalCloseBtn}
+                  onPress={() => setCycleOpen(false)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={{ fontSize: 12, color: C.t2 }}>✕</Text>
+                </TouchableOpacity>
+              </View>
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+              >
                 {CYCLE_KEYS.map(([v, key]) => (
                   <TouchableOpacity
                     key={v}
@@ -577,10 +637,17 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
                     )}
                   </TouchableOpacity>
                 ))}
-              </View>
-            </TouchableOpacity>
+              </ScrollView>
+              <TouchableOpacity
+                style={s.modalDoneBtn}
+                onPress={() => setCycleOpen(false)}
+                activeOpacity={0.85}
+              >
+                <Text style={s.modalDoneTxt}>{t("common.done")}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        )}
+        </Modal>
 
         {/* Category */}
         <Field label={t("addSub.category")}>
@@ -899,7 +966,6 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
         )}
       </ScrollView>
 
-
       <AppearanceModal
         visible={showAppearance}
         icon={f.icon}
@@ -932,7 +998,13 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
             <View
               style={[
                 s.stickyBottom,
-                { paddingBottom: (Platform.OS === 'ios' && Platform.isPad) ? 24 : Math.max(insets.bottom, 16) + 12 },
+                {
+                  paddingBottom: keyboardVisible
+                    ? 12
+                    : Platform.OS === "ios" && Platform.isPad
+                      ? 24
+                      : Math.max(insets.bottom, 16),
+                },
               ]}
             >
               <AnimatedPressable onPress={pickCustom} style={s.customBtn}>
@@ -951,7 +1023,13 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
             <View
               style={[
                 s.stickyBottom,
-                { paddingBottom: (Platform.OS === 'ios' && Platform.isPad) ? 24 : Math.max(insets.bottom, 16) + 12 },
+                {
+                  paddingBottom: keyboardVisible
+                    ? 12
+                    : Platform.OS === "ios" && Platform.isPad
+                      ? 24
+                      : Math.max(insets.bottom, 16),
+                },
               ]}
             >
               <AnimatedPressable
@@ -966,7 +1044,9 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
                 ]}
               >
                 <Text style={[s.saveTxt, { color: canSave ? "#fff" : C.t3 }]}>
-                  {f.isTrial ? t("addSub.addTrial") : t("addSub.addSubscription")}
+                  {f.isTrial
+                    ? t("addSub.addTrial")
+                    : t("addSub.addSubscription")}
                 </Text>
               </AnimatedPressable>
             </View>
@@ -1307,5 +1387,52 @@ const s = StyleSheet.create({
   saveTxt: {
     fontSize: 16,
     fontWeight: "700",
+  },
+  // ─── Billing cycle modal ───
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    justifyContent: "flex-end" as const,
+  },
+  modalSheet: {
+    backgroundColor: C.bg,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    maxHeight: "80%" as any,
+  },
+  modalHeader: {
+    flexDirection: "row" as const,
+    justifyContent: "space-between" as const,
+    alignItems: "center" as const,
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "700" as const,
+    color: C.t1,
+  },
+  modalCloseBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: C.bgSub,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  },
+  modalDoneBtn: {
+    backgroundColor: C.black,
+    borderRadius: R.pill,
+    paddingVertical: 16,
+    alignItems: "center" as const,
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  modalDoneTxt: {
+    fontSize: 16,
+    fontWeight: "700" as const,
+    color: "#fff",
   },
 });
