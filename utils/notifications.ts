@@ -31,11 +31,12 @@ export async function rescheduleAllNotifications(
     const [hours, minutes] = time.split(':').map(Number);
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayISO = todayStart.toISOString().split('T')[0];
 
     // Build map: days-from-today → [{ sub, daysUntilRenewal }]
     const notifyMap = new Map<number, { sub: Sub; daysUntilRenewal: number }[]>();
 
-    const eligible = subs.filter(s => s.active && !s.isTrial && s.reminderDays != null);
+    const eligible = subs.filter(s => s.active && s.reminderDays != null);
 
     for (const sub of eligible) {
         const daysCycle = cycleDays(sub);
@@ -60,7 +61,9 @@ export async function rescheduleAllNotifications(
 
         for (const renewalDay of renewalDaysFromNow) {
             const notifyDay = renewalDay - sub.reminderDays!;
-            if (notifyDay >= 1 && notifyDay <= 30) {
+            if (notifyDay >= 0 && notifyDay <= 30) {
+                // Skip same-day notifications for subscriptions created today
+                if (notifyDay === 0 && sub.startDate === todayISO) continue;
                 const list = notifyMap.get(notifyDay) || [];
                 list.push({ sub, daysUntilRenewal: sub.reminderDays! });
                 notifyMap.set(notifyDay, list);
@@ -98,6 +101,7 @@ export async function rescheduleAllNotifications(
 }
 
 function timingLabel(days: number): string {
+    if (days === 0) return 'today';
     if (days === 1) return 'tomorrow';
     return `in ${days} days`;
 }
