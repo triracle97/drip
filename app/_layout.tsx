@@ -11,7 +11,7 @@ import { rescheduleAllNotifications } from '@/utils/notifications';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef } from 'react';
-import { ActivityIndicator, AppState, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, AppState, Platform, Text, TextInput, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Purchases, { LOG_LEVEL, STOREKIT_VERSION } from 'react-native-purchases';
 import 'react-native-reanimated';
@@ -26,12 +26,14 @@ if ((TextInput as any).defaultProps == null) (TextInput as any).defaultProps = {
 (TextInput as any).defaultProps.maxFontSizeMultiplier = 1;
 
 // Configure RevenueCat synchronously at module level — before any component mounts
-const rcApiKey = process.env.EXPO_PUBLIC_RC_API_KEY;
+const rcApiKey = Platform.OS === 'ios'
+  ? process.env.EXPO_PUBLIC_RC_API_KEY
+  : process.env.EXPO_PUBLIC_RC_GOOGLE_API_KEY;
 if (rcApiKey) {
   Purchases.setLogLevel(__DEV__ ? LOG_LEVEL.DEBUG : LOG_LEVEL.INFO);
   Purchases.configure({
     apiKey: rcApiKey,
-    storeKitVersion: STOREKIT_VERSION.STOREKIT_2,
+    ...(Platform.OS === 'ios' && { storeKitVersion: STOREKIT_VERSION.STOREKIT_2 }),
   });
 }
 

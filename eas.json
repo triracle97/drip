@@ -10,6 +10,7 @@
       "distribution": "internal",
       "env": {
         "EXPO_PUBLIC_RC_API_KEY": "appl_fkZokPhKhPdrUCsgFcnHpqpdnBm",
+        "EXPO_PUBLIC_RC_GOOGLE_API_KEY": "goog_TeqiegJoHxZukHBOgkuSxFqqFUh",
         "EXPO_PUBLIC_AMPLITUDE_API_KEY": "72ddd422524430f93f31243f7ff8be41"
       }
     },
@@ -17,6 +18,7 @@
       "distribution": "internal",
       "env": {
         "EXPO_PUBLIC_RC_API_KEY": "appl_fkZokPhKhPdrUCsgFcnHpqpdnBm",
+        "EXPO_PUBLIC_RC_GOOGLE_API_KEY": "goog_TeqiegJoHxZukHBOgkuSxFqqFUh",
         "EXPO_PUBLIC_AMPLITUDE_API_KEY": "72ddd422524430f93f31243f7ff8be41"
       }
     },
@@ -24,6 +26,7 @@
       "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_RC_API_KEY": "appl_fkZokPhKhPdrUCsgFcnHpqpdnBm",
+        "EXPO_PUBLIC_RC_GOOGLE_API_KEY": "goog_TeqiegJoHxZukHBOgkuSxFqqFUh",
         "EXPO_PUBLIC_AMPLITUDE_API_KEY": "72ddd422524430f93f31243f7ff8be41"
       }
     }
