@@ -280,6 +280,7 @@ export default function Paywall() {
       </ScrollView>
 
       <View style={[s.footer, { paddingBottom: insets.bottom + 8 }]}>
+        <View style={s.footerInner}>
         {trialDays != null && (
           <View style={s.noPaymentRow}>
             <CircleCheck size={16} color={C.green} strokeWidth={2.6} />
@@ -334,6 +335,7 @@ export default function Paywall() {
               </TouchableOpacity>
             </>
           )}
+        </View>
         </View>
       </View>
     </Animated.View>
@@ -416,9 +418,10 @@ const TINT = 'rgba(23,123,156,0.08)';
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
-  topRow: { height: 44, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', paddingHorizontal: 24 },
+  // Content is capped and centered on iPad / large screens.
+  topRow: { height: 44, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', paddingHorizontal: 24, width: '100%', maxWidth: 620, alignSelf: 'center' },
   restore: { fontSize: 15, fontWeight: '600', color: C.t2 },
-  scroll: { paddingHorizontal: 24, paddingBottom: 16 },
+  scroll: { paddingHorizontal: 24, paddingBottom: 16, width: '100%', maxWidth: 620, alignSelf: 'center' },
   headline: { fontSize: 28, fontWeight: '800', color: C.t1, letterSpacing: -0.7, lineHeight: 33 },
   personalPill: {
     alignSelf: 'flex-start',
@@ -497,6 +500,7 @@ const s = StyleSheet.create({
   trustRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 16, justifyContent: 'center' },
   trustText: { fontSize: 13, color: C.t3 },
   footer: { paddingHorizontal: 24, paddingTop: 12, borderTopWidth: 1, borderTopColor: C.line, backgroundColor: C.bg },
+  footerInner: { width: '100%', maxWidth: 572, alignSelf: 'center' },
   noPaymentRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 8 },
   noPayment: { fontSize: 15, fontWeight: '600', color: C.t1 },
   cta: {

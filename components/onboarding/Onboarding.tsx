@@ -333,7 +333,7 @@ function StepPick({
   const { t } = useTranslation();
   const { width } = useWindowDimensions();
   // 3 columns: screen minus 24pt side padding, minus two 10pt gaps.
-  const tileW = Math.floor((Math.min(width, 520) - 48 - 20) / 3);
+  const tileW = Math.floor((Math.min(width, 620) - 48 - 20) / 3);
   return (
     <View style={s.step}>
       <Text style={s.headline}>{t('onb.pick.title')}</Text>
@@ -616,11 +616,12 @@ function StepReminders({
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
-  topBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, height: 44 },
+  // Content is capped and centered on iPad / large screens.
+  topBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, height: 44, width: '100%', maxWidth: 620, alignSelf: 'center' },
   backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   progress: { flex: 1, flexDirection: 'row', gap: 6, paddingHorizontal: 8 },
   segment: { flex: 1, height: 4, borderRadius: 2 },
-  step: { flex: 1, paddingHorizontal: 24 },
+  step: { flex: 1, paddingHorizontal: 24, width: '100%', maxWidth: 620, alignSelf: 'center' },
   bottom: { paddingTop: 12, paddingBottom: 8, gap: 4 },
   cta: { height: 56, borderRadius: R.pill, alignItems: 'center', justifyContent: 'center' },
   ctaDisabled: { opacity: 0.35 },
