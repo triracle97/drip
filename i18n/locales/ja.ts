@@ -350,7 +350,7 @@ const ja = {
   "paywall.tl.todayDesc": "すべての機能を利用可能",
   "paywall.tl.remindDesc": "トライアル終了前にお知らせします",
   "paywall.tl.endDesc": "プラン開始：{{price}}。それまでにいつでも解約できます。",
-  "paywall.private": "プライバシー重視：データは端末内にのみ保存",
+  "paywall.private": "銀行連携なし・アカウント不要・データは端末に保存",
   "onb.back": "戻る",
   "onb.continue": "続ける",
   "onb.skip": "スキップ",

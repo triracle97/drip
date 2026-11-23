@@ -350,7 +350,7 @@ const zh = {
   "paywall.tl.todayDesc": "解锁全部功能",
   "paywall.tl.remindDesc": "试用结束前我们会提醒你",
   "paywall.tl.endDesc": "套餐开始：{{price}}。在此之前可随时取消。",
-  "paywall.private": "隐私优先——数据只保存在你的手机上",
+  "paywall.private": "无需连接银行 · 无需账户 · 数据存储在手机上",
   "onb.back": "返回",
   "onb.continue": "继续",
   "onb.skip": "跳过",

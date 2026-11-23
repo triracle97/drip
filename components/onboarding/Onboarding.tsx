@@ -131,7 +131,8 @@ export default function Onboarding() {
     }
     if (monthlyIncome > 0) {
       addIncome(incomeFromMonthly(monthlyIncome));
-      track(AnalyticsEvents.ONBOARDING_INCOME_SUBMITTED, { monthly_income: monthlyIncome, currency });
+      // Never send the amount: the app promises income stays on the device.
+      track(AnalyticsEvents.ONBOARDING_INCOME_SUBMITTED, { currency });
     } else {
       track(AnalyticsEvents.ONBOARDING_INCOME_SKIPPED);
     }

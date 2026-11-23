@@ -352,7 +352,7 @@ const ko = {
   "paywall.tl.todayDesc": "모든 기능 이용",
   "paywall.tl.remindDesc": "체험 종료 전에 알려드려요",
   "paywall.tl.endDesc": "플랜 시작: {{price}}. 그 전에 언제든 해지할 수 있어요.",
-  "paywall.private": "개인정보 보호 — 데이터는 내 휴대폰에만 저장돼요",
+  "paywall.private": "은행 연결 없음 · 계정 없음 · 휴대폰에 저장",
   "onb.back": "뒤로",
   "onb.continue": "계속",
   "onb.skip": "건너뛰기",

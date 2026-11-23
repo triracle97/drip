@@ -69,10 +69,10 @@ const IncomeSheet = forwardRef<TrueSheet>(function IncomeSheet(_props, ref) {
         } else {
             addIncome({ ...data, id: `i${Date.now()}` });
         }
+        // No amount: income never leaves the device.
         track(AnalyticsEvents.INCOME_UPDATED, {
             is_new: !existing,
             is_hourly: isHourly,
-            amount: parseFloat(rawAmount),
         });
         dismiss();
     };

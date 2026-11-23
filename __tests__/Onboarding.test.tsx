@@ -11,6 +11,7 @@ jest.mock('@/store', () => ({
 }));
 
 import Onboarding from '@/components/onboarding/Onboarding';
+import * as analytics from '@/lib/analytics';
 import { useSettings } from '@/store/settings';
 import * as Notifications from 'expo-notifications';
 
@@ -28,6 +29,7 @@ async function flush() {
 }
 
 it('pick → income → reveal → reminders adds subs, income and finishes', async () => {
+  const trackSpy = jest.spyOn(analytics, 'track');
   render(<Onboarding />);
   await flush();
   fireEvent.press(screen.getByTestId('onb-start'));
@@ -65,6 +67,11 @@ it('pick → income → reveal → reminders adds subs, income and finishes', as
   expect(mockAddSub.mock.calls[0][0]).toMatchObject({ cost: 15.99, active: true, reminderDays: 1 });
   expect(useSettings.getState().notificationsEnabled).toBe(true);
   expect(useSettings.getState().hasOnboarded).toBe(true);
+  // Privacy promise: the income amount never goes to analytics.
+  expect(trackSpy).toHaveBeenCalledWith("onboarding_income_submitted", { currency: "USD" });
+  const sent = JSON.stringify(trackSpy.mock.calls);
+  expect(sent).not.toMatch(/2600|monthly_income|31200/);
+  trackSpy.mockRestore();
 });
 
 it('skipping everything still finishes without adding data', async () => {

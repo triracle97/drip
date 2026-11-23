@@ -375,7 +375,7 @@ const en = {
   "paywall.tl.todayDesc": "Full access to everything",
   "paywall.tl.remindDesc": "We'll remind you before your trial ends",
   "paywall.tl.endDesc": "Your plan starts at {{price}}. Cancel anytime before.",
-  "paywall.private": "Private by design — your data stays on your phone",
+  "paywall.private": "No bank login · No account · Stored on your phone",
   "onb.back": "Back",
   "onb.continue": "Continue",
   "onb.skip": "Skip",

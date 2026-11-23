@@ -358,7 +358,7 @@ const es = {
   "paywall.tl.todayDesc": "Acceso completo a todo",
   "paywall.tl.remindDesc": "Te avisaremos antes de que termine la prueba",
   "paywall.tl.endDesc": "Tu plan empieza: {{price}}. Cancela cuando quieras antes.",
-  "paywall.private": "Privado por diseño: tus datos se quedan en tu teléfono",
+  "paywall.private": "Sin conectar tu banco · Sin cuenta · Guardado en tu teléfono",
   "onb.back": "Atrás",
   "onb.continue": "Continuar",
   "onb.skip": "Omitir",

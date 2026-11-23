@@ -350,7 +350,7 @@ const vi = {
   "paywall.tl.todayDesc": "Dùng đầy đủ mọi tính năng",
   "paywall.tl.remindDesc": "Chúng tôi sẽ nhắc trước khi hết hạn dùng thử",
   "paywall.tl.endDesc": "Gói của bạn bắt đầu: {{price}}. Có thể hủy trước đó bất cứ lúc nào.",
-  "paywall.private": "Riêng tư — dữ liệu chỉ nằm trên điện thoại của bạn",
+  "paywall.private": "Không cần ngân hàng · Không cần tài khoản · Lưu trên điện thoại",
   "onb.back": "Quay lại",
   "onb.continue": "Tiếp tục",
   "onb.skip": "Bỏ qua",
