@@ -23,6 +23,7 @@ Rules the code follows:
 - Prices, savings % and "per month" come from the store products. The free-trial copy appears only when the product has a free intro offer (iOS `introPrice`, Android `defaultOption.freePhase`) and, on iOS, the user is still eligible. Nothing is hard-coded; if plans can't load the paywall shows "Couldn't load plans" + **Try again**.
 - After `Purchases.configure`, iOS calls `enableAdServicesAttributionTokenCollection()` (Apple Search Ads).
 - `$amplitudeUserId` / `$amplitudeDeviceId` are set with `Purchases.setAttributes` once Amplitude has initialised, and again whenever either ID changes (`syncAmplitudeIdentity`).
+- Paywall links: Terms → Apple standard EULA, Privacy → https://drip.superlarva.com/privacy (`constants/legal.ts`).
 - Onboarding sets attributes `onboarding_subs_picked`, `onboarding_has_income`, `onboarding_reminders_on`, `app_currency`, `app_language` (never income amounts).
 
 ## API keys
