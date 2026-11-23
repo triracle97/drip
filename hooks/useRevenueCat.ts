@@ -1,289 +1,65 @@
-import { useSettings } from "@/store/settings";
-import { useEffect, useState } from "react";
-import { Alert } from "react-native";
-import Purchases, {
-  CustomerInfo,
-  PURCHASES_ERROR_CODE,
-  PurchasesOffering,
-  PurchasesPackage,
-} from "react-native-purchases";
+import { ENTITLEMENT_ID } from '@/lib/entitlements';
+import {
+  manageSubscription,
+  purchase,
+  restore,
+  selectHasAccess,
+  usePurchases,
+} from '@/store/purchases';
+import { useSettings } from '@/store/settings';
+import i18n from '@/i18n';
+import { Alert } from 'react-native';
+import { PURCHASES_ERROR_CODE } from 'react-native-purchases';
 
-const ENTITLEMENT_ID = "pro";
-
-/**
- * Maps a RevenueCat PurchasesError to a user-facing alert.
- * Silently returns for user cancellation (no alert needed).
- */
-function handlePurchaseError(e: any): void {
-  // User cancelled — not an error, no alert
-  if (
-    e?.userCancelled ||
-    e?.code === PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR
-  ) {
-    return;
-  }
-
-  const code: string | undefined = e?.code;
-
+/** Maps a RevenueCat error code to a user-facing alert. */
+export function alertPurchaseError(code?: string): void {
+  const t = i18n.t.bind(i18n);
   switch (code) {
-    case PURCHASES_ERROR_CODE.PURCHASE_INVALID_ERROR:
-      Alert.alert(
-        "Purchase Invalid",
-        "This purchase could not be completed. Please check your payment method and try again.",
-      );
-      break;
-
-    case PURCHASES_ERROR_CODE.PURCHASE_NOT_ALLOWED_ERROR:
-      Alert.alert(
-        "Purchase Not Allowed",
-        "Purchases are not allowed on this device. Please check your device settings.",
-      );
-      break;
-
-    case PURCHASES_ERROR_CODE.PRODUCT_NOT_AVAILABLE_FOR_PURCHASE_ERROR:
-      Alert.alert(
-        "Product Unavailable",
-        "This product is currently not available for purchase in your region.",
-      );
-      break;
-
-    case PURCHASES_ERROR_CODE.PRODUCT_ALREADY_PURCHASED_ERROR:
-      Alert.alert(
-        "Already Purchased",
-        "You already own this product. Try restoring your purchases.",
-      );
-      break;
-
     case PURCHASES_ERROR_CODE.NETWORK_ERROR:
     case PURCHASES_ERROR_CODE.OFFLINE_CONNECTION_ERROR:
-      Alert.alert(
-        "Network Error",
-        "Please check your internet connection and try again.",
-      );
-      break;
-
-    case PURCHASES_ERROR_CODE.STORE_PROBLEM_ERROR:
-      Alert.alert(
-        "Store Error",
-        "There was a problem connecting to the App Store. Please try again later. You have not been charged.",
-      );
-      break;
-
-    case PURCHASES_ERROR_CODE.PAYMENT_PENDING_ERROR:
-      Alert.alert(
-        "Payment Pending",
-        "Your payment is pending approval. You will get access once the payment is confirmed.",
-      );
-      break;
-
-    case PURCHASES_ERROR_CODE.RECEIPT_ALREADY_IN_USE_ERROR:
-      Alert.alert(
-        "Receipt In Use",
-        "This purchase is already linked to another account. Please restore purchases or contact support.",
-      );
-      break;
-
+      Alert.alert(t('paywall.err.networkTitle'), t('paywall.err.network'));
+      return;
+    case PURCHASES_ERROR_CODE.PURCHASE_NOT_ALLOWED_ERROR:
     case PURCHASES_ERROR_CODE.INSUFFICIENT_PERMISSIONS_ERROR:
-      Alert.alert(
-        "Insufficient Permissions",
-        "Your device does not have sufficient permissions to make purchases.",
-      );
-      break;
-
-    case PURCHASES_ERROR_CODE.INVALID_CREDENTIALS_ERROR:
-    case PURCHASES_ERROR_CODE.CONFIGURATION_ERROR:
-      Alert.alert(
-        "Configuration Error",
-        "There is a configuration issue. Please contact support.",
-      );
-      break;
-
+      Alert.alert(t('paywall.err.notAllowedTitle'), t('paywall.err.notAllowed'));
+      return;
+    case PURCHASES_ERROR_CODE.PRODUCT_NOT_AVAILABLE_FOR_PURCHASE_ERROR:
+      Alert.alert(t('paywall.err.unavailableTitle'), t('paywall.err.unavailable'));
+      return;
+    case PURCHASES_ERROR_CODE.PRODUCT_ALREADY_PURCHASED_ERROR:
+    case PURCHASES_ERROR_CODE.RECEIPT_ALREADY_IN_USE_ERROR:
+      Alert.alert(t('paywall.err.ownedTitle'), t('paywall.err.owned'));
+      return;
+    case PURCHASES_ERROR_CODE.STORE_PROBLEM_ERROR:
+      Alert.alert(t('paywall.err.storeTitle'), t('paywall.err.store'));
+      return;
     default:
-      Alert.alert(
-        "Purchase Failed",
-        "Something went wrong. Please try again later.",
-      );
-      break;
+      Alert.alert(t('paywall.err.genericTitle'), t('paywall.err.generic'));
   }
 }
 
+/**
+ * Read-only view of the shared purchases store plus actions.
+ * Safe to call from many components — it does not fetch or subscribe to RevenueCat itself.
+ */
 export function useRevenueCat() {
-  const [currentOffering, setCurrentOffering] =
-    useState<PurchasesOffering | null>(null);
-  const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
-  const [isPro, setIsPro] = useState(false);
-  const [isReady, setIsReady] = useState(false);
-  const [debugInfo, setDebugInfo] = useState<string>("");
-  const [debugOfferings, setDebugOfferings] = useState<string>("");
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const offerings = await Purchases.getOfferings();
-        console.log("[RevenueCat] Fetched all offerings:", JSON.stringify(offerings, null, 2));
-        setDebugOfferings(JSON.stringify({
-          currentIdentifier: offerings.current?.identifier || null,
-          allKeys: offerings.all ? Object.keys(offerings.all) : [],
-          raw: offerings
-        }, null, 2));
-
-        let current = offerings.current;
-
-        // Fallback: If 'current' is not explicitly mapped in RevenueCat dashboard, use the first available offering
-        if (!current && offerings.all) {
-          const offeringKeys = Object.keys(offerings.all);
-          if (offeringKeys.length > 0) {
-            current = offerings.all[offeringKeys[0]];
-            console.warn(`[RevenueCat] 'current' offering is null. Falling back to offering: ${offeringKeys[0]}`);
-          }
-        }
-
-        if (current && current.availablePackages.length !== 0) {
-          setCurrentOffering(current);
-
-          console.log("[RevenueCat] Available Plans:");
-          current.availablePackages.forEach((pack) => {
-            console.log(
-              ` - ${pack.identifier}: ${pack.product.title} | Price: ${pack.product.priceString} | Type: ${pack.packageType}`,
-            );
-          });
-        } else {
-          console.warn("[RevenueCat] No available packages found in offerings.");
-        }
-      } catch (e: any) {
-        console.error("Error fetching RevenueCat offerings", e);
-        setDebugOfferings(JSON.stringify({ error: e?.message || e }, null, 2));
-      }
-
-      try {
-        const info = await Purchases.getCustomerInfo();
-        setCustomerInfo(info);
-        setDebugInfo(
-          JSON.stringify(
-            {
-              entitlementId: ENTITLEMENT_ID,
-              activeEntitlements: info.entitlements.active,
-              allEntitlements: info.entitlements.all,
-              activeSubscriptions: info.activeSubscriptions,
-              allPurchasedProductIdentifiers:
-                info.allPurchasedProductIdentifiers,
-              originalAppUserId: info.originalAppUserId,
-              managementURL: info.managementURL,
-            },
-            null,
-            2,
-          ),
-        );
-      } catch (e) {
-        console.error("Error fetching RevenueCat customer info", e);
-      } finally {
-        setIsReady(true);
-      }
-    };
-
-    fetchData();
-
-    const customerInfoUpdateListener = (info: CustomerInfo) => {
-      setCustomerInfo(info);
-    };
-
-    Purchases.addCustomerInfoUpdateListener(customerInfoUpdateListener);
-
-    return () => {
-      Purchases.removeCustomerInfoUpdateListener(customerInfoUpdateListener);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (customerInfo) {
-      // 1. Standard approach: Check if "pro" entitlement is active securely
-      const hasProEntitlement =
-        customerInfo.entitlements.active[ENTITLEMENT_ID] !== undefined;
-
-      // 2. Fallback for Non-Consumable (Lifetime/1-time payments)
-      // If the developer forgot to map the product to the Entitlement in the RevenueCat Dashboard,
-      // this catches the verified purchase natively from Apple's receipt.
-      const hasLifetimePurchase =
-        customerInfo.nonSubscriptionTransactions.length > 0;
-      const hasAnyPurchase =
-        customerInfo.allPurchasedProductIdentifiers.length > 0;
-
-      const proValue =
-        hasProEntitlement || hasLifetimePurchase || hasAnyPurchase;
-
-      setIsPro(proValue);
-      // Persist to Zustand so other screens get the cached value instantly
-      useSettings.getState().setIsPro(proValue);
-    }
-  }, [customerInfo]);
-
-  // --- Purchase a specific package ---
-  const purchasePackage = async (pack: PurchasesPackage) => {
-    try {
-      const { customerInfo } = await Purchases.purchasePackage(pack);
-      setCustomerInfo(customerInfo);
-      return true;
-    } catch (e: any) {
-      handlePurchaseError(e);
-      return false;
-    }
-  };
-
-  // --- Restore purchases ---
-  const restorePurchases = async () => {
-    try {
-      const info = await Purchases.restorePurchases();
-      setCustomerInfo(info);
-      return true;
-    } catch (e: any) {
-      handlePurchaseError(e);
-      return false;
-    }
-  };
-
-  // --- Present the RevenueCat paywall ---
-  const presentPaywall = async (): Promise<boolean> => {
-    try {
-      // @ts-ignore — presentPaywall may not exist if purchases-ui isn't linked
-      const RevCatUI = require("react-native-purchases-ui");
-      const result = await RevCatUI.default.presentPaywall();
-      return (
-        result === RevCatUI.PAYWALL_RESULT.PURCHASED ||
-        result === RevCatUI.PAYWALL_RESULT.RESTORED
-      );
-    } catch (e) {
-      console.warn("RevenueCatUI not available, paywall not shown:", e);
-      return false;
-    }
-  };
-
-  // --- Present paywall only if not already pro ---
-  const presentPaywallIfNeeded = async (): Promise<boolean> => {
-    if (isPro) return true;
-    return presentPaywall();
-  };
-
-  // --- Present RevenueCat Customer Center ---
-  const presentCustomerCenter = async (): Promise<void> => {
-    try {
-      await Purchases.showManageSubscriptions();
-    } catch (e) {
-      console.error("Error presenting customer center", e);
-    }
-  };
+  const cached = useSettings((s) => s.isPro);
+  const cachedExpiresAt = useSettings((s) => s.accessExpiresAt);
+  const isPro = usePurchases((s) => selectHasAccess(s, cached, cachedExpiresAt));
+  const access = usePurchases((s) => s.access);
+  const offering = usePurchases((s) => s.offering);
+  const customerInfo = usePurchases((s) => s.customerInfo);
+  const isReady = usePurchases((s) => s.ready);
 
   return {
-    currentOffering,
-    customerInfo,
     isPro,
+    access,
     isReady,
-    debugInfo,
-    debugOfferings,
-    purchasePackage,
-    restorePurchases,
-    presentPaywall,
-    presentPaywallIfNeeded,
-    presentCustomerCenter,
+    customerInfo,
+    currentOffering: offering,
+    purchasePackage: purchase,
+    restorePurchases: restore,
+    presentCustomerCenter: manageSubscription,
   };
 }
 

@@ -4,27 +4,22 @@ import EditSubSheet from '@/components/EditSubSheet';
 import IncomeCTA from '@/components/IncomeCTA';
 import IncomeSheet from '@/components/IncomeSheet';
 import MonthSummaryCard from '@/components/MonthSummaryCard';
-import ProSheet from '@/components/ProSheet';
-import type { ProFeatureKey } from '@/components/ProSheet';
 import TrialSheet from '@/components/TrialSheet';
 import UpcomingChargeCompact from '@/components/UpcomingChargeCompact';
 import UpcomingChargeHero from '@/components/UpcomingChargeHero';
 import { C, LAYOUT, R } from '@/constants/design';
 import { Sub, useStore } from '@/store';
 import type { SubscriptionEvent } from '@/store/repository';
-import { useSettings } from '@/store/settings';
-import { AnalyticsEvents, track } from '@/lib/analytics';
+import { useToday } from '@/hooks/useToday';
 import { getEventsByMonth } from '@/store/repository';
-import { blended, curMonth, curYear, fmt, monthName, nextChargeIn, subMo, toHrs } from '@/utils/calc';
+import { blended, fmt, monthName, nextChargeDate, parseLocalDate, shortDate, daysBetween, subMo, toHrs } from '@/utils/calc';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Dimensions, ScrollView, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { Dimensions, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
-import { Lock } from 'lucide-react-native';
-import { BlurView } from 'expo-blur';
 
 import type { Category } from '@/store';
 
@@ -46,36 +41,47 @@ export default function TimelineScreen() {
         return m;
     }, [subs]);
 
+    const today = useToday();
+    const curMonth = today.getMonth();
+    const curYear = today.getFullYear();
     const [calMonth, setCalMonth] = useState(curMonth);
     const [calYear, setCalYear] = useState(curYear);
+    // Follow the real month when the day rolls over into a new month.
+    const lastCur = useRef({ m: curMonth, y: curYear });
+    useEffect(() => {
+        const prev = lastCur.current;
+        if (prev.m === curMonth && prev.y === curYear) return;
+        lastCur.current = { m: curMonth, y: curYear };
+        setCalMonth(m => (m === prev.m ? curMonth : m));
+        setCalYear(y => (y === prev.y ? curYear : y));
+    }, [curMonth, curYear]);
     const [trialSheet, setTrialSheet] = useState<Sub | null>(null);
     const [editSubId, setEditSubId] = useState<string | null>(null);
     const incomeRef = useRef<TrueSheet>(null);
     const [monthEvents, setMonthEvents] = useState<SubscriptionEvent[]>([]);
-    const [proFeature, setProFeature] = useState<ProFeatureKey | null>(null);
-    const isPro = useSettings(s => s.isPro);
 
     const isCurrentMonth = calMonth === curMonth && calYear === curYear;
 
     // Fetch events when month changes or subs change
     useEffect(() => {
-        getEventsByMonth(calMonth, calYear).then(setMonthEvents);
+        let alive = true;
+        getEventsByMonth(calMonth, calYear)
+            .then(evts => { if (alive) setMonthEvents(evts); })
+            .catch(() => {});
+        return () => { alive = false; };
     }, [calMonth, calYear, subs]);
 
     // Upcoming charges (current month only)
     const upcoming = useMemo(() => {
         if (!isCurrentMonth) return [];
         return subs
-            .filter(s => s.active || s.isTrial)
-            .map(s => ({ sub: s, daysLeft: nextChargeIn(s) }))
-            .filter(({ daysLeft }) => daysLeft >= 0)
-            .sort((a, b) => {
-                // Trials always come first
-                if (a.sub.isTrial && !b.sub.isTrial) return -1;
-                if (!a.sub.isTrial && b.sub.isTrial) return 1;
-                return a.daysLeft - b.daysLeft;
-            });
-    }, [subs, isCurrentMonth]);
+            .filter(s => s.active)
+            .map(s => {
+                const date = nextChargeDate(s, today);
+                return { sub: s, date, daysLeft: Math.max(0, daysBetween(today, date)) };
+            })
+            .sort((a, b) => a.daysLeft - b.daysLeft);
+    }, [subs, isCurrentMonth, today]);
 
     const heroCharge = upcoming[0] ?? null;
     const otherCharges = upcoming.slice(1);
@@ -87,10 +93,8 @@ export default function TimelineScreen() {
         const monthStart = new Date(calYear, calMonth, 1).getTime();
         return subs.filter(s => {
             // Sub must have been created before end of selected month
-            if (s.startDate) {
-                const start = new Date(s.startDate).getTime();
-                if (start > monthEnd) return false;
-            }
+            const start = parseLocalDate(s.startDate);
+            if (start && start.getTime() > monthEnd) return false;
             // Include if active or trial (it existed during this month)
             // For cancelled subs: they might have been active that month
             // but we can't know exactly without events, so include active + trials
@@ -206,12 +210,12 @@ export default function TimelineScreen() {
                             icon={heroCharge.sub.icon}
                             color={heroCharge.sub.color}
                             cost={fmt(heroCharge.sub.cost)}
-                            date={`${monthName(calMonth, calYear).split(' ')[0]} ${heroCharge.sub.billDay}`}
+                            date={shortDate(heroCharge.date)}
                             daysLeft={heroCharge.daysLeft}
-                            hoursLabel={toHrs(subMo(heroCharge.sub), rate)}
+                            hoursLabel={toHrs(heroCharge.sub.cost, rate)}
                             onPress={() => handleSubPress(heroCharge.sub)}
                         />
-                        {otherCharges.length > 0 && isPro && (
+                        {otherCharges.length > 0 && (
                             <>
                                 {otherCharges.length <= 2 && (
                                     <View style={s.compactInlineRow}>
@@ -269,40 +273,21 @@ export default function TimelineScreen() {
                     <View style={s.divider} />
                 )}
 
-                {/* Pro Sections or Paywall */}
-                {isPro ? (
-                    <>
-                        <Animated.View entering={FadeInDown.duration(300).delay(isCurrentMonth && heroCharge ? 200 : 100)}>
-                            <MonthSummaryCard
-                                breakdown={catBreakdown}
-                                catMap={catMap}
-                                totalMo={totalMo}
-                                activeCount={activeCount}
-                                prevMonthTotal={prevMonthTotal}
-                                prevMonthLabel={prevMonthLabel}
-                            />
-                        </Animated.View>
-                        <Animated.View entering={FadeInDown.duration(300).delay(isCurrentMonth && heroCharge ? 300 : 200)} style={{ marginTop: 8 }}>
-                            <ActivityLog events={monthEvents} subMap={subMap} />
-                        </Animated.View>
-                    </>
-                ) : (
-                    <Animated.View entering={FadeInDown.duration(300).delay(200)}>
-                        <TouchableOpacity onPress={() => { track(AnalyticsEvents.PRO_GATE_HIT, { feature: 'calendar', source: 'calendar_tab' }); setProFeature('calendar'); }} activeOpacity={0.9} style={s.singlePaywallBox}>
-                            <View style={s.singlePaywallIconBg}>
-                                <Lock size={26} color={C.gold} strokeWidth={2.5} />
-                            </View>
-                            <Text style={s.singlePaywallTitle}>{t('calendar.proTitle') || 'Unlock Pro Insights'}</Text>
-                            <Text style={s.singlePaywallText}>{t('calendar.proDesc') || 'See all upcoming charges, month-over-month summaries, and complete subscription activity.'}</Text>
-                            <View style={s.singlePaywallBtn}>
-                                <Text style={s.singlePaywallBtnText}>{t('calendar.upgrade') || 'Get Pro'}</Text>
-                            </View>
-                        </TouchableOpacity>
-                    </Animated.View>
-                )}
+                <Animated.View entering={FadeInDown.duration(300).delay(isCurrentMonth && heroCharge ? 200 : 100)}>
+                    <MonthSummaryCard
+                        breakdown={catBreakdown}
+                        catMap={catMap}
+                        totalMo={totalMo}
+                        activeCount={activeCount}
+                        prevMonthTotal={prevMonthTotal}
+                        prevMonthLabel={prevMonthLabel}
+                    />
+                </Animated.View>
+                <Animated.View entering={FadeInDown.duration(300).delay(isCurrentMonth && heroCharge ? 300 : 200)} style={{ marginTop: 8 }}>
+                    <ActivityLog events={monthEvents} subMap={subMap} />
+                </Animated.View>
             </ScrollView>
 
-            <ProSheet feature={proFeature} onClose={() => setProFeature(null)} />
             <TrialSheet sub={trialSheet} onClose={() => setTrialSheet(null)} />
             <EditSubSheet id={editSubId} onClose={() => setEditSubId(null)} />
             <IncomeSheet ref={incomeRef} />

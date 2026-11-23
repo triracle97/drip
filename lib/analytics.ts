@@ -14,16 +14,36 @@ function getApiKey(): string | null {
 
 // ── Init ───────────────────────────────────────────────
 let initialised = false;
+let initStarted = false;
+let resolveReady: (ok: boolean) => void = () => {};
+const readyPromise = new Promise<boolean>((r) => {
+    resolveReady = r;
+});
+
+/** Resolves once `initAnalytics()` has finished: true if Amplitude is usable. */
+export function analyticsReady(): Promise<boolean> {
+    return readyPromise;
+}
 
 export async function initAnalytics(): Promise<void> {
+    if (initStarted) return;
+    initStarted = true;
     const key = getApiKey();
-    if (!key || initialised) return;
+    if (!key) {
+        resolveReady(false);
+        return;
+    }
     try {
         await amplitude.init(key, undefined, { disableCookies: true }).promise;
-        await amplitude.add(new SessionReplayPlugin()).promise;
         initialised = true;
+        // Session replay is optional; a failure here must not disable analytics.
+        await amplitude.add(new SessionReplayPlugin()).promise.catch((e) => {
+            console.warn('[Analytics] session replay unavailable', e);
+        });
     } catch (e) {
         console.warn('[Analytics] init failed', e);
+    } finally {
+        resolveReady(initialised);
     }
 }
 

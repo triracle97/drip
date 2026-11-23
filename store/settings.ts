@@ -8,7 +8,12 @@ interface SettingsState {
     notificationsEnabled: boolean;
     notificationTime: string;
     language: string;
+    /** Cached "has paid access" (subscription, store trial or legacy lifetime). */
     isPro: boolean;
+    /** Cached kind of access — 'lifetime' | 'subscription' | 'trial' | 'none'. */
+    accessKind: string;
+    /** Cached expiry of the current period (ISO); null for lifetime / none. */
+    accessExpiresAt: string | null;
     hasOnboarded: boolean;
     showCongrats: boolean;
     pendingCongrats: boolean;
@@ -21,6 +26,7 @@ interface SettingsState {
     setNotificationTime: (time: string) => void;
     setLanguage: (lang: string) => void;
     setIsPro: (val: boolean) => void;
+    setAccessCache: (hasAccess: boolean, kind: string, expiresAt?: string | null) => void;
     setHasOnboarded: (val: boolean) => void;
     setShowCongrats: (val: boolean) => void;
     setPendingCongrats: (val: boolean) => void;
@@ -36,6 +42,8 @@ export const useSettings = create<SettingsState>()(
             notificationTime: '08:00',
             language: 'auto',
             isPro: false,
+            accessKind: 'none',
+            accessExpiresAt: null,
             hasOnboarded: false,
             showCongrats: false,
             pendingCongrats: false,
@@ -48,6 +56,8 @@ export const useSettings = create<SettingsState>()(
             setNotificationTime: (time) => set({ notificationTime: time }),
             setLanguage: (lang) => set({ language: lang }),
             setIsPro: (val) => set({ isPro: val }),
+            setAccessCache: (hasAccess, kind, expiresAt = null) =>
+                set({ isPro: hasAccess, accessKind: kind, accessExpiresAt: expiresAt }),
             setHasOnboarded: (val) => set({ hasOnboarded: val }),
             setShowCongrats: (val) => set({ showCongrats: val }),
             setPendingCongrats: (val) => set({ pendingCongrats: val }),
@@ -65,6 +75,9 @@ export const useSettings = create<SettingsState>()(
                 notificationsEnabled: state.notificationsEnabled,
                 notificationTime: state.notificationTime,
                 language: state.language,
+                isPro: state.isPro,
+                accessKind: state.accessKind,
+                accessExpiresAt: state.accessExpiresAt,
                 hasOnboarded: state.hasOnboarded,
                 hasRequestedReview: state.hasRequestedReview,
                 firstOpenDate: state.firstOpenDate,

@@ -3,7 +3,7 @@ import CategoryModal from "@/components/CategoryModal";
 import CurrencySheet from "@/components/CurrencySheet";
 import IncomeSheet from "@/components/IncomeSheet";
 import LanguageSheet from "@/components/LanguageSheet";
-import ProPaywall from "@/components/ProPaywall";
+import MembershipCard from "@/components/MembershipCard";
 import Toast from "@/components/Toast";
 import { getCurrency } from "@/constants/currencies";
 import { C, LAYOUT, R, SP } from "@/constants/design";
@@ -13,14 +13,10 @@ import { AnalyticsEvents, track } from "@/lib/analytics";
 import { useStore } from "@/store";
 import { useSettings } from "@/store/settings";
 import { blended, fmt, monthlyIncome, subMo, toHrs } from "@/utils/calc";
-import {
-    requestPermissions,
-    rescheduleAllNotifications,
-} from "@/utils/notifications";
+import { requestPermissions } from "@/utils/notifications";
 import { TrueSheet } from "@lodev09/react-native-true-sheet";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import Constants from "expo-constants";
-import { Lock } from "lucide-react-native";
 import React, { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -50,8 +46,6 @@ export default function SettingsScreen() {
   const [showCategories, setShowCategories] = useState(false);
   const [showCurrency, setShowCurrency] = useState(false);
   const [showLanguage, setShowLanguage] = useState(false);
-  const [showPaywall, setShowPaywall] = useState(false);
-  const isPro = useSettings((s) => s.isPro);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const { t } = useTranslation();
   const [toast, setToast] = useState<string | null>(null);
@@ -65,17 +59,18 @@ export default function SettingsScreen() {
     .filter((s) => s.active && !s.isTrial)
     .reduce((sum, s) => sum + subMo(s), 0);
 
+  // The root layout reschedules reminders whenever these settings change.
   const handleToggleNotifications = async (enabled: boolean) => {
     if (enabled) {
       const granted = await requestPermissions();
       if (!granted) {
-        setToast(t("settings.enableNotifications"));
+        setToast(null);
+        setTimeout(() => setToast(t("settings.enableNotifications")), 0);
         return;
       }
     }
     track(AnalyticsEvents.NOTIFICATIONS_TOGGLED, { enabled });
     setNotificationsEnabled(enabled);
-    rescheduleAllNotifications(subs, enabled, notificationTime);
   };
 
   const handleTimeChange = (_: any, date?: Date) => {
@@ -85,7 +80,6 @@ export default function SettingsScreen() {
     const mm = String(date.getMinutes()).padStart(2, "0");
     const time = `${hh}:${mm}`;
     setNotificationTime(time);
-    rescheduleAllNotifications(subs, notificationsEnabled, time);
   };
 
   const timeDate = (() => {
@@ -149,17 +143,8 @@ export default function SettingsScreen() {
           </Text>
         </Card>
 
-        {/* Pro Status */}
-        {!isPro && (
-          <TouchableOpacity
-            onPress={() => setShowPaywall(true)}
-            activeOpacity={0.85}
-            style={s.proCtaBtn}
-          >
-            <Lock size={18} color="#FFFFFF" strokeWidth={2.5} />
-            <Text style={s.proCtaText}>{t("pro.unlockPro")}</Text>
-          </TouchableOpacity>
-        )}
+        {/* Membership */}
+        <MembershipCard />
 
         <Text style={s.sectionCap}>{t("settings.incomeRate")}</Text>
         <View key={`income-${currency}`} style={s.incomeCard}>
@@ -303,7 +288,7 @@ export default function SettingsScreen() {
         )}
 
         {/* Rate Us */}
-        {isPro && (
+        {(
           <TouchableOpacity
             onPress={() => { track(AnalyticsEvents.RATE_US_TAPPED); requestReviewManually(); }}
             style={s.row}
@@ -343,11 +328,6 @@ export default function SettingsScreen() {
         onClose={() => setShowLanguage(false)}
       />
       <Toast message={toast} />
-      <ProPaywall
-        visible={showPaywall}
-        onClose={() => setShowPaywall(false)}
-        onPurchased={() => setToast(t("pro.purchaseSuccess"))}
-      />
     </View>
   );
 }

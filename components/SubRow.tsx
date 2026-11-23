@@ -38,8 +38,6 @@ interface Props {
   hoursLabel?: string;
   urgent?: boolean;
   onPress?: () => void;
-  onLongPress?: () => void;
-  isDragging?: boolean;
   variant?: "default" | "trial" | "inactive";
   trialDaysLeft?: number;
   trialCostLabel?: string;
@@ -57,8 +55,6 @@ export default function SubRow({
   hoursLabel,
   urgent,
   onPress,
-  onLongPress,
-  isDragging,
   variant = "default",
   trialDaysLeft,
   trialCostLabel,
@@ -73,8 +69,7 @@ export default function SubRow({
     return (
       <AnimatedPressable
         onPress={onPress}
-        onLongPress={onLongPress}
-        style={[s.card, isDragging && s.cardDragging]}
+        style={s.card}
       >
         <View
           style={[s.stripe, { backgroundColor: isWhiteBg ? C.line : color }]}
@@ -151,8 +146,7 @@ export default function SubRow({
   return (
     <AnimatedPressable
       onPress={onPress}
-      onLongPress={onLongPress}
-      style={[s.card, isDragging && s.cardDragging]}
+      style={s.card}
     >
       <View
         style={[s.stripe, { backgroundColor: isWhiteBg ? C.line : color }]}
@@ -216,11 +210,6 @@ const s = StyleSheet.create({
     overflow: "hidden",
     marginBottom: 8,
     ...SHADOW.card,
-  },
-  cardDragging: {
-    ...SHADOW.cardHover,
-    borderColor: "rgba(0,0,0,0.08)",
-    opacity: 0.95,
   },
 
   stripe: {

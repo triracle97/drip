@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useReducer } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef } from 'react';
 import * as repo from './repository';
 import { migrateSettingsFromSQLite } from './settings';
 
@@ -82,7 +82,32 @@ const INIT_STATE: State = {
     isLoaded: false,
 };
 
-function reducer(state: State, action: Action): State {
+/** Write-through calls are fire-and-forget; never let a failed write become an unhandled rejection. */
+const logDbError = (e: unknown) => console.warn('[store] DB write failed', e);
+
+/** Monthly snapshot of current spending (pure — exported for tests). */
+export function buildSnapshot(subs: Sub[], now: Date, monthlyOf: (s: Sub) => number): SpendingSnapshot {
+    const month = now.getMonth();
+    const year = now.getFullYear();
+    const activeSubs = subs.filter(s => s.active && !s.isTrial);
+    const categoryBreakdown: Record<string, number> = {};
+    let totalMonthlyCost = 0;
+    for (const s of activeSubs) {
+        const mo = monthlyOf(s);
+        totalMonthlyCost += mo;
+        categoryBreakdown[s.categoryId] = (categoryBreakdown[s.categoryId] || 0) + mo;
+    }
+    return {
+        id: `snap_${year}_${month}`,
+        month,
+        year,
+        totalMonthlyCost,
+        categoryBreakdown,
+        subscriptionCount: activeSubs.length,
+    };
+}
+
+export function reducer(state: State, action: Action): State {
     switch (action.type) {
         case 'LOAD_DATA':
             return {
@@ -113,14 +138,19 @@ function reducer(state: State, action: Action): State {
                     return { ...s, isTrial: false, trialDecision: 'cancelled', active: false };
                 }),
             };
-        case 'REORDER_SUBS':
-            return {
-                ...state,
-                subs: action.ids.map((id, i) => {
-                    const sub = state.subs.find(s => s.id === id)!;
+        case 'REORDER_SUBS': {
+            const byId = new Map(state.subs.map(s => [s.id, s]));
+            const ordered = action.ids
+                .map((id, i) => {
+                    const sub = byId.get(id);
+                    if (!sub) return null;
+                    byId.delete(id);
                     return { ...sub, sortOrder: i };
-                }),
-            };
+                })
+                .filter((s): s is Sub => s !== null);
+            // Subs missing from `ids` (e.g. a filtered list was reordered) keep their place at the end.
+            return { ...state, subs: [...ordered, ...byId.values()] };
+        }
         case 'ADD_CATEGORY':
             return { ...state, categories: [...state.categories, action.category] };
         case 'UPDATE_CATEGORY':
@@ -131,14 +161,18 @@ function reducer(state: State, action: Action): State {
                 categories: state.categories.filter(c => c.id !== action.id),
                 subs: state.subs.map(s => s.categoryId === action.id ? { ...s, categoryId: action.reassignTo } : s),
             };
-        case 'REORDER_CATEGORIES':
-            return {
-                ...state,
-                categories: action.ids.map((id, i) => {
-                    const cat = state.categories.find(c => c.id === id)!;
+        case 'REORDER_CATEGORIES': {
+            const byId = new Map(state.categories.map(c => [c.id, c]));
+            const ordered = action.ids
+                .map((id, i) => {
+                    const cat = byId.get(id);
+                    if (!cat) return null;
+                    byId.delete(id);
                     return { ...cat, sortOrder: i };
-                }),
-            };
+                })
+                .filter((c): c is Category => c !== null);
+            return { ...state, categories: [...ordered, ...byId.values()] };
+        }
         case 'SET_SPENDING_HISTORY':
             return { ...state, spendingHistory: action.history };
         default:
@@ -172,17 +206,29 @@ const StoreCtx = createContext<Ctx | null>(null);
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
     const [state, dispatch] = useReducer(reducer, INIT_STATE);
+    // Latest subs for callbacks, so they can stay referentially stable (no stale closures).
+    const subsRef = useRef(state.subs);
+    subsRef.current = state.subs;
+    // Set when the initial DB read failed: never write a snapshot built from empty data.
+    const loadFailedRef = useRef(false);
 
     // Load from SQLite on mount
     useEffect(() => {
         (async () => {
-            const [subs, incomes, categories, spendingHistory] = await Promise.all([
-                repo.getAllSubs(),
-                repo.getAllIncomes(),
-                repo.getAllCategories(),
-                repo.getSpendingHistory(),
-            ]);
-            dispatch({ type: 'LOAD_DATA', subs, incomes, categories, spendingHistory });
+            try {
+                const [subs, incomes, categories, spendingHistory] = await Promise.all([
+                    repo.getAllSubs(),
+                    repo.getAllIncomes(),
+                    repo.getAllCategories(),
+                    repo.getSpendingHistory(),
+                ]);
+                dispatch({ type: 'LOAD_DATA', subs, incomes, categories, spendingHistory });
+            } catch (e) {
+                console.error('[store] initial load failed', e);
+                loadFailedRef.current = true;
+                // Don't leave the app stuck on the splash spinner.
+                dispatch({ type: 'LOAD_DATA', subs: [], incomes: [], categories: [], spendingHistory: [] });
+            }
             migrateSettingsFromSQLite();
         })();
     }, []);
@@ -190,7 +236,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     // Write-through helpers
     const addSub = useCallback((sub: Sub) => {
         dispatch({ type: 'ADD_SUB', sub });
-        repo.insertSub(sub);
+        repo.insertSub(sub).catch(logDbError);
         repo.insertEvent({
             id: `evt_${sub.id}_${Date.now()}`,
             subscriptionId: sub.id,
@@ -198,13 +244,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
             type: 'added',
             timestamp: Date.now(),
             metadata: JSON.stringify({ cost: sub.cost, cycle: sub.cycle }),
-        });
+        }).catch(logDbError);
     }, []);
 
     const updateSub = useCallback((sub: Sub) => {
-        const old = state.subs.find(s => s.id === sub.id);
+        const old = subsRef.current.find(s => s.id === sub.id);
         dispatch({ type: 'UPDATE_SUB', sub });
-        repo.updateSub(sub);
+        repo.updateSub(sub).catch(logDbError);
         if (old) {
             if (old.cost !== sub.cost) {
                 repo.insertEvent({
@@ -214,7 +260,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
                     type: 'price_change',
                     timestamp: Date.now(),
                     metadata: JSON.stringify({ oldCost: old.cost, newCost: sub.cost, cycle: sub.cycle }),
-                });
+                }).catch(logDbError);
             }
             if (old.cycle !== sub.cycle) {
                 repo.insertEvent({
@@ -224,7 +270,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
                     type: 'cycle_change',
                     timestamp: Date.now(),
                     metadata: JSON.stringify({ oldCycle: old.cycle, newCycle: sub.cycle, cost: sub.cost }),
-                });
+                }).catch(logDbError);
             }
             if (old.active && !sub.active) {
                 repo.insertEvent({
@@ -234,7 +280,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
                     type: 'cancelled',
                     timestamp: Date.now(),
                     metadata: null,
-                });
+                }).catch(logDbError);
             }
             if (!old.active && sub.active) {
                 repo.insertEvent({
@@ -244,13 +290,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
                     type: 'reactivated',
                     timestamp: Date.now(),
                     metadata: null,
-                });
+                }).catch(logDbError);
             }
         }
-    }, [state.subs]);
+    }, []);
 
     const removeSub = useCallback((id: string) => {
-        const sub = state.subs.find(s => s.id === id);
+        const sub = subsRef.current.find(s => s.id === id);
         // Only log cancelled event if the sub is still active — if it was already
         // toggled inactive, updateSub already logged a cancelled event.
         if (sub?.active) {
@@ -261,41 +307,41 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
                 type: 'cancelled',
                 timestamp: Date.now(),
                 metadata: null,
-            });
+            }).catch(logDbError);
         }
         dispatch({ type: 'REMOVE_SUB', id });
-        repo.deleteSub(id);
-    }, [state.subs]);
+        repo.deleteSub(id).catch(logDbError);
+    }, []);
 
     const addIncome = useCallback((income: Income) => {
         dispatch({ type: 'ADD_INCOME', income });
-        repo.insertIncome(income);
+        repo.insertIncome(income).catch(logDbError);
     }, []);
 
     const updateIncome = useCallback((income: Income) => {
         dispatch({ type: 'UPDATE_INCOME', income });
-        repo.updateIncome(income);
+        repo.updateIncome(income).catch(logDbError);
     }, []);
 
     const removeIncome = useCallback((id: string) => {
         dispatch({ type: 'REMOVE_INCOME', id });
-        repo.deleteIncome(id);
+        repo.deleteIncome(id).catch(logDbError);
     }, []);
 
     const reorderSubs = useCallback((ids: string[]) => {
         dispatch({ type: 'REORDER_SUBS', ids });
-        repo.reorderSubs(ids);
+        repo.reorderSubs(ids).catch(logDbError);
     }, []);
 
     const decideTrial = useCallback((id: string, decision: 'kept' | 'cancelled') => {
         dispatch({ type: 'DECIDE_TRIAL', id, decision });
         // Write-through: update the sub in SQLite
-        const sub = state.subs.find(s => s.id === id);
+        const sub = subsRef.current.find(s => s.id === id);
         if (sub) {
             const updated = decision === 'kept'
                 ? { ...sub, isTrial: false, trialDecision: 'kept', active: true }
                 : { ...sub, isTrial: false, trialDecision: 'cancelled', active: false };
-            repo.updateSub(updated);
+            repo.updateSub(updated).catch(logDbError);
             repo.insertEvent({
                 id: `evt_${id}_${Date.now()}_trial`,
                 subscriptionId: id,
@@ -303,73 +349,73 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
                 type: decision === 'kept' ? 'reactivated' : 'cancelled',
                 timestamp: Date.now(),
                 metadata: JSON.stringify({ fromTrial: true }),
-            });
+            }).catch(logDbError);
         }
-    }, [state.subs]);
+    }, []);
 
     const addCategory = useCallback((category: Category) => {
         dispatch({ type: 'ADD_CATEGORY', category });
-        repo.upsertCategory(category);
+        repo.upsertCategory(category).catch(logDbError);
     }, []);
 
     const updateCategory = useCallback((category: Category) => {
         dispatch({ type: 'UPDATE_CATEGORY', category });
-        repo.upsertCategory(category);
+        repo.upsertCategory(category).catch(logDbError);
     }, []);
 
     const removeCategory = useCallback((id: string, reassignTo: string) => {
         dispatch({ type: 'REMOVE_CATEGORY', id, reassignTo });
-        repo.deleteCategory(id);
-        // Reassign subs in SQLite
-        (async () => {
-            const db = await (await import('./db')).getDb();
-            await db.runAsync('UPDATE subscriptions SET category_id=? WHERE category_id=?', reassignTo, id);
-        })();
+        repo.deleteCategory(id, reassignTo).catch(logDbError);
     }, []);
 
     const reorderCategories = useCallback((ids: string[]) => {
         dispatch({ type: 'REORDER_CATEGORIES', ids });
-        repo.reorderCategories(ids);
+        repo.reorderCategories(ids).catch(logDbError);
     }, []);
 
     const recordSnapshot = useCallback(() => {
-        const now = new Date();
-        const month = now.getMonth();
-        const year = now.getFullYear();
-        const activeSubs = state.subs.filter(s => s.active && !s.isTrial);
+        if (loadFailedRef.current) return;
         const { subMo } = require('@/utils/calc');
-        const totalMonthlyCost = activeSubs.reduce((sum: number, s: Sub) => sum + subMo(s), 0);
-        const categoryBreakdown: Record<string, number> = {};
-        activeSubs.forEach(s => {
-            categoryBreakdown[s.categoryId] = (categoryBreakdown[s.categoryId] || 0) + subMo(s);
-        });
-        const snapshot: SpendingSnapshot = {
-            id: `snap_${year}_${month}`,
-            month,
-            year,
-            totalMonthlyCost,
-            categoryBreakdown,
-            subscriptionCount: activeSubs.length,
-        };
-        repo.recordMonthlySnapshot(snapshot);
-        repo.getSpendingHistory().then(history => {
-            dispatch({ type: 'SET_SPENDING_HISTORY', history });
-        });
-    }, [state.subs]);
+        const snapshot = buildSnapshot(subsRef.current, new Date(), subMo);
+        repo.recordMonthlySnapshot(snapshot)
+            .then(() => repo.getSpendingHistory())
+            .then(history => dispatch({ type: 'SET_SPENDING_HISTORY', history }))
+            .catch(logDbError);
+    }, []);
+
+    // Keep this month's spending snapshot current (insights trend + past-month calendar),
+    // regardless of which tab is open. Debounced so bulk edits write once.
+    // Only fields that affect spending count: reordering must not trigger a DB write
+    // + history reload (and the extra re-render of every screen) right after a drop.
+    const spendKey = useMemo(
+        () => state.subs
+            .map(s => `${s.id}|${s.cost}|${s.cycle}|${s.customNum ?? ''}|${s.customUnit ?? ''}|${s.active}|${s.isTrial}|${s.categoryId}`)
+            .sort()
+            .join(';'),
+        [state.subs],
+    );
+    useEffect(() => {
+        if (!state.isLoaded) return;
+        const timer = setTimeout(recordSnapshot, 400);
+        return () => clearTimeout(timer);
+    }, [state.isLoaded, spendKey, recordSnapshot]);
+
+    const value = useMemo<Ctx>(() => ({
+        subs: state.subs,
+        incomes: state.incomes,
+        categories: state.categories,
+        spendingHistory: state.spendingHistory,
+        isLoaded: state.isLoaded,
+        addSub, updateSub, removeSub, reorderSubs,
+        addIncome, updateIncome, removeIncome,
+        decideTrial,
+        addCategory, updateCategory, removeCategory, reorderCategories,
+        recordSnapshot,
+    }), [state, addSub, updateSub, removeSub, reorderSubs, addIncome, updateIncome, removeIncome,
+        decideTrial, addCategory, updateCategory, removeCategory, reorderCategories, recordSnapshot]);
 
     return (
-        <StoreCtx.Provider value={{
-            subs: state.subs,
-            incomes: state.incomes,
-            categories: state.categories,
-            spendingHistory: state.spendingHistory,
-            isLoaded: state.isLoaded,
-            addSub, updateSub, removeSub, reorderSubs,
-            addIncome, updateIncome, removeIncome,
-            decideTrial,
-            addCategory, updateCategory, removeCategory, reorderCategories,
-            recordSnapshot,
-        }}>
+        <StoreCtx.Provider value={value}>
             {children}
         </StoreCtx.Provider>
     );

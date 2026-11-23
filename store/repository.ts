@@ -45,6 +45,18 @@ export async function deleteSub(id: string): Promise<void> {
     await db.runAsync('DELETE FROM subscriptions WHERE id=?', id);
 }
 
+/** Old rows stored the trial end as a day-of-month number; newer rows store 'YYYY-MM-DD'. */
+function legacyTrialEnd(v: unknown): string {
+    if (typeof v === 'number') {
+        if (v <= 0) return '';
+        const d = new Date();
+        const day = Math.max(d.getDate(), Math.min(v, 31));
+        const end = new Date(d.getFullYear(), d.getMonth(), day);
+        return `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')}`;
+    }
+    return typeof v === 'string' ? v : '';
+}
+
 function rowToSub(r: any): Sub {
     return {
         id: r.id,
@@ -57,9 +69,7 @@ function rowToSub(r: any): Sub {
         billDay: r.bill_day,
         startDate: r.start_date ?? undefined,
         isTrial: !!r.is_trial,
-        trialEndDay: typeof r.trial_end_day === 'number'
-            ? (r.trial_end_day > 0 ? (() => { const d = new Date(); d.setDate(d.getDate() + Math.max(0, r.trial_end_day - d.getDate())); return d.toISOString().split('T')[0]; })() : '')
-            : (r.trial_end_day || ''),
+        trialEndDay: legacyTrialEnd(r.trial_end_day),
         trialDecision: r.trial_decision,
         color: r.color,
         customNum: r.custom_num ?? undefined,
@@ -71,9 +81,11 @@ function rowToSub(r: any): Sub {
 
 export async function reorderSubs(ids: string[]): Promise<void> {
     const db = await getDb();
-    for (let i = 0; i < ids.length; i++) {
-        await db.runAsync('UPDATE subscriptions SET sort_order=? WHERE id=?', i, ids[i]);
-    }
+    await db.withTransactionAsync(async () => {
+        for (let i = 0; i < ids.length; i++) {
+            await db.runAsync('UPDATE subscriptions SET sort_order=? WHERE id=?', i, ids[i]);
+        }
+    });
 }
 
 // ─── INCOMES ────────────────────────────────
@@ -135,16 +147,24 @@ export async function upsertCategory(c: Category): Promise<void> {
     );
 }
 
-export async function deleteCategory(id: string): Promise<void> {
+/** Delete a category and move its subscriptions to `reassignTo`, atomically. */
+export async function deleteCategory(id: string, reassignTo?: string): Promise<void> {
     const db = await getDb();
-    await db.runAsync('DELETE FROM categories WHERE id=?', id);
+    await db.withTransactionAsync(async () => {
+        if (reassignTo) {
+            await db.runAsync('UPDATE subscriptions SET category_id=? WHERE category_id=?', reassignTo, id);
+        }
+        await db.runAsync('DELETE FROM categories WHERE id=?', id);
+    });
 }
 
 export async function reorderCategories(ids: string[]): Promise<void> {
     const db = await getDb();
-    for (let i = 0; i < ids.length; i++) {
-        await db.runAsync('UPDATE categories SET sort_order=? WHERE id=?', i, ids[i]);
-    }
+    await db.withTransactionAsync(async () => {
+        for (let i = 0; i < ids.length; i++) {
+            await db.runAsync('UPDATE categories SET sort_order=? WHERE id=?', i, ids[i]);
+        }
+    });
 }
 
 // ─── SETTINGS ──────────────────────────────

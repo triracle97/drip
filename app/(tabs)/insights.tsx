@@ -3,44 +3,34 @@ import CategoryBreakdownList from '@/components/CategoryBreakdownList';
 import IncomeCTA from '@/components/IncomeCTA';
 import IncomeSheet from '@/components/IncomeSheet';
 import LifetimeCostList from '@/components/LifetimeCostList';
-import ProSheet from '@/components/ProSheet';
-import type { ProFeatureKey } from '@/components/ProSheet';
 import SpendingChart from '@/components/SpendingChart';
 import { C, LAYOUT, R } from '@/constants/design';
 import { Category, useStore } from '@/store';
 import type { SubscriptionEvent } from '@/store/repository';
 import { getAllEvents } from '@/store/repository';
-import { useSettings } from '@/store/settings';
-import { AnalyticsEvents, track } from '@/lib/analytics';
 import { blended, budgetHealth, fmt, lifetimeCost, monthlyIncome, monthName, subMo } from '@/utils/calc';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Lock } from 'lucide-react-native';
 
 export default function InsightsScreen() {
     const insets = useSafeAreaInsets();
     const { t } = useTranslation();
-    const { subs, incomes, categories, spendingHistory, recordSnapshot } = useStore();
+    const { subs, incomes, categories, spendingHistory } = useStore();
     const catMap = useMemo(() => {
         const m: Record<string, Category> = {};
         categories.forEach(c => { m[c.id] = c; });
         return m;
     }, [categories]);
 
-    const activeSubs = subs.filter(s => s.active && !s.isTrial);
+    const activeSubs = useMemo(() => subs.filter(s => s.active && !s.isTrial), [subs]);
     const totalMo = activeSubs.reduce((sum, s) => sum + subMo(s), 0);
     const moIncome = monthlyIncome(incomes);
     const health = budgetHealth(totalMo, moIncome);
     const incomeRef = useRef<TrueSheet>(null);
-
-    // Record snapshot when active subs change (immediate calculation)
-    useEffect(() => {
-        recordSnapshot();
-    }, [subs, recordSnapshot]);
 
     // Category breakdown for current month
     const catBreakdown = useMemo(() => {
@@ -53,20 +43,28 @@ export default function InsightsScreen() {
             .sort((a, b) => b.amount - a.amount);
     }, [activeSubs]);
 
-    const [proFeature, setProFeature] = useState<ProFeatureKey | null>(null);
-    const isPro = useSettings(s => s.isPro);
-
     const rate = blended(incomes);
     const [allEvents, setAllEvents] = useState<SubscriptionEvent[]>([]);
 
+    // Re-read the event log whenever subscriptions change (price changes, cancels, ...).
     useEffect(() => {
-        getAllEvents().then(setAllEvents);
-    }, []);
+        let alive = true;
+        getAllEvents()
+            .then(evts => { if (alive) setAllEvents(evts); })
+            .catch(() => {});
+        return () => { alive = false; };
+    }, [subs]);
 
     const lifetimeEntries = useMemo(() => {
+        const bySub = new Map<string, SubscriptionEvent[]>();
+        for (const e of allEvents) {
+            const list = bySub.get(e.subscriptionId);
+            if (list) list.push(e);
+            else bySub.set(e.subscriptionId, [e]);
+        }
         return activeSubs
             .map(sub => {
-                const subEvents = allEvents.filter(e => e.subscriptionId === sub.id);
+                const subEvents = bySub.get(sub.id) ?? [];
                 const totalCost = lifetimeCost(subEvents, sub.cost, sub.cycle, sub.customNum, sub.customUnit);
                 const addedEvent = subEvents.find(e => e.type === 'added');
                 const monthsActive = addedEvent
@@ -100,8 +98,7 @@ export default function InsightsScreen() {
                     <SpendingChart history={spendingHistory} catMap={catMap} />
                 </Animated.View>
 
-                {isPro ? (
-                    <>
+                <>
                         {/* Category Breakdown */}
                         <Animated.View entering={FadeInDown.duration(300).delay(100)}>
                             <CategoryBreakdownList
@@ -155,23 +152,8 @@ export default function InsightsScreen() {
                         <Animated.View entering={FadeInDown.duration(300).delay(400)}>
                             <LifetimeCostList entries={lifetimeEntries} rate={rate} />
                         </Animated.View>
-                    </>
-                ) : (
-                    <Animated.View entering={FadeInDown.duration(300).delay(100)}>
-                        <TouchableOpacity onPress={() => { track(AnalyticsEvents.PRO_GATE_HIT, { feature: 'insights', source: 'insights_tab' }); setProFeature('insights'); }} activeOpacity={0.9} style={s.singlePaywallBox}>
-                            <View style={s.singlePaywallIconBg}>
-                                <Lock size={26} color={C.gold} strokeWidth={2.5} />
-                            </View>
-                            <Text style={s.singlePaywallTitle}>{t('calendar.proTitle') || 'Unlock Pro Insights'}</Text>
-                            <Text style={s.singlePaywallText}>{t('calendar.proDesc') || 'See categorical breakdowns, budget health, lifetime costs, and detailed analytics.'}</Text>
-                            <View style={s.singlePaywallBtn}>
-                                <Text style={s.singlePaywallBtnText}>{t('calendar.upgrade') || 'Get Pro'}</Text>
-                            </View>
-                        </TouchableOpacity>
-                    </Animated.View>
-                )}
+                </>
             </ScrollView>
-            <ProSheet feature={proFeature} onClose={() => setProFeature(null)} />
             <IncomeSheet ref={incomeRef} />
         </View>
     );

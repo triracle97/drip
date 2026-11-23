@@ -3,17 +3,16 @@ import AppearanceModal from "@/components/AppearanceModal";
 import BrandLogo from "@/components/BrandLogo";
 import Card from "@/components/Card";
 import CategoryModal from "@/components/CategoryModal";
-import type { ProFeatureKey } from "@/components/ProSheet";
-import ProSheet from "@/components/ProSheet";
 import { C, R } from "@/constants/design";
 import { getCurrency } from "@/constants/currencies";
 import { useReviewPrompt } from "@/hooks/useReviewPrompt";
 import { useNumberFormat } from "@/hooks/useNumberFormat";
+import { localPrice } from "@/lib/fx";
 import { AnalyticsEvents, track } from "@/lib/analytics";
 import { Sub, useStore } from "@/store";
 import { useSettings } from "@/store/settings";
 import { getPopularSubs, PopularSub } from "@/store/supabase";
-import { addDaysISO, blended, fmt, moEq, toHrs } from "@/utils/calc";
+import { addDaysISO, blended, fmt, moEq, parseLocalDate, toHrs, toLocalISO } from "@/utils/calc";
 import { TrueSheet } from "@lodev09/react-native-true-sheet";
 import React, {
   forwardRef,
@@ -89,13 +88,16 @@ const DEFAULT_FORM: Form = {
   cycle: "monthly",
   categoryId: "cat_other",
   billDay: "1",
-  startDate: new Date().toISOString().split("T")[0],
+  startDate: "", // filled with today's local date by makeDefaultForm()
   isTrial: false,
   trialDays: "14",
   customNum: "2",
   customUnit: "months",
   reminderDays: "",
 };
+
+/** Fresh form; computed on every open so the start date is never stale. */
+const makeDefaultForm = (): Form => ({ ...DEFAULT_FORM, startDate: toLocalISO(new Date()) });
 
 function cycleLabelFull(f: Form, t: (key: string) => string) {
   if (f.cycle === "custom")
@@ -157,7 +159,6 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
   const { t } = useTranslation();
   const { addSub, incomes, categories, subs } = useStore();
   const currency = useSettings((s) => s.currency);
-  const isPro = useSettings((s) => s.isPro);
   const { maybeRequestAfterAdd } = useReviewPrompt();
   const { formatNumber, parseFormatted } = useNumberFormat();
   const currencySymbol = getCurrency(currency).symbol;
@@ -166,8 +167,7 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
   const [popularSubs, setPopularSubs] = useState<PopularSub[]>([]);
   const [query, setQuery] = useState("");
   const [phase, setPhase] = useState<"pick" | "form">("pick");
-  const [f, setF] = useState<Form>({ ...DEFAULT_FORM });
-  const [proFeature, setProFeature] = useState<ProFeatureKey | null>(null);
+  const [f, setF] = useState<Form>(makeDefaultForm());
   const [cycleOpen, setCycleOpen] = useState(false);
   const [categoryOpen, setCategoryOpen] = useState(false);
 
@@ -192,7 +192,6 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
 
   // Keep a local ref so we can call dismiss() internally
   const sheetRef = useRef<TrueSheet>(null);
-  const pendingResume = useRef(false);
   const customNumRef = useRef<TextInput>(null);
 
   useEffect(() => {
@@ -219,29 +218,12 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
   );
   const canSave = f.name.trim() && parseFloat(f.cost) > 0;
 
-  // Re-present AddSubSheet after CongratsModal is dismissed
-  const showCongrats = useSettings((s) => s.showCongrats);
-  const skipNextReset = useRef(false);
-  useEffect(() => {
-    if (!showCongrats && pendingResume.current) {
-      pendingResume.current = false;
-      skipNextReset.current = true;
-      setTimeout(() => {
-        sheetRef.current?.present().catch(() => {});
-      }, 200);
-    }
-  }, [showCongrats]);
-
   // Reset state when sheet presents (skip if resuming after purchase)
   const handlePresent = useCallback(() => {
-    if (skipNextReset.current) {
-      skipNextReset.current = false;
-      return;
-    }
     getPopularSubs().then(setPopularSubs);
     setQuery("");
     setPhase("pick");
-    setF({ ...DEFAULT_FORM });
+    setF(makeDefaultForm());
     setCycleOpen(false);
   }, []);
 
@@ -264,35 +246,19 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
   }, [popularSubs, query]);
 
   const pickBrand = (q: PopularSub) => {
-    if (!isPro && subs.filter((s) => s.active || s.isTrial).length >= 2) {
-      track(AnalyticsEvents.PRO_GATE_HIT, {
-        feature: "subs",
-        source: "add_sub",
-      });
-      setProFeature("subs");
-      return;
-    }
     setF({
-      ...DEFAULT_FORM,
+      ...makeDefaultForm(),
       name: q.name,
       icon: q.icon,
       categoryId: q.category_id,
-      cost: String(q.default_cost),
+      cost: String(localPrice(q.default_cost, currency)),
       color: q.color,
     });
     setPhase("form");
   };
 
   const pickCustom = () => {
-    if (!isPro) {
-      track(AnalyticsEvents.PRO_GATE_HIT, {
-        feature: "customSub",
-        source: "add_sub",
-      });
-      setProFeature("customSub");
-      return;
-    }
-    setF({ ...DEFAULT_FORM });
+    setF(makeDefaultForm());
     setPhase("form");
   };
 
@@ -304,11 +270,11 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
   const save = () => {
     if (!canSave) return;
     const trialEnd = f.isTrial ? addDaysISO(parseInt(f.trialDays) || 0) : "";
-    const bd = f.startDate
-      ? new Date(f.startDate).getDate()
-      : parseInt(f.billDay) || 1;
+    const bd = parseLocalDate(f.startDate)?.getDate() ?? (parseInt(f.billDay) || 1);
+    // New subs go to the top of the list.
+    const minOrder = subs.reduce((m, s) => Math.min(m, s.sortOrder ?? 0), 0);
     const newSub: Sub = {
-      id: `s${Date.now()} `,
+      id: `s${Date.now()}`,
       name: f.name,
       icon: f.icon,
       cost: parseFloat(f.cost),
@@ -325,7 +291,7 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
         f.cycle === "custom" ? parseFloat(f.customNum) || 1 : undefined,
       customUnit: f.cycle === "custom" ? f.customUnit : undefined,
       reminderDays: f.reminderDays ? parseInt(f.reminderDays) : null,
-      sortOrder: 0,
+      sortOrder: minOrder - 1,
     };
     addSub(newSub);
     track(AnalyticsEvents.SUB_ADDED, {
@@ -767,7 +733,11 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
         </Field>
 
         {/* Trial toggle */}
-        <View
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => u("isTrial", !f.isTrial)}
+          accessibilityRole="switch"
+          accessibilityState={{ checked: f.isTrial }}
           style={[
             s.trialBox,
             {
@@ -799,7 +769,7 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
               thumbColor="#fff"
             />
           </View>
-        </View>
+        </TouchableOpacity>
 
         {f.isTrial && (
           <View style={s.trialDaysRow}>
@@ -1057,21 +1027,10 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
           )
         }
         onDidDismiss={() => {
-          // Check if this dismiss is from a purchase flow
-          const { pendingCongrats, setPendingCongrats, setShowCongrats } =
-            useSettings.getState();
-          if (pendingCongrats) {
-            // Don't reset state — we'll resume after congrats
-            pendingResume.current = true;
-            setPendingCongrats(false);
-            setTimeout(() => setShowCongrats(true), 200);
-            return;
-          }
-
-          // Normal dismiss — reset everything
+          // Reset everything
           setPhase("pick");
           setQuery("");
-          setF({ ...DEFAULT_FORM });
+          setF(makeDefaultForm());
           setCycleOpen(false);
           setCategoryOpen(false);
           setReminderOpen(false);
@@ -1099,12 +1058,6 @@ const AddSubSheet = forwardRef<TrueSheet>(function AddSubSheet(_props, ref) {
           {phase === "pick" ? renderPicker() : renderForm()}
         </KeyboardAvoidingView>
       </TrueSheet>
-
-      <ProSheet
-        feature={proFeature}
-        onClose={() => setProFeature(null)}
-        onPurchased={dismiss}
-      />
     </>
   );
 });

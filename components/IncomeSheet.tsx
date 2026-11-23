@@ -1,4 +1,5 @@
 import AnimatedPressable from '@/components/AnimatedPressable';
+import { getCurrency } from '@/constants/currencies';
 import { C, R, SP } from '@/constants/design';
 import { AnalyticsEvents, track } from '@/lib/analytics';
 import { useNumberFormat } from '@/hooks/useNumberFormat';
@@ -154,7 +155,7 @@ const IncomeSheet = forwardRef<TrueSheet>(function IncomeSheet(_props, ref) {
                     <View style={s.field}>
                         <Text style={s.fieldLabel}>{isHourly ? t('income.hourlyRateLabel') : t('income.annualSalaryLabel')}</Text>
                         <View style={s.dollarRow}>
-                            <Text style={s.dollarSign}>$</Text>
+                            <Text style={s.dollarSign}>{getCurrency(currency).symbol}</Text>
                             <TextInput
                                 style={[s.inp, { flex: 1, borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }]}
                                 value={formatNumber(rawAmount)}

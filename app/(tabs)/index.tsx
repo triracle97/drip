@@ -3,18 +3,15 @@ import AnimatedPressable from "@/components/AnimatedPressable";
 import Card from "@/components/Card";
 import EditSubSheet from "@/components/EditSubSheet";
 import IncomeSheet from "@/components/IncomeSheet";
-import type { ProFeatureKey } from "@/components/ProSheet";
-import ProSheet from "@/components/ProSheet";
 import SubRow from "@/components/SubRow";
 import Toast from "@/components/Toast";
 import TrialSheet from "@/components/TrialSheet";
 import { C, LAYOUT, R, SP, TS } from "@/constants/design";
 import { Sub, useStore } from "@/store";
 import { useSettings } from "@/store/settings";
-import { getPopularSubs, PopularSub } from "@/store/supabase";
+import { useToday } from "@/hooks/useToday";
 import {
   blended,
-  cycleDays,
   daysLabel,
   daysSinceTrialEnd,
   fmt,
@@ -26,18 +23,17 @@ import {
 import { TrueSheet } from "@lodev09/react-native-true-sheet";
 import React, {
   useCallback,
-  useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import DraggableFlatList, {
-  RenderItemParams,
-  ScaleDecorator,
-} from "react-native-draggable-flatlist";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import Animated, { FadeInDown, useAnimatedRef } from "react-native-reanimated";
+import Sortable, {
+  type SortableGridDragEndParams,
+  type SortableGridRenderItemInfo,
+} from "react-native-sortables";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Path } from "react-native-svg";
 
@@ -61,48 +57,28 @@ export default function HomeScreen() {
   const [trialSheet, setTrialSheet] = useState<Sub | null>(null);
   const [editSubId, setEditSubId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [proFeature, setProFeature] = useState<ProFeatureKey | null>(null);
-  const isPro = useSettings((s) => s.isPro);
   const addSheetRef = useRef<TrueSheet>(null);
   const incomeRef = useRef<TrueSheet>(null);
 
-  // ─── Sheet state ───
-  const [popularSubs, setPopularSubs] = useState<PopularSub[]>([]);
-  const [sheetPhase, setSheetPhase] = useState<"pick" | "form">("pick");
-  const [sheetQuery, setSheetQuery] = useState("");
-  const [sheetForm, setSheetForm] = useState({
-    name: "",
-    icon: "📦",
-    color: "#000000",
-    cost: "",
-    categoryId: "cat_other",
-  });
-
-  useEffect(() => {
-    getPopularSubs().then(setPopularSubs);
-  }, []);
-
-  const sheetFiltered = useMemo(() => {
-    if (!sheetQuery.trim()) return popularSubs;
-    const q = sheetQuery.toLowerCase();
-    return popularSubs.filter((s) => s.name.toLowerCase().includes(q));
-  }, [popularSubs, sheetQuery]);
-
   const rate = blended(incomes);
-  const activeTrials = subs.filter(
-    (s) =>
+  // Re-renders at midnight / on foreground so day counts and trial states stay current.
+  const today = useToday();
+  const isRunningTrial = useCallback(
+    (s: Sub) =>
+      s.active &&
       s.isTrial &&
       s.trialDecision === "pending" &&
-      trialDaysLeft(s.trialEndDay) > 0,
+      trialDaysLeft(s.trialEndDay, today) > 0,
+    [today],
   );
-  const expiredTrials = subs.filter(
-    (s) => s.isTrial && trialDaysLeft(s.trialEndDay) <= 0,
+  const activeTrials = useMemo(() => subs.filter(isRunningTrial), [subs, isRunningTrial]);
+  // Paying subs: active and not in a running free trial (an undecided trial that has
+  // ended is assumed to have converted, so it counts toward spend).
+  const active = useMemo(
+    () => subs.filter((s) => s.active && !isRunningTrial(s)),
+    [subs, isRunningTrial],
   );
-  const active = [
-    ...subs.filter((s) => s.active && !s.isTrial),
-    ...expiredTrials,
-  ];
-  const inactive = subs.filter((s) => !s.active && !s.isTrial);
+  const inactive = useMemo(() => subs.filter((s) => !s.active), [subs]);
   const totalMo = active.reduce((sum, s) => sum + subMo(s), 0);
   const displayTotal = viewPeriod === "yr" ? totalMo * 12 : totalMo;
   const totalIncomeMo = incomes.reduce((sum, i) => {
@@ -113,28 +89,11 @@ export default function HomeScreen() {
   }, 0);
   const pctIncome = totalIncomeMo > 0 ? (totalMo / totalIncomeMo) * 100 : 0;
 
-  const catBreakdown = useMemo(() => {
-    const bd: Record<string, number> = {};
-    active.forEach((s) => {
-      bd[s.categoryId] = (bd[s.categoryId] || 0) + subMo(s);
-    });
-    return Object.entries(bd).sort((a, b) => b[1] - a[1]);
-  }, [active]);
 
   const displaySubs = useMemo(() => {
     // Single unified list: active trials + active regular + expired trials
     // This preserves sortOrder positions across trial → paid transitions
-    const all = subs.filter((s) => {
-      if (
-        s.isTrial &&
-        s.trialDecision === "pending" &&
-        trialDaysLeft(s.trialEndDay) > 0
-      )
-        return true;
-      if (s.isTrial && trialDaysLeft(s.trialEndDay) <= 0) return true;
-      if (s.active && !s.isTrial) return true;
-      return false;
-    });
+    const all = subs.filter((s) => s.active);
     const filtered = filterCat
       ? all.filter((s) => s.categoryId === filterCat)
       : all;
@@ -142,77 +101,72 @@ export default function HomeScreen() {
   }, [subs, filterCat]);
 
   const isYr = viewPeriod === "yr";
+  const scrollRef = useAnimatedRef<Animated.ScrollView>();
+  const keyOf = useCallback((s: Sub) => s.id, []);
 
+  // Sortable.Grid keeps every row absolutely positioned on the UI thread, so the
+  // store update after a drop only confirms the order the user already sees —
+  // nothing re-lays out, nothing flickers.
   const handleDragEnd = useCallback(
-    ({ data }: { data: Sub[] }) => {
-      // Persist the full ordering: dragged items + non-active items
+    ({ data, fromIndex, toIndex }: SortableGridDragEndParams<Sub>) => {
+      if (fromIndex === toIndex) return;
       const activeIds = data.map((s) => s.id);
-      const otherIds = subs
-        .filter((s) => !activeIds.includes(s.id))
-        .map((s) => s.id);
+      const shown = new Set(activeIds);
+      // Keep subs that aren't in this list (cancelled / filtered out) after it.
+      const otherIds = subs.filter((s) => !shown.has(s.id)).map((s) => s.id);
       reorderSubs([...activeIds, ...otherIds]);
     },
     [subs, reorderSubs],
   );
 
   const renderItem = useCallback(
-    ({ item: s_, drag, isActive: isDragging }: RenderItemParams<Sub>) => {
+    ({ item: s_ }: SortableGridRenderItemInfo<Sub>) => {
       // Trial card
-      if (
-        s_.isTrial &&
-        s_.trialDecision === "pending" &&
-        trialDaysLeft(s_.trialEndDay) > 0
-      ) {
+      if (isRunningTrial(s_)) {
         const mc = subMo(s_);
-        const daysLeft = trialDaysLeft(s_.trialEndDay);
+        const daysLeft = trialDaysLeft(s_.trialEndDay, today);
         const displayCost = isYr ? mc * 12 : mc;
         return (
-          <ScaleDecorator>
-            <SubRow
-              name={s_.name}
-              icon={s_.icon}
-              color={s_.color}
-              costLabel={fmt(0)}
-              variant="trial"
-              trialDaysLeft={daysLeft}
-              trialCostLabel={`Then ${fmt(displayCost)}/${isYr ? "yr" : "mo"}`}
-              onPress={() => setTrialSheet(s_)}
-              onLongPress={drag}
-              isDragging={isDragging}
-            />
-          </ScaleDecorator>
+          <SubRow
+            name={s_.name}
+            icon={s_.icon}
+            color={s_.color}
+            costLabel={fmt(0)}
+            variant="trial"
+            trialDaysLeft={daysLeft}
+            trialCostLabel={`Then ${fmt(displayCost)}/${isYr ? "yr" : "mo"}`}
+            onPress={() => setTrialSheet(s_)}
+          />
         );
       }
       // Regular card
       const mc = subMo(s_);
       const displayCost = isYr ? mc * 12 : mc;
-      const remain = nextChargeIn(s_);
-      const total = cycleDays(s_);
+      const remain = nextChargeIn(s_, today);
       const urgent = remain <= 3;
       const justEndedTrial =
-        s_.isTrial && daysSinceTrialEnd(s_.trialEndDay) <= 5;
+        s_.isTrial &&
+        s_.trialDecision === "pending" &&
+        daysSinceTrialEnd(s_.trialEndDay, today) <= 5;
       return (
-        <ScaleDecorator>
-          <SubRow
-            name={s_.name}
-            icon={s_.icon}
-            color={s_.color}
-            costLabel={fmt(displayCost)}
-            costSub={`/${isYr ? "year" : "month"}`}
-            renewLabel={daysLabel(remain)}
-            hoursLabel={toHrs(displayCost, rate)}
-            urgent={urgent}
-            trialJustEnded={justEndedTrial}
-            onPress={() =>
-              justEndedTrial ? setTrialSheet(s_) : setEditSubId(s_.id)
-            }
-            onLongPress={drag}
-            isDragging={isDragging}
-          />
-        </ScaleDecorator>
+        <SubRow
+          name={s_.name}
+          icon={s_.icon}
+          color={s_.color}
+          costLabel={fmt(displayCost)}
+          costSub={`/${isYr ? "year" : "month"}`}
+          renewLabel={daysLabel(remain)}
+          hoursLabel={toHrs(displayCost, rate)}
+          urgent={urgent}
+          trialJustEnded={justEndedTrial}
+          onPress={() =>
+            justEndedTrial ? setTrialSheet(s_) : setEditSubId(s_.id)
+          }
+        />
       );
     },
-    [isYr, rate],
+    // currency / t: fmt() and labels read them, rows must re-render when they change
+    [isYr, rate, today, isRunningTrial, currency, t],
   );
 
   const ListHeader = useMemo(
@@ -302,6 +256,8 @@ export default function HomeScreen() {
       displaySubs.length,
       isYr,
       activeTrials,
+      currency,
+      t,
     ],
   );
 
@@ -328,7 +284,7 @@ export default function HomeScreen() {
         )}
       </>
     ),
-    [inactive, isYr, isPro, subs],
+    [inactive, currency, t],
   );
 
   return (
@@ -362,20 +318,33 @@ export default function HomeScreen() {
         </AnimatedPressable>
       </View>
 
-      <DraggableFlatList
-        data={displaySubs}
-        keyExtractor={(item, index) => item.id + index}
-        renderItem={renderItem}
-        onDragEnd={handleDragEnd}
-        ListHeaderComponent={ListHeader}
-        ListFooterComponent={ListFooter}
+      <Animated.ScrollView
+        ref={scrollRef}
         contentContainerStyle={{
           paddingHorizontal: LAYOUT.screenHPad,
           paddingBottom: LAYOUT.tabBarHeight + 128,
         }}
         showsVerticalScrollIndicator={false}
-        activationDistance={0}
-      />
+      >
+        {ListHeader}
+        <Sortable.Grid
+          data={displaySubs}
+          keyExtractor={keyOf}
+          renderItem={renderItem}
+          onDragEnd={handleDragEnd}
+          scrollableRef={scrollRef}
+          columns={1}
+          dragActivationDelay={250}
+          activeItemScale={1.03}
+          activeItemShadowOpacity={0.12}
+          inactiveItemOpacity={1}
+          inactiveItemScale={1}
+          dropAnimationDuration={220}
+          overDrag="vertical"
+          hapticsEnabled
+        />
+        {ListFooter}
+      </Animated.ScrollView>
 
       <TrialSheet sub={trialSheet} onClose={() => setTrialSheet(null)} />
 
@@ -385,7 +354,6 @@ export default function HomeScreen() {
 
       <Toast message={toast} />
       <IncomeSheet ref={incomeRef} />
-      <ProSheet feature={proFeature} onClose={() => setProFeature(null)} />
     </View>
   );
 }

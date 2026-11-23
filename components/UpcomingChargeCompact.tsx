@@ -36,7 +36,7 @@ export default function UpcomingChargeCompact({ name, icon, color, daysLeft, cos
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={s.name} numberOfLines={1}>{name}</Text>
-          <Text style={s.meta}>{t('upcoming.daysShort', { count: daysLeft })} · {cost}</Text>
+          <Text style={s.meta}>{daysLeft <= 0 ? t('time.today') : t('upcoming.daysShort', { count: daysLeft })} · {cost}</Text>
         </View>
       </View>
     </AnimatedPressable>

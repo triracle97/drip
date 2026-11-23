@@ -14,7 +14,9 @@ import {
     blended,
     fmt,
     moEq,
+    parseLocalDate,
     toHrs,
+    toLocalISO,
     trialDaysLeft,
 } from "@/utils/calc";
 import { TrueSheet } from "@lodev09/react-native-true-sheet";
@@ -130,7 +132,7 @@ export default function EditSubSheet({
     cycle: "monthly",
     categoryId: "cat_other",
     billDay: "1",
-    startDate: new Date().toISOString().split("T")[0],
+    startDate: toLocalISO(new Date()),
     isTrial: false,
     trialDays: "14",
     customNum: "2",
@@ -176,7 +178,7 @@ export default function EditSubSheet({
         categoryId: activeSub.categoryId || "cat_other",
         billDay: String(activeSub.billDay || "1"),
         startDate:
-          activeSub.startDate || new Date().toISOString().split("T")[0],
+          activeSub.startDate || toLocalISO(new Date()),
         isTrial: activeSub.isTrial || false,
         trialDays: String(
           activeSub.trialEndDay ? trialDaysLeft(activeSub.trialEndDay) : 14,
@@ -188,7 +190,7 @@ export default function EditSubSheet({
           activeSub.reminderDays != null ? String(activeSub.reminderDays) : "",
       });
       const timer = setTimeout(() => {
-        sheetRef.current?.present().catch(() => {});
+        sheetRef.current?.present().catch(() => onClose());
       }, 50);
       return () => clearTimeout(timer);
     }
@@ -216,10 +218,15 @@ export default function EditSubSheet({
     const original = subs.find((s) => s.id === id);
     if (!original) return;
 
-    const trialEnd = f.isTrial ? addDaysISO(parseInt(f.trialDays) || 0) : "";
-    const bd = f.startDate
-      ? new Date(f.startDate).getDate()
-      : parseInt(f.billDay) || 1;
+    // Only move the trial end date when the user actually changed the trial length,
+    // otherwise every save would reset it relative to today (and wipe an ended trial's date).
+    const days = parseInt(f.trialDays) || 0;
+    const trialEnd = !f.isTrial
+      ? ""
+      : original.isTrial && original.trialEndDay && days === trialDaysLeft(original.trialEndDay)
+        ? original.trialEndDay
+        : addDaysISO(days);
+    const bd = parseLocalDate(f.startDate)?.getDate() ?? (parseInt(f.billDay) || 1);
     updateSub({
       ...original,
       name: f.name,
@@ -236,12 +243,12 @@ export default function EditSubSheet({
       customNum:
         f.cycle === "custom" ? parseFloat(f.customNum) || 1 : undefined,
       customUnit: f.cycle === "custom" ? f.customUnit : undefined,
-      trialDecision:
-        f.isTrial && original.trialDecision === "none"
-          ? "pending"
-          : f.isTrial
-            ? original.trialDecision
-            : "none",
+      // Turning a trial on (again) starts a fresh, undecided trial.
+      trialDecision: !f.isTrial
+        ? "none"
+        : original.isTrial && original.trialDecision !== "none"
+          ? original.trialDecision
+          : "pending",
       reminderDays: f.reminderDays ? parseInt(f.reminderDays) : null,
     });
     track(AnalyticsEvents.SUB_EDITED, {
@@ -637,7 +644,11 @@ export default function EditSubSheet({
         </View>
 
         {/* Trial toggle */}
-        <View
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => u("isTrial", !f.isTrial)}
+          accessibilityRole="switch"
+          accessibilityState={{ checked: f.isTrial }}
           style={[
             s.trialBox,
             {
@@ -660,7 +671,7 @@ export default function EditSubSheet({
             trackColor={{ false: "rgba(0,0,0,0.16)", true: C.black }}
             thumbColor="#fff"
           />
-        </View>
+        </TouchableOpacity>
 
         {f.isTrial && (
           <View style={s.trialDaysRow}>

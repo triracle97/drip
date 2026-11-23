@@ -1,19 +1,20 @@
 import CongratsModal from '@/components/CongratsModal';
-import OnboardingSheet from '@/components/OnboardingSheet';
+import Onboarding from '@/components/onboarding/Onboarding';
+import Paywall from '@/components/Paywall';
 import { C } from '@/constants/design';
-import { useRevenueCat } from '@/hooks/useRevenueCat';
 import '@/i18n';
 import i18n, { resolveLanguage } from '@/i18n';
-import { getAmplitudeUserId, getDeviceId, identify, initAnalytics, setUserProperties } from '@/lib/analytics';
+import { analyticsReady, initAnalytics, setUserProperties } from '@/lib/analytics';
 import { StoreProvider, useStore } from '@/store';
+import { initPurchases, selectHasAccess, usePurchases } from '@/store/purchases';
 import { useSettings } from '@/store/settings';
-import { rescheduleAllNotifications } from '@/utils/notifications';
+import { blended } from '@/utils/calc';
+import { hasPermission, rescheduleAllNotifications } from '@/utils/notifications';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useRef } from 'react';
-import { ActivityIndicator, AppState, Platform, Text, TextInput, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, AppState, Text, TextInput, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import Purchases, { LOG_LEVEL, STOREKIT_VERSION } from 'react-native-purchases';
 import 'react-native-reanimated';
 
 // Prevent system font scaling from affecting the app
@@ -25,17 +26,8 @@ if ((TextInput as any).defaultProps == null) (TextInput as any).defaultProps = {
 (TextInput as any).defaultProps.allowFontScaling = false;
 (TextInput as any).defaultProps.maxFontSizeMultiplier = 1;
 
-// Configure RevenueCat synchronously at module level — before any component mounts
-const rcApiKey = Platform.OS === 'ios'
-  ? process.env.EXPO_PUBLIC_RC_API_KEY
-  : process.env.EXPO_PUBLIC_RC_GOOGLE_API_KEY;
-if (rcApiKey) {
-  Purchases.setLogLevel(__DEV__ ? LOG_LEVEL.DEBUG : LOG_LEVEL.INFO);
-  Purchases.configure({
-    apiKey: rcApiKey,
-    ...(Platform.OS === 'ios' && { storeKitVersion: STOREKIT_VERSION.STOREKIT_2 }),
-  });
-}
+// Configure RevenueCat once, before any component mounts
+initPurchases();
 
 // Initialize Amplitude analytics
 initAnalytics();
@@ -44,52 +36,53 @@ export const unstable_settings = {
   anchor: '(tabs)',
 };
 
+/** Max time to wait for RevenueCat on a cold start before showing the paywall. */
+const ACCESS_WAIT_MS = 4000;
+
 function AppContent() {
-  const { isLoaded, subs } = useStore();
-  const { notificationsEnabled, notificationTime, _hydrated, language, firstOpenDate, setFirstOpenDate } = useSettings();
-  const appState = useRef(AppState.currentState);
+  const { isLoaded, subs, incomes } = useStore();
+  const { notificationsEnabled, notificationTime, _hydrated, language, firstOpenDate, setFirstOpenDate, hasOnboarded } = useSettings();
+  const cachedAccess = useSettings(s => s.isPro);
+  const cachedExpiresAt = useSettings(s => s.accessExpiresAt);
+  const hasAccess = usePurchases(s => selectHasAccess(s, cachedAccess, cachedExpiresAt));
+  const purchasesReady = usePurchases(s => s.ready);
+  const access = usePurchases(s => s.access);
+  // Drip's own trial: remind the day before it converts (only while it will renew).
+  const appTrialEndsAt = access.kind === 'trial' && access.willRenew ? access.expiresAt : null;
+  const [waitedForAccess, setWaitedForAccess] = useState(false);
 
-  const { isPro, customerInfo } = useRevenueCat();
-
-  // Two-way identity sync: Amplitude ↔ RevenueCat
+  // Amplitude user properties. (The Amplitude ↔ RevenueCat ID link is handled
+  // in store/purchases.ts → syncAmplitudeIdentity, after Amplitude is ready.)
   useEffect(() => {
-    if (!customerInfo?.originalAppUserId) return;
+    let alive = true;
+    analyticsReady().then(ok => {
+      if (alive && ok) setUserProperties({ isPro: hasAccess, language });
+    });
+    return () => { alive = false; };
+  }, [hasAccess, language]);
 
-    const rcUserId = customerInfo.originalAppUserId;
-
-    // 1. Set Amplitude userId = RC App User ID so client events are merged
-    identify(rcUserId);
-
-    // 2. Set RC subscriber attributes with Amplitude identifiers
-    //    so RevenueCat server-side events land on the right Amplitude user
-    const amplitudeDeviceId = getDeviceId();
-    const amplitudeUserId = getAmplitudeUserId() ?? rcUserId;
-
-    const attrs: Record<string, string> = {
-      $amplitudeUserId: amplitudeUserId,
-    };
-    if (amplitudeDeviceId) {
-      attrs.$amplitudeDeviceId = amplitudeDeviceId;
-    }
-    Purchases.setAttributes(attrs);
-
-    setUserProperties({ isPro, language });
-  }, [customerInfo, isPro, language]);
-
+  // Reminders: rebuild whenever data / settings change (calls are coalesced).
+  const rate = blended(incomes);
   useEffect(() => {
-    if (!isLoaded) return;
-    // Reschedule on initial load
-    rescheduleAllNotifications(subs, notificationsEnabled, notificationTime);
+    if (!isLoaded || !_hydrated) return;
+    rescheduleAllNotifications(subs, notificationsEnabled, notificationTime, rate, appTrialEndsAt);
+  }, [isLoaded, _hydrated, subs, notificationsEnabled, notificationTime, rate, appTrialEndsAt]);
 
-    // Reschedule when app comes to foreground
-    const sub = AppState.addEventListener('change', nextState => {
-      if (appState.current.match(/inactive|background/) && nextState === 'active') {
-        rescheduleAllNotifications(subs, notificationsEnabled, notificationTime);
+  // On foreground: dates have moved on (new day → new reminder window), and the
+  // user may have revoked notification permission in system Settings.
+  useEffect(() => {
+    if (!isLoaded || !_hydrated) return;
+    const sub = AppState.addEventListener('change', async next => {
+      if (next !== 'active') return;
+      const st = useSettings.getState();
+      if (st.notificationsEnabled && !(await hasPermission())) {
+        st.setNotificationsEnabled(false);
+        return; // the settings change re-runs the effect above
       }
-      appState.current = nextState;
+      rescheduleAllNotifications(subs, st.notificationsEnabled, st.notificationTime, rate, appTrialEndsAt);
     });
     return () => sub.remove();
-  }, [isLoaded, subs, notificationsEnabled, notificationTime]);
+  }, [isLoaded, _hydrated, subs, rate, appTrialEndsAt]);
 
   useEffect(() => {
     if (!_hydrated) return;
@@ -104,9 +97,18 @@ function AppContent() {
     if (_hydrated && !firstOpenDate) {
       setFirstOpenDate(new Date().toISOString());
     }
-  }, [_hydrated, firstOpenDate]);
+  }, [_hydrated, firstOpenDate, setFirstOpenDate]);
 
-  if (!isLoaded || !_hydrated) {
+  // Don't flash the paywall at paying users while RevenueCat is still loading.
+  useEffect(() => {
+    if (purchasesReady) return;
+    const timer = setTimeout(() => setWaitedForAccess(true), ACCESS_WAIT_MS);
+    return () => clearTimeout(timer);
+  }, [purchasesReady]);
+
+  const accessResolved = purchasesReady || cachedAccess || waitedForAccess;
+
+  if (!isLoaded || !_hydrated || (hasOnboarded && !accessResolved)) {
     return (
       <View style={{ flex: 1, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' }}>
         <ActivityIndicator size="small" color={C.t3} />
@@ -116,10 +118,16 @@ function AppContent() {
 
   return (
     <>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      </Stack>
-      <OnboardingSheet />
+      {!hasOnboarded ? (
+        <Onboarding />
+      ) : hasAccess ? (
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        </Stack>
+      ) : (
+        // Hard paywall: rendered instead of the app, so no tab or deep link is reachable.
+        <Paywall />
+      )}
       <CongratsModal />
       <StatusBar style="dark" />
     </>

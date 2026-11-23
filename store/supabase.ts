@@ -20,7 +20,13 @@ let _cache: PopularSub[] | null = null;
 let _cacheTime = 0;
 const CACHE_TTL = 1000 * 60 * 60; // 1 hour
 
+/** True until real project credentials are configured above. */
+const SUPABASE_CONFIGURED = !SUPABASE_URL.includes("your-project");
+
 export async function getPopularSubs(): Promise<PopularSub[]> {
+  // Not configured: skip a network round-trip that can only fail (slow on bad networks).
+  if (!SUPABASE_CONFIGURED) return FALLBACK_POPULAR;
+
   // Return cache if fresh
   if (_cache && Date.now() - _cacheTime < CACHE_TTL) {
     return _cache;

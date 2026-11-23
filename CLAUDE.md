@@ -39,6 +39,19 @@ store/             # State management: index.tsx (context), db.ts, repository.ts
 utils/             # calc.ts (cost/time math, formatters), categories.ts (defaults)
 ```
 
+## Monetization (hard paywall)
+
+- No free tier. New installs: onboarding (`components/onboarding/Onboarding.tsx`) → hard paywall (`components/Paywall.tsx`) → app. Gate lives in `app/_layout.tsx`.
+- Plans: $5/month and $30/year auto-renewing, each with a store-managed 3-day free trial. Products must be in the current RevenueCat offering as MONTHLY/ANNUAL packages, mapped to the `pro` entitlement.
+- Access rules in `lib/entitlements.ts` (`resolveAccess`): active `pro` entitlement, or any legacy one-time (non-subscription) purchase = grandfathered lifetime. Expired subscriptions never grant access.
+- RevenueCat state is a single zustand store (`store/purchases.ts`, `initPurchases()` once at module load). Don't call `Purchases.*` from components; use the store / `useRevenueCat()`.
+- Access is cached in `store/settings.ts` (`isPro`, `accessKind`) so paying users get in offline.
+
+## Testing
+
+- `yarn test` (Jest + jest-expo + RNTL), `yarn typecheck`, `yarn lint`. Tests live in `__tests__/`; native modules are mocked in `jest.setup.ts`.
+- Dates: subscription dates are LOCAL `YYYY-MM-DD`. Use `parseLocalDate` / `toLocalISO` / `daysBetween` from `utils/calc.ts`, never `new Date('YYYY-MM-DD')` or `toISOString()`.
+
 ## Key Patterns
 
 - **Write-through persistence**: State updates dispatch to reducer AND call repository functions simultaneously

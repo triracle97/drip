@@ -10,19 +10,22 @@ export default function Toast({ message }: Props) {
     const opacity = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
-        if (message) {
-            Animated.sequence([
-                Animated.timing(opacity, { toValue: 1, duration: 200, useNativeDriver: true }),
-                Animated.delay(1600),
-                Animated.timing(opacity, { toValue: 0, duration: 200, useNativeDriver: true }),
-            ]).start();
-        }
-    }, [message]);
+        if (!message) return;
+        opacity.setValue(0);
+        const anim = Animated.sequence([
+            Animated.timing(opacity, { toValue: 1, duration: 200, useNativeDriver: true }),
+            Animated.delay(1800),
+            Animated.timing(opacity, { toValue: 0, duration: 300, useNativeDriver: true }),
+        ]);
+        anim.start();
+        return () => anim.stop();
+    }, [message, opacity]);
 
     if (!message) return null;
 
     return (
-        <Animated.View style={[s.toast, { opacity }]}>
+        // Never intercept touches — the toast stays mounted (invisible) after fading out.
+        <Animated.View pointerEvents="none" style={[s.toast, { opacity }]}>
             <Text style={s.text}>{message}</Text>
         </Animated.View>
     );

@@ -1,6 +1,4 @@
 import AnimatedPressable from "@/components/AnimatedPressable";
-import ProBadge from "@/components/ProBadge";
-import ProSheet, { ProFeatureKey } from "@/components/ProSheet";
 import { C, R } from "@/constants/design";
 import { useStore } from "@/store";
 import { useSettings } from "@/store/settings";
@@ -17,7 +15,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Lock, Pencil } from "lucide-react-native";
+import { Pencil } from "lucide-react-native";
 import Svg, { Path } from "react-native-svg";
 
 const PRESET_COLORS = [
@@ -56,11 +54,9 @@ export default function CategoryModal({
 }: Props) {
   const { t } = useTranslation();
   const { categories, addCategory, updateCategory } = useStore();
-  const isPro = useSettings((s) => s.isPro);
 
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [proFeature, setProFeature] = useState<ProFeatureKey | null>(null);
   const [newName, setNewName] = useState("");
   const [newColor, setNewColor] = useState(PRESET_COLORS[0]);
 
@@ -229,10 +225,6 @@ export default function CategoryModal({
 
                   <TouchableOpacity
                     onPress={() => {
-                      if (!isPro) {
-                        setProFeature("categories");
-                        return;
-                      }
                       setAdding(true);
                       setEditingId(null);
                       setNewName("");
@@ -251,7 +243,6 @@ export default function CategoryModal({
                         {t("categories.addCategory")}
                       </Text>
                     </View>
-                    {!isPro && <Lock size={16} color={C.gold} strokeWidth={2.5} />}
                   </TouchableOpacity>
                 </>
               )}
@@ -343,7 +334,6 @@ export default function CategoryModal({
           )}
         </View>
       </KeyboardAvoidingView>
-      <ProSheet feature={proFeature} onClose={() => setProFeature(null)} />
     </Modal>
   );
 }

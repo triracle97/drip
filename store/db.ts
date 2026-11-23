@@ -2,14 +2,26 @@ import * as SQLite from 'expo-sqlite';
 
 const DB_NAME = 'drip.db';
 
-let _db: SQLite.SQLiteDatabase | null = null;
+let _dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
-export async function getDb(): Promise<SQLite.SQLiteDatabase> {
-    if (_db) return _db;
-    _db = await SQLite.openDatabaseAsync(DB_NAME);
-    await _db.execAsync('PRAGMA journal_mode = WAL;');
-    await migrate(_db);
-    return _db;
+/**
+ * Open + migrate the database exactly once. The promise is shared so concurrent
+ * callers (e.g. the four parallel loads at startup) never open the file or run
+ * migrations more than once at the same time.
+ */
+export function getDb(): Promise<SQLite.SQLiteDatabase> {
+    if (!_dbPromise) {
+        _dbPromise = (async () => {
+            const db = await SQLite.openDatabaseAsync(DB_NAME);
+            await db.execAsync('PRAGMA journal_mode = WAL;');
+            await migrate(db);
+            return db;
+        })().catch((e) => {
+            _dbPromise = null; // allow a retry on the next call
+            throw e;
+        });
+    }
+    return _dbPromise;
 }
 
 async function migrate(db: SQLite.SQLiteDatabase) {

@@ -6,7 +6,7 @@ import { useReviewPrompt } from '@/hooks/useReviewPrompt';
 import { AnalyticsEvents, track } from '@/lib/analytics';
 import { Sub, useStore } from '@/store';
 import { useSettings } from '@/store/settings';
-import { blended, fmt, subMo, toHrs, trialDaysLeft } from '@/utils/calc';
+import { blended, daysBetween, fmt, parseLocalDate, subMo, toHrs, trialDaysLeft } from '@/utils/calc';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -34,7 +34,7 @@ export default function TrialSheet({ sub: t, onClose }: Props) {
     useEffect(() => {
         if (t) {
             const timer = setTimeout(() => {
-                sheetRef.current?.present().catch(() => { });
+                sheetRef.current?.present().catch(() => onClose());
                 track(AnalyticsEvents.TRIAL_VIEWED, { name: t.name, days_left: trialDaysLeft(t.trialEndDay) });
             }, 50);
             return () => clearTimeout(timer);
@@ -45,7 +45,11 @@ export default function TrialSheet({ sub: t, onClose }: Props) {
 
     const mc = t ? subMo(t) : 0;
     const daysLeft = t ? trialDaysLeft(t.trialEndDay) : 0;
-    const pct = Math.max(0, Math.min(1, 1 - daysLeft / 14));
+    // Real trial length (start → end); older trials without a start date assume 14 days.
+    const start = t ? parseLocalDate(t.startDate) : null;
+    const end = t ? parseLocalDate(t.trialEndDay) : null;
+    const totalDays = start && end ? Math.max(1, daysBetween(start, end)) : 14;
+    const pct = Math.max(0, Math.min(1, 1 - daysLeft / totalDays));
     const circumference = 2 * Math.PI * 16;
 
     const handleDecide = (decision: 'kept' | 'cancelled') => {

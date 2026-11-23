@@ -46,7 +46,7 @@ export default function UpcomingChargeHero({ name, icon, color, cost, date, days
           <Text style={s.hours}>{hoursLabel}</Text>
           <View style={[s.pill, { backgroundColor: urgent ? `${C.red}18` : `${color}15` }]}>
             <Text style={[s.pillText, { color: urgent ? C.red : C.t2 }]}>
-              {daysLeft <= 1 ? t('upcoming.tomorrow') : t('upcoming.days', { count: daysLeft })}
+              {daysLeft <= 0 ? t('time.today') : daysLeft === 1 ? t('upcoming.tomorrow') : t('upcoming.days', { count: daysLeft })}
             </Text>
           </View>
         </View>
